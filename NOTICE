@@ -1,0 +1,9 @@
+umn-async-utils
+Copyright 2020-present Michael Hall
+
+umn-async-utils contains standalone tools which were devloped while working on Unified Moderation Network (https://github.com/unified-moderation-network/)
+
+umn-async-utils contains code which may be considered derivative of CPython.
+Files including code of this nature are marked as much and a copy of CPython's License
+should be included with any redistribution of this project or those individual files.
+CPython's License is also available online (<https://github.com/python/cpython/blob/main/LICENSE>)
