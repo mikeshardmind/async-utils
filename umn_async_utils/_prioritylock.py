@@ -110,8 +110,6 @@ class PriorityLock:
         self.release()
 
     async def acquire(self):
-        if self._loop is not asyncio.get_running_loop():
-            raise RuntimeError("This lock can't be reused between event loops.")
 
         if not self._locked and all(
             wait_entry.future.cancelled() for wait_entry in self._waiters
