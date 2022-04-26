@@ -90,10 +90,9 @@ class PriorityLock:
         loop = asyncio._get_running_loop()  # type: ignore  # private usage of function documented for low level use
 
         if self._loop is None:
+            # check above is cheap, but we need to re-check under lock
             with _thread_lock:
-                if (
-                    self._loop is None
-                ):  # check above is cheap, but we need to re-check under lock
+                if self._loop is None:
                     self._loop = loop
         if self._loop is not loop:
             raise RuntimeError(
@@ -152,9 +151,9 @@ class PriorityLock:
         if not self._waiters:
             return
         try:
-            wait_entry = next(
-                iter(self._waiters)
-            )  # the 0th element of a heap is always also the heap minimum
+            # the 0th element of a heap is always also the heap minimum
+            # the same does not hold for all indices
+            wait_entry = next(iter(self._waiters))
         except StopIteration:
             return
 
