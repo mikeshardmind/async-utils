@@ -112,7 +112,7 @@ class PriorityLock:
     async def acquire(self):
 
         if not self._locked and all(
-            wait_entry.future.cancelled() for wait_entry in self._waiters
+            wait_entry.future.done() for wait_entry in self._waiters
         ):
             # Under the assumption that the lock is not contested 100% of the time
             # this is better than removal + re-heapifying each time
