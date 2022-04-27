@@ -31,7 +31,7 @@ import threading
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from functools import total_ordering
-from heapq import heappush
+from heapq import heapify, heappush
 from itertools import count
 from types import TracebackType
 from typing import Any, Literal
@@ -76,8 +76,6 @@ class PriorityLock:
     Many of the design choices will appear similar the same as a result.
 
     This is not a fair lock by design, and is intended to have things which are more important take precedence.
-
-    This lock assumes that there will be instances where it will be acquired without contention at least periodically
     """
 
     def __init__(self):
@@ -112,12 +110,8 @@ class PriorityLock:
     async def acquire(self):
 
         if not self._locked and all(
-            wait_entry.future.done() for wait_entry in self._waiters
+            wait_entry.future.cancelled() for wait_entry in self._waiters
         ):
-            # Under the assumption that the lock is not contested 100% of the time
-            # this is better than removal + re-heapifying each time
-            # the lock is aquired in the alternative case.
-            self._waiters.clear()
             self._locked = True
             return True
 
@@ -128,7 +122,11 @@ class PriorityLock:
         heappush(self._waiters, waiter)
 
         try:
-            await fut
+            try:
+                await fut
+            finally:
+                self._waiters.remove(waiter)
+                heapify(self._waiters)
         except asyncio.CancelledError:
             if not self._locked:
                 self._wake_up_first()
