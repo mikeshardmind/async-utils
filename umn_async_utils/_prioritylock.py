@@ -22,7 +22,7 @@
 # You may find a full copy of the license of CPython included in the project root as well as online at
 # <https://github.com/python/cpython/blob/main/LICENSE>
 # and the specific Lock which is being implemented with a modification in behavior online at
-# <
+# <https://github.com/python/cpython/blob/3.10/Lib/asyncio/locks.py>
 
 from __future__ import annotations
 
@@ -49,9 +49,9 @@ _priority = ContextVar("_priority", default=1)
 class WaitEntry:
     __slots__ = ("priority", "count", "future")
 
-    def __init__(self, future: asyncio.Future[Literal[True]], c: int = -1, /):
+    def __init__(self, future: asyncio.Future[Literal[True]], /):
         self.priority = _priority.get()
-        self.count = next(_global_counter) if c == -1 else c
+        self.count = next(_global_counter)
         self.future: asyncio.Future[Literal[True]] = future
 
     def __lt__(self, other: Any):
@@ -78,6 +78,8 @@ class PriorityLock:
 
     This is not a fair lock by design, and is intended to have things which are more important take precedence.
     """
+
+    __slots__ = ("_waiters", "_loop", "_locked")
 
     def __init__(self):
         self._waiters: list[WaitEntry] = []
@@ -170,8 +172,9 @@ class PriorityLock_2:
     The per-aquisition time should be shorter in most cases, but it requires a bit more space per lock.
     """
 
+    __slots__ = ("_waiting_heap", "_waiters", "_loop", "_locked")
+
     def __init__(self):
-        self._counter = count()
         self._waiting_heap: list[WaitEntry] = []
         self._waiters: deque[WaitEntry] = deque()
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -214,14 +217,13 @@ class PriorityLock_2:
                     # sorting is faster in this case, see heapq source
                     self._waiters.extend(sorted(self._waiting_heap))
                     self._waiting_heap.clear()
-                    self._counter = count()
                 else:
                     self._waiters.extend(heappop(self._waiting_heap) for _ in range(10))
 
         loop = self._get_event_loop()
 
         fut = loop.create_future()
-        waiter = WaitEntry(fut, next(self._counter))
+        waiter = WaitEntry(fut)
         heappush(self._waiting_heap, waiter)
 
         try:
