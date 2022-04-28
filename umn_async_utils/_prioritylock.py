@@ -28,10 +28,11 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from collections import deque
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from functools import total_ordering
-from heapq import heapify, heappush
+from heapq import heapify, heappop, heappush
 from itertools import count
 from types import TracebackType
 from typing import Any, Literal
@@ -48,9 +49,9 @@ _priority = ContextVar("_priority", default=1)
 class WaitEntry:
     __slots__ = ("priority", "count", "future")
 
-    def __init__(self, future: asyncio.Future[Literal[True]], /):
+    def __init__(self, future: asyncio.Future[Literal[True]], c: int = -1, /):
         self.priority = _priority.get()
-        self.count = next(_global_counter)
+        self.count = next(_global_counter) if c == -1 else c
         self.future: asyncio.Future[Literal[True]] = future
 
     def __lt__(self, other: Any):
@@ -149,6 +150,105 @@ class PriorityLock:
         try:
             # the 0th element of a heap is always also the heap minimum
             # the same does not hold for all indices
+            wait_entry = next(iter(self._waiters))
+        except StopIteration:
+            return
+
+        if not wait_entry.future.done():
+            wait_entry.future.set_result(True)
+
+
+class PriorityLock_2:
+    """
+    This implements the same interface as asyncio.Lock
+    Many of the design choices will appear similar the same as a result.
+
+    This is not a fair lock by design, and is intended to have things which are more important take precedence.
+
+    This implementation might replace the above after more tuning or might be exported, but isn't exported yet.
+
+    The per-aquisition time should be shorter in most cases, but it requires a bit more space per lock.
+    """
+
+    def __init__(self):
+        self._counter = count()
+        self._waiting_heap: list[WaitEntry] = []
+        self._waiters: deque[WaitEntry] = deque()
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._locked: bool = False
+
+    # this type is a slight lie, but when only called from async functions as below, it's correct.
+    def _get_event_loop(self) -> asyncio.AbstractEventLoop:
+        loop = asyncio._get_running_loop()  # type: ignore  # private usage of function documented for low level use
+
+        if self._loop is None:
+            # check above is cheap, but we need to re-check under lock
+            with _thread_lock:
+                if self._loop is None:
+                    self._loop = loop
+        if self._loop is not loop:
+            raise RuntimeError(
+                "Something something don't reuse locks between event loops."
+            )
+        return loop
+
+    async def __aenter__(self):
+        await self.acquire()
+        return None
+
+    async def __aexit__(
+        self, exc_type: type[Exception], exc: Exception, tb: TracebackType
+    ):
+        self.release()
+
+    async def acquire(self):
+
+        if not self._locked and all(
+            wait_entry.future.cancelled() for wait_entry in self._waiters
+        ):
+            if not self._waiting_heap:
+                self._locked = True
+                return True
+            else:
+                if len(self._waiting_heap) <= 10:
+                    # sorting is faster in this case, see heapq source
+                    self._waiters.extend(sorted(self._waiting_heap))
+                    self._waiting_heap.clear()
+                    self._counter = count()
+                else:
+                    self._waiters.extend(heappop(self._waiting_heap) for _ in range(10))
+
+        loop = self._get_event_loop()
+
+        fut = loop.create_future()
+        waiter = WaitEntry(fut, next(self._counter))
+        heappush(self._waiting_heap, waiter)
+
+        try:
+            try:
+                await fut
+            finally:
+                self._waiters.remove(waiter)
+        except asyncio.CancelledError:
+            if not self._locked:
+                self._wake_up_first()
+            raise
+
+        self._locked = True
+        return True
+
+    def release(self):
+
+        if self._locked:
+            self._locked = False
+            self._wake_up_first()
+        else:
+            raise RuntimeError("Lock is not acquired.")
+
+    def _wake_up_first(self):
+        if not self._waiters:
+            return
+        try:
             wait_entry = next(iter(self._waiters))
         except StopIteration:
             return
