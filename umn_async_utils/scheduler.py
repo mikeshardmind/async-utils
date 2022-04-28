@@ -20,6 +20,9 @@ from time import time
 from types import TracebackType
 from typing import Generic, TypeVar
 
+__all__ = ("Scheduler",)
+
+
 T = TypeVar("T")
 
 

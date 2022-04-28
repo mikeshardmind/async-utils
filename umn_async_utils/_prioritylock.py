@@ -44,6 +44,8 @@ _thread_lock = threading.Lock()
 _global_counter = count()
 _priority = ContextVar("_priority", default=1)
 
+__all__ = ()
+
 
 @total_ordering
 class WaitEntry:

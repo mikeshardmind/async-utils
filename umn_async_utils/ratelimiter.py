@@ -20,6 +20,8 @@ import time
 from collections import deque
 from types import TracebackType
 
+__all__ = ("RateLimiter",)
+
 
 class RateLimiter:
     """

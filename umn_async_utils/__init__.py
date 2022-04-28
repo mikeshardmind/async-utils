@@ -13,21 +13,4 @@
 #   limitations under the License.
 
 
-__version__ = "1.5.3"
-
-__all__ = (
-    "__version__",
-    "PriorityLock",
-    "RateLimiter",
-    "Scheduler",
-    "Waterfall",
-    "priority",
-    "taskcache",
-)
-
-
-from ._prioritylock import PriorityLock, priority
-from ._ratelimiter import RateLimiter as RateLimiter
-from ._scheduler import Scheduler as Scheduler
-from ._task_cache import taskcache as taskcache
-from ._waterfall import Waterfall as Waterfall
+__version__ = "2.0.0"
