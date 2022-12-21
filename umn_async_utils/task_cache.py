@@ -18,6 +18,8 @@ import asyncio
 from functools import partial
 from typing import Any, Callable, Coroutine, ParamSpec, TypeVar
 
+from ._cpython_stuff import make_key  # type: ignore
+
 __all__ = ("taskcache",)
 
 
@@ -43,10 +45,10 @@ def taskcache(
         coro: Callable[P, Coroutine[Any, Any, T]]
     ) -> Callable[P, asyncio.Task[T]]:
 
-        internal_cache: dict[tuple[Any, Any], asyncio.Task[T]] = {}
+        internal_cache: dict[Any, asyncio.Task[T]] = {}
 
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[T]:
-            key = (args, kwargs)
+            key = make_key(args, kwargs)
             try:
                 return internal_cache[key]
             except KeyError:
