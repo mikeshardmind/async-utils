@@ -1,7 +1,6 @@
-# umn-async-utils
+# async-utils
 
-This contains various utility functions which have general use across multiple services in the organization as well as potentially to others outside of it.
-
+This contains various async utility functions I've written
 
 # Documentation
 
