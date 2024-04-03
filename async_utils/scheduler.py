@@ -26,7 +26,7 @@ __all__ = ("Scheduler",)
 T = TypeVar("T")
 
 
-class CancelationToken(object):
+class CancelationToken:
     __slots__ = ()
 
 
@@ -110,9 +110,10 @@ class Scheduler(Generic[T]):
             try:
                 task = self.__tasks[cancel_token]
                 task.canceled = True
-                return True
             except KeyError:
                 pass
+            else:
+                return True
         return False
 
     def close(self):
