@@ -19,7 +19,7 @@ from collections.abc import Callable, Coroutine
 from functools import partial
 from typing import Any, ParamSpec, TypeVar
 
-from ._cpython_stuff import make_key  # type: ignore
+from ._cpython_stuff import make_key
 
 __all__ = ("taskcache",)
 
@@ -63,7 +63,11 @@ def taskcache(
                         internal_cache.pop,
                         key,
                     )
-                    task.add_done_callback(call_after_ttl)
+                    task.add_done_callback(call_after_ttl)  # pyright: ignore[reportArgumentType]
+                    # call_after_ttl is incorrectly determined to be a function taking a single argument
+                    # with the same type as the value type of internal_case
+                    # dict.pop *has* overloads for this, but the lack of bidirectional inference
+                    # with functools.partial use in pyright breaks this.
                 return task
 
         return wrapped
