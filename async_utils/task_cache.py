@@ -15,8 +15,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable, Coroutine
 from functools import partial
-from typing import Any, Callable, Coroutine, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 from ._cpython_stuff import make_key  # type: ignore
 

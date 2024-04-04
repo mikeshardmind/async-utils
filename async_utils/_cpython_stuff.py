@@ -1,5 +1,3 @@
-# type: ignore
-
 # code below is modified from: https://github.com/python/cpython/blob/3.11/Lib/functools.py#L448-L477
 
 # Which was originally:
@@ -14,7 +12,13 @@
 # It's included in minimal, simplified form based on specific use
 
 
-class _HashedSeq(list):
+from __future__ import annotations
+
+from collections.abc import Callable, Sized
+from typing import Any
+
+
+class _HashedSeq(list[Any]):
     """ This class guarantees that hash() will be called no more than once
         per element.  This is important because the lru_cache() will hash
         the key multiple times on a cache miss.
@@ -22,22 +26,22 @@ class _HashedSeq(list):
 
     __slots__ = ('hashvalue',)
 
-    def __init__(self, tup, hash=hash):
+    def __init__(self, tup: tuple[Any, ...], hash: Callable[[object], int]=hash):  # noqa: A002
         self[:] = tup
-        self.hashvalue = hash(tup)
+        self.hashvalue: int = hash(tup)
 
-    def __hash__(self):
+    def __hash__(self) -> int:  # pyright: ignore[reportIncompatibleVariableOverride]
         return self.hashvalue
 
 
 def make_key(
-    args,
-    kwds,
-    kwd_mark = (object(),),
-    fasttypes = {int, str},
-    type=type,
-    len=len
-):
+    args: tuple[Any, ...],
+    kwds: dict[Any, Any],
+    kwd_mark: tuple[object] = (object(),),
+    fasttypes: set[type] = {int, str},  # noqa: B006
+    type: type[type] = type,  # noqa: A002
+    len: Callable[[Sized], int] = len  # noqa: A002
+) -> _HashedSeq:
     """Make a cache key from optionally typed positional and keyword arguments
     The key is constructed in a way that is flat as possible rather than
     as a nested structure that would take more memory.
@@ -49,7 +53,7 @@ def make_key(
     # Formerly, we sorted() the kwds before looping.  The new way is *much*
     # faster; however, it means that f(x=1, y=2) will now be treated as a
     # distinct call from f(y=2, x=1) which will be cached separately.
-    key = args
+    key: tuple[Any, ...] = args
     if kwds:
         key += kwd_mark
         for item in kwds.items():
