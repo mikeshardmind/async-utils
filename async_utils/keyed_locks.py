@@ -24,6 +24,7 @@ __all__ = ["KeyedLocks"]
 
 KT = TypeVar("KT", bound=Hashable)
 
+
 class KeyedLocks(Generic[KT]):
     """Locks per hashable resource type
     Currently implemented with a weakvalue dictionary + asyncio.Locks
@@ -32,7 +33,9 @@ class KeyedLocks(Generic[KT]):
     some of the functionality of asyncio locks. May revisit later, intent here
     is that if I do, everything I use like this improves at once.
     """
+
     def __init__(self) -> None:
         self._locks: WeakValueDictionary[KT, asyncio.Lock] = WeakValueDictionary()
+
     def __getitem__(self, item: KT) -> asyncio.Lock:
         return self._locks.get(item, self._locks.setdefault(item, asyncio.Lock()))

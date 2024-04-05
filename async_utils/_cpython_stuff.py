@@ -14,19 +14,19 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sized
+from collections.abc import Callable, Hashable, Sized
 from typing import Any
 
 
 class _HashedSeq(list[Any]):
-    """ This class guarantees that hash() will be called no more than once
-        per element.  This is important because the lru_cache() will hash
-        the key multiple times on a cache miss.
+    """This class guarantees that hash() will be called no more than once
+    per element.  This is important because the lru_cache() will hash
+    the key multiple times on a cache miss.
     """
 
-    __slots__ = ('hashvalue',)
+    __slots__ = ("hashvalue",)
 
-    def __init__(self, tup: tuple[Any, ...], hash: Callable[[object], int]=hash):  # noqa: A002
+    def __init__(self, tup: tuple[Any, ...], hash: Callable[[object], int] = hash):  # noqa: A002
         self[:] = tup
         self.hashvalue: int = hash(tup)
 
@@ -40,8 +40,8 @@ def make_key(
     kwd_mark: tuple[object] = (object(),),
     fasttypes: set[type] = {int, str},  # noqa: B006
     type: type[type] = type,  # noqa: A002
-    len: Callable[[Sized], int] = len  # noqa: A002
-) -> _HashedSeq:
+    len: Callable[[Sized], int] = len,  # noqa: A002
+) -> Hashable:
     """Make a cache key from optionally typed positional and keyword arguments
     The key is constructed in a way that is flat as possible rather than
     as a nested structure that would take more memory.

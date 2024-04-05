@@ -18,13 +18,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Callable, Coroutine, Sequence
-from typing import (
-    Any,
-    Generic,
-    Literal,
-    TypeVar,
-    overload
-)
+from typing import Any, Generic, Literal, TypeVar, overload
 
 T = TypeVar("T")
 
@@ -45,15 +39,14 @@ class Waterfall(Generic[T]):
         self.max_wait: float = max_wait
         self.max_wait_finalize: int = max_wait_finalize
         self.max_quantity: int = max_quantity
-        self.callback: Callable[
-            [Sequence[T]], Coroutine[Any, Any, Any]
-        ] = async_callback
+        self.callback: Callable[[Sequence[T]], Coroutine[Any, Any, Any]] = async_callback
         self.task: asyncio.Task[None] | None = None
         self._alive: bool = False
 
     def start(self):
         if self.task is not None:
-            raise RuntimeError("Already Running")
+            msg = "Already Running"
+            raise RuntimeError(msg)
 
         self._alive = True
         self.task = asyncio.create_task(self._loop())
@@ -63,33 +56,30 @@ class Waterfall(Generic[T]):
         ...
 
     @overload
-    def stop(self, wait: Literal[False]):
+    def stop(self, wait: Literal[False]) -> None:
         ...
 
     @overload
     def stop(self, wait: bool = False) -> Coroutine[Any, Any, None] | None:
         ...
 
-    def stop(self, wait: bool = False):
+    def stop(self, wait: bool = False) -> Coroutine[Any, Any, None] | None:
         self._alive = False
-        if wait:
-            return self.queue.join()
+        return self.queue.join() if wait else None
 
     def put(self, item: T):
         if not self._alive:
-            raise RuntimeError("Can't put something in a non-running Waterfall.")
+            msg = "Can't put something in a non-running Waterfall."
+            raise RuntimeError(msg)
         self.queue.put_nowait(item)
 
-    async def _loop(self):
+    async def _loop(self) -> None:
         try:
-
             while self._alive:
                 queue_items: Sequence[T] = []
                 iter_start = time.monotonic()
 
-                while (
-                    this_max_wait := (time.monotonic() - iter_start)
-                ) < self.max_wait:
+                while (this_max_wait := (time.monotonic() - iter_start)) < self.max_wait:
                     try:
                         n = await asyncio.wait_for(self.queue.get(), this_max_wait)
                     except asyncio.TimeoutError:
@@ -113,8 +103,7 @@ class Waterfall(Generic[T]):
             f = asyncio.create_task(self._finalize(), name="waterfall.finalizer")
             await asyncio.wait_for(f, timeout=self.max_wait_finalize)
 
-    async def _finalize(self):
-
+    async def _finalize(self) -> None:
         # WARNING: Do not allow an async context switch before the gather below
 
         self._alive = False
@@ -136,10 +125,7 @@ class Waterfall(Generic[T]):
 
         pending_futures: list[asyncio.Task[Any]] = []
 
-        for chunk in (
-            remaining_items[p : p + self.max_quantity]
-            for p in range(0, num_remaining, self.max_quantity)
-        ):
+        for chunk in (remaining_items[p : p + self.max_quantity] for p in range(0, num_remaining, self.max_quantity)):
             fut = asyncio.create_task(self.callback(chunk))
             pending_futures.append(fut)
 

@@ -32,7 +32,6 @@ class CancelationToken:
 
 @total_ordering
 class _Task(Generic[T]):
-
     __slots__ = ("timestamp", "payload", "canceled", "cancel_token")
 
     def __init__(self, timestamp: float, payload: T, /):
@@ -46,7 +45,6 @@ class _Task(Generic[T]):
 
 
 class Scheduler(Generic[T]):
-
     __tasks: dict[CancelationToken, _Task[T]]
     __tqueue: asyncio.PriorityQueue[_Task[T]]
     __closed: bool
@@ -69,9 +67,7 @@ class Scheduler(Generic[T]):
 
         return self
 
-    async def __aexit__(
-        self, exc_type: type[Exception], exc: Exception, tb: TracebackType
-    ):
+    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
         self.__closed = True
 
     def __aiter__(self):

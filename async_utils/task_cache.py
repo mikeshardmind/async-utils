@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Hashable
 from functools import partial
 from typing import Any, ParamSpec, TypeVar
 
@@ -42,11 +42,8 @@ def taskcache(
     Consider not wrapping instance methods, but what those methods call when feasible in cases where this may matter.
     """
 
-    def wrapper(
-        coro: Callable[P, Coroutine[Any, Any, T]]
-    ) -> Callable[P, asyncio.Task[T]]:
-
-        internal_cache: dict[Any, asyncio.Task[T]] = {}
+    def wrapper(coro: Callable[P, Coroutine[Any, Any, T]]) -> Callable[P, asyncio.Task[T]]:
+        internal_cache: dict[Hashable, asyncio.Task[T]] = {}
 
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[T]:
             key = make_key(args, kwargs)
@@ -63,11 +60,7 @@ def taskcache(
                         internal_cache.pop,
                         key,
                     )
-                    task.add_done_callback(call_after_ttl)  # pyright: ignore[reportArgumentType]
-                    # call_after_ttl is incorrectly determined to be a function taking a single argument
-                    # with the same type as the value type of internal_case
-                    # dict.pop *has* overloads for this, but the lack of bidirectional inference
-                    # with functools.partial use in pyright breaks this.
+                    task.add_done_callback(call_after_ttl)
                 return task
 
         return wrapped
