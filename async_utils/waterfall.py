@@ -53,15 +53,15 @@ class Waterfall(Generic[T]):
 
     @overload
     def stop(self, wait: Literal[True]) -> Coroutine[Any, Any, None]:
-        ...
+        pass
 
     @overload
     def stop(self, wait: Literal[False]) -> None:
-        ...
+        pass
 
     @overload
     def stop(self, wait: bool = False) -> Coroutine[Any, Any, None] | None:
-        ...
+        pass
 
     def stop(self, wait: bool = False) -> Coroutine[Any, Any, None] | None:
         self._alive = False

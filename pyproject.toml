@@ -23,6 +23,8 @@ reportUnnecessaryTypeIgnoreComment = true
 
 line-length = 130
 target-version = "py310"
+
+[tool.ruff.lint]
 select = [
     "F", "E", "I", "UP", "YTT", "ANN", "S", "BLE", "B", "A", "COM", "C4", "DTZ",
     "EM", "ISC", "G", "INP", "PIE", "T20", "Q003", "RSE", "RET", "SIM", "TID", "PTH",
