@@ -27,8 +27,8 @@ _FutureLike: TypeAlias = asyncio.Future[_T] | Generator[Any, None, _T] | Awaitab
 
 __all__ = ["threaded_loop"]
 
-class LoopWrapper:
 
+class LoopWrapper:
     def __init__(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
 
@@ -42,19 +42,48 @@ class LoopWrapper:
 
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         finished = threading.Event()
+
         def future_done_callback(_f: Future[Any]) -> object:
             finished.set()
+
         future.add_done_callback(future_done_callback)
 
         await asyncio.get_running_loop().run_in_executor(None, finished.wait)
         return future.result()
 
+
+def run_forever(loop: asyncio.AbstractEventLoop) -> None:
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_forever()
+    finally:
+        loop.run_until_complete(asyncio.sleep(0.05))
+        tasks: set[asyncio.Task[Any]] = {t for t in asyncio.all_tasks(loop) if not t.done()}
+        for t in tasks:
+            t.cancel()
+        loop.run_until_complete(asyncio.sleep(0))
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.run_until_complete(loop.shutdown_default_executor())
+
+        for task in tasks:
+            try:
+                if (exc := task.exception()) is not None:
+                    loop.call_exception_handler(
+                        {
+                            "message": "Unhandled exception in task during shutdown.",
+                            "exception": task.exception(),
+                            "task": exc,
+                        }
+                    )
+            except (asyncio.InvalidStateError, asyncio.CancelledError):
+                pass
+
+        asyncio.set_event_loop(None)
+        loop.close()
+
+
 @contextmanager
 def threaded_loop():
-    def run_forever(loop: asyncio.AbstractEventLoop) -> None:
-        asyncio.set_event_loop(loop)
-        loop.run_forever()
-
     loop = asyncio.new_event_loop()
     thread = None
     try:
