@@ -31,6 +31,7 @@ _global_lock = threading.Lock()
 
 _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
 
+
 class PriorityWaiter(NamedTuple):
     priority: int
     ts: float
@@ -76,6 +77,7 @@ class PrioritySemaphore:
         async with sem:
             ...
     """
+
     _loop: asyncio.AbstractEventLoop | None = None
 
     def _get_loop(self):
@@ -99,14 +101,13 @@ class PrioritySemaphore:
         res = super().__repr__()
         extra = "locked" if self.locked() else f"unlocked, value:{self._value}"
         if self._waiters:
-            extra = f'{extra}, waiters:{len(self._waiters)}'
+            extra = f"{extra}, waiters:{len(self._waiters)}"
         return f"<{res[1:-1]} [{extra}]>"
 
     def locked(self) -> bool:
         # Must do a comparison based on priority then FIFO
         # in the case of existing waiters, not guaranteed to be immediately available
-        return self._value == 0 or (
-            any(not w.cancelled() for w in (self._waiters or ())))
+        return self._value == 0 or (any(not w.cancelled() for w in (self._waiters or ())))
 
     async def __aenter__(self):
         prio = _priority.get()
