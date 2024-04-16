@@ -61,6 +61,9 @@ def priority_context(priority: int):
         _priority.reset(token)
 
 
+_default: Any = object()
+
+
 class PrioritySemaphore:
     """
     Provides a semaphore with similar semantics as asyncio.Semaphore,
@@ -115,7 +118,9 @@ class PrioritySemaphore:
     async def __aexit__(self, *dont_care: Any):
         self.release()
 
-    async def acquire(self, priority: int) -> bool:
+    async def acquire(self, priority: int = _default) -> bool:
+        if priority is _default:
+            priority = _priority.get()
         if not self.locked():
             self._value -= 1
             return True
