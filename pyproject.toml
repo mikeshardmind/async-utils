@@ -45,6 +45,10 @@ extend-ignore = [
     "ANN102", # Same, but for cls
     "ANN201", # return types
     "ANN204",  # special method return types
+    "ANN401",
+    "EM101",
+    "EM102",
+    "TRY003",
     "PLR0913", # number of function arguments
     "UP007", # "Use | For Union" doesn't account for typevar tuple unpacking.
     "PTH123",  # `open()` should be replaced by `Path.open()`

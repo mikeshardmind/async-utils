@@ -15,15 +15,13 @@
 
 from __future__ import annotations
 
-
 import asyncio
-import heapq
-
-from collections.abc import Callable
-from typing import Any, NamedTuple
-import threading
 import contextvars
+import heapq
+import threading
+from collections.abc import Callable
 from contextlib import contextmanager
+from typing import Any, NamedTuple
 
 __all__ = ["priority_context", "PrioritySemaphore"]
 
@@ -80,7 +78,7 @@ class PrioritySemaphore:
 
     _loop: asyncio.AbstractEventLoop | None = None
 
-    def _get_loop(self):
+    def _get_loop(self) -> asyncio.AbstractEventLoop:
         loop = asyncio.get_running_loop()
 
         if self._loop is None:
@@ -112,7 +110,7 @@ class PrioritySemaphore:
     async def __aenter__(self):
         prio = _priority.get()
         await self.acquire(prio)
-        return None
+        return
 
     async def __aexit__(self, *dont_care: Any):
         self.release()
@@ -146,7 +144,7 @@ class PrioritySemaphore:
             self._maybe_wake()
         return True
 
-    def _maybe_wake(self):
+    def _maybe_wake(self) -> None:
         while self._value > 0 and self._waiters:
             next_waiter = heapq.heappop(self._waiters)
 
