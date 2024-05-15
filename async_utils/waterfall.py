@@ -75,6 +75,7 @@ class Waterfall(Generic[T]):
 
     async def _loop(self) -> None:
         try:
+            _tasks: set[asyncio.Task[Any]] = set()
             while self._alive:
                 queue_items: Sequence[T] = []
                 iter_start = time.monotonic()
@@ -94,7 +95,9 @@ class Waterfall(Generic[T]):
 
                 num_items = len(queue_items)
 
-                asyncio.create_task(self.callback(queue_items))
+                t = asyncio.create_task(self.callback(queue_items))
+                _tasks.add(t)
+                t.add_done_callback(_tasks.remove)
 
                 for _ in range(num_items):
                     self.queue.task_done()

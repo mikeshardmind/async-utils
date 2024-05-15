@@ -61,5 +61,4 @@ extend-ignore = [
     "E501",  # reccomended by ruff when using ruff format
     "ISC001",  # reccomended by ruff when using ruff format
     "Q003",  # reccomended by ruff when using ruff format
-    "RUF006", # Don't actually need to store a task in all cases, and I'm aware of which cases.
 ]
