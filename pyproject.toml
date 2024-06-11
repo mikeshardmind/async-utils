@@ -68,5 +68,5 @@ extend-ignore = [
 # Until what can go into a TypeIs/TypeGuard changes, these are just dangerous.
 "typing.TypeIs".msg = "TypeIs is fundamentally unsafe, even when using it as described to be safe"
 "typing.TypeGuard".msg = "TypeGuard is fundamentally unsafe"
-"typing.TypeIs".msg = "TypeIs is fundamentally unsafe, even when using it as described to be safe"
+"typing_extensions.TypeIs".msg = "TypeIs is fundamentally unsafe, even when using it as described to be safe"
 "typing_extensions.TypeGuard".msg = "TypeGuard is fundamentally unsafe"
