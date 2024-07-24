@@ -60,7 +60,11 @@ class Scheduler(Generic[T]):
         self.__closed = False
         asyncio.get_running_loop()
 
-        # lock is only needeed on modifying or removing tasks, not on inserting as keys are unique via uuid4
+        # lock is only needeed on modifying or removing tasks
+        # insertion is not guarded and only racy in the order of emitted events
+        # when inserting a task that is scheduled in the past
+        # or within 1 full iteration of pending tasks on the event loop
+        # (generally, ms range (subsecond), depending on application)
         self.__l = asyncio.Lock()
         self.__tasks = {}
         self.__tqueue = asyncio.PriorityQueue()

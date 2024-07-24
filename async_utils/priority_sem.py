@@ -49,7 +49,7 @@ class PriorityWaiter(NamedTuple):
     def __lt__(self, other: Any) -> bool:
         if not isinstance(other, PriorityWaiter):
             return NotImplemented
-        return (0 - self.priority, self.ts) < (0 - other.priority, other.ts)
+        return (self.priority, self.ts) < (other.priority, other.ts)
 
 
 @contextmanager
@@ -68,7 +68,8 @@ class PrioritySemaphore:
     """
     Provides a semaphore with similar semantics as asyncio.Semaphore,
     but using an underlying priority.
-    Higher priority matches higher values for priority (Not lower)
+
+    Lower priority values are a higher logical priority
 
     context manager use:
 

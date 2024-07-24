@@ -11,18 +11,21 @@ exclude = [
     "docs",
 ]
 
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "strict"
 pythonPlatform = "All"
-reportMissingImports = true
-reportMissingTypeStubs = false
-reportUnnecessaryTypeIgnoreComment = true
+reportCallInDefaultInitializer = "warning"
+reportImportCycles = "error"
+reportPropertyTypeMismatch = "error"
+reportShadowedImports = "error"
+reportUninitializedInstanceVariable = "error"
+reportUnnecessaryTypeIgnoreComment = "warning"
 
 
 [tool.ruff]
 
 line-length = 130
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.format]
 line-ending = "lf"
@@ -65,7 +68,9 @@ extend-ignore = [
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 # https://discuss.python.org/t/problems-with-typeis/55410/6
+# https://discuss.python.org/t/problems-with-typeis/55410/46
 # Until what can go into a TypeIs/TypeGuard changes, these are just dangerous.
+
 "typing.TypeIs".msg = "TypeIs is fundamentally unsafe, even when using it as described to be safe"
 "typing.TypeGuard".msg = "TypeGuard is fundamentally unsafe"
 "typing_extensions.TypeIs".msg = "TypeIs is fundamentally unsafe, even when using it as described to be safe"

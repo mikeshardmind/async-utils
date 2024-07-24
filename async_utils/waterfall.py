@@ -26,6 +26,16 @@ __all__ = ("Waterfall",)
 
 
 class Waterfall(Generic[T]):
+    """
+    Class for batch event scheduling based on recurring intervals,
+    with a quanity threshold which overrides the interval.
+
+    Initial intended was batching of simple db writes with an
+    acceptable tolerance for lost writes,
+    though short of an application crash, this is designed
+    to allow graceful shutdown to flush pending actions.
+    """
+
     def __init__(
         self,
         max_wait: float,
@@ -83,7 +93,7 @@ class Waterfall(Generic[T]):
                 while (this_max_wait := (time.monotonic() - iter_start)) < self.max_wait:
                     try:
                         n = await asyncio.wait_for(self.queue.get(), this_max_wait)
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         continue
                     else:
                         queue_items.append(n)
@@ -136,7 +146,7 @@ class Waterfall(Generic[T]):
 
         try:
             await asyncio.wait_for(gathered, timeout=self.max_wait_finalize)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             for task in pending_futures:
                 task.cancel()
 
