@@ -18,11 +18,11 @@ import asyncio
 from functools import total_ordering
 from time import time
 from types import TracebackType
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 __all__ = ("Scheduler",)
 
-
+MISSING: Any = object()
 T = TypeVar("T")
 
 
@@ -55,6 +55,10 @@ class Scheduler(Generic[T]):
 
     def __init__(self, granularity: float, /):
         self.__granularity = granularity
+        self.__closed = MISSING
+        self.__tasks = MISSING
+        self.__tqueue = MISSING
+        self.__l = MISSING
 
     async def __aenter__(self):
         self.__closed = False

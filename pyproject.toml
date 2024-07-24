@@ -14,7 +14,6 @@ exclude = [
 pythonVersion = "3.11"
 typeCheckingMode = "strict"
 pythonPlatform = "All"
-reportCallInDefaultInitializer = "warning"
 reportImportCycles = "error"
 reportPropertyTypeMismatch = "error"
 reportShadowedImports = "error"
