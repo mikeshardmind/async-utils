@@ -71,8 +71,8 @@ def run_forever(loop: asyncio.AbstractEventLoop) -> None:
                     loop.call_exception_handler(
                         {
                             "message": "Unhandled exception in task during shutdown.",
-                            "exception": task.exception(),
-                            "task": exc,
+                            "exception": exc,
+                            "task": task,
                         }
                     )
             except (asyncio.InvalidStateError, asyncio.CancelledError):
