@@ -53,5 +53,7 @@ def sync_to_async_gen(
                 yield (await q_get)
         while not q.empty():
             yield q.get_nowait()
+        # ensure errors in the generator propogate *after* the last values yielded
+        await background_task
 
     return gen()
