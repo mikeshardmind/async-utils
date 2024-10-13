@@ -1,0 +1,69 @@
+#   Copyright 2020-present Michael Hall
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+from __future__ import annotations
+
+import asyncio
+import heapq
+import time
+from types import TracebackType
+
+__all__ = ("Lockout",)
+
+
+class Lockout:
+    """Lock out an async resource for an amount of time
+
+    Resources may be locked out multiple times.
+
+    Only prevents new acquires and does not cancel ongoing scopes that
+    have already acquired access.
+
+    Does not guarantee FIFO acquisition.
+
+    When paired with locks, semaphores, or ratelimiters, this should
+    be the last synchonization acquired and should be acquired immediately.
+
+    Example use could look similar to:
+
+    >>> ratelimiter = Ratelimiter(5, 1, 1)
+    >>> lockout = Lockout()
+    >>> async def request_handler(route, parameters):
+            async with ratelimiter, lockout:
+                response = await some_request(route, **parameters)
+                if response.code == 429:
+                    if reset_after := headers.get('X-Ratelimit-Reset-After')
+                        lockout.lock_for(reset_after)
+
+    """
+
+    def __init__(self) -> None:
+        self._lockouts: list[float] = []
+
+    def lockout_for(self, seconds: float):
+        """Lock a resource for an amount of time."""
+        heapq.heappush(self._lockouts, time.monotonic() + seconds)
+
+    async def __aenter__(self) -> None:
+        while self._lockouts:
+            now = time.monotonic()
+            # There must not be an async context switch between here
+            # and replacing the lockout when lockout is in the future
+            ts = heapq.heappop(self._lockouts)
+            if (sleep_for := ts - now) > 0:
+                heapq.heappush(self._lockouts, ts)
+                await asyncio.sleep(sleep_for)
+
+    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
+        pass
