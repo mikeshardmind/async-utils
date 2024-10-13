@@ -43,7 +43,7 @@ class Lockout:
             async with ratelimiter, lockout:
                 response = await some_request(route, **parameters)
                 if response.code == 429:
-                    if reset_after := headers.get('X-Ratelimit-Reset-After')
+                    if reset_after := response.headers.get('X-Ratelimit-Reset-After')
                         lockout.lock_for(reset_after)
 
     """
