@@ -109,7 +109,7 @@ class Scheduler(Generic[T]):
         return t.cancel_token
 
     async def cancel_task(self, cancel_token: CancelationToken, /) -> bool:
-        """Returns if the task with that uuid was cancelled. Cancelling an already cancelled task is allowed."""
+        """Returns if the task with that CancelationToken. Cancelling an already cancelled task is allowed."""
         async with self.__l:
             try:
                 task = self.__tasks[cancel_token]

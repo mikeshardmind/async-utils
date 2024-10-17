@@ -26,15 +26,13 @@ __all__ = ("Waterfall",)
 
 
 class Waterfall(Generic[T]):
-    """
-    Class for batch event scheduling based on recurring intervals,
+    """Class for batch event scheduling based on recurring intervals,
     with a quanity threshold which overrides the interval.
 
     Initial intended was batching of simple db writes with an
     acceptable tolerance for lost writes,
     though short of an application crash, this is designed
-    to allow graceful shutdown to flush pending actions.
-    """
+    to allow graceful shutdown to flush pending actions."""
 
     def __init__(
         self,

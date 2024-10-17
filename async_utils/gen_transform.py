@@ -40,8 +40,7 @@ def sync_to_async_gen(
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> AsyncGenerator[YieldType]:
-    """
-    async iterate over synchronous generator ran in backgroun thread.
+    """async iterate over synchronous generator ran in backgroun thread.
 
     Generator function and it's arguments must be threadsafe.
 
@@ -54,8 +53,7 @@ def sync_to_async_gen(
 
     If your generator is actually a synchronous coroutine, that's super cool,
     but rewrite is as a native coroutine or use it directly then, you don't need
-    what this function does.
-    """
+    what this function does."""
     q: asyncio.Queue[YieldType] = asyncio.Queue()
 
     background_coro = asyncio.to_thread(_consumer, asyncio.get_running_loop(), q, f, *args, **kwargs)

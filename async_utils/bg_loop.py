@@ -83,14 +83,12 @@ def run_forever(loop: asyncio.AbstractEventLoop) -> None:
 
 
 @contextmanager
-def threaded_loop():
-    """
-    Starts an event loop on a background thread,
+def threaded_loop() -> Generator[LoopWrapper, None, None]:
+    """Starts an event loop on a background thread,
     and yields an object with scheduling methods for interacting with
     the loop.
 
-    loop is scheduled for shutdown, and thread is joined at contextmanager exit
-    """
+    loop is scheduled for shutdown, and thread is joined at contextmanager exit"""
     loop = asyncio.new_event_loop()
     thread = None
     try:

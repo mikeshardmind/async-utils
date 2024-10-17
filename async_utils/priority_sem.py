@@ -67,7 +67,8 @@ _default: Any = object()
 class PrioritySemaphore:
     """
     Provides a semaphore with similar semantics as asyncio.Semaphore,
-    but using an underlying priority.
+    but using an underlying priority. priority is shared within a context
+    manager's logical scope, but the context can be nested safely.
 
     Lower priority values are a higher logical priority
 
