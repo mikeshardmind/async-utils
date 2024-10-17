@@ -23,7 +23,7 @@ from typing import Any, TypeAlias, TypeVar
 
 _T = TypeVar("_T")
 
-_FutureLike: TypeAlias = asyncio.Future[_T] | Generator[Any, None, _T] | Awaitable[_T]
+_FutureLike: TypeAlias = asyncio.Future[_T] | Awaitable[_T]
 
 __all__ = ["threaded_loop"]
 
