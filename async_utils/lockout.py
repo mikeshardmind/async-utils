@@ -17,9 +17,10 @@ from __future__ import annotations
 import asyncio
 import heapq
 import time
+from collections import deque
 from types import TracebackType
 
-__all__ = ("Lockout",)
+__all__ = ("Lockout", "FIFOLockout")
 
 
 class Lockout:
@@ -48,10 +49,15 @@ class Lockout:
 
     """
 
+    def __repr__(self) -> str:
+        res = super().__repr__()
+        extra = "unlocked" if not self._lockouts else f"locked, timestamps={self._lockouts:!r}"
+        return f"<{res[1:-1]} [{extra}]>"
+
     def __init__(self) -> None:
         self._lockouts: list[float] = []
 
-    def lockout_for(self, seconds: float):
+    def lockout_for(self, seconds: float, /) -> None:
         """Lock a resource for an amount of time."""
         heapq.heappush(self._lockouts, time.monotonic() + seconds)
 
@@ -65,5 +71,72 @@ class Lockout:
                 heapq.heappush(self._lockouts, ts)
                 await asyncio.sleep(sleep_for)
 
-    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
+    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType) -> None:
         pass
+
+
+class FIFOLockout:
+    """A FIFO preserving version of Lockout. This has slightly more
+    overhead than the base Lockout class, which is not guaranteed to
+    preserve FIFO, though happens to in the case of not being locked.
+
+    Resources may be locked out multiple times.
+
+    Only prevents new acquires and does not cancel ongoing scopes that
+    have already acquired access.
+
+    When paired with locks, semaphores, or ratelimiters, this should
+    be the last synchonization acquired and should be acquired immediately.
+
+    Example use could look similar to:
+
+    >>> ratelimiter = Ratelimiter(5, 1, 1)
+    >>> lockout = FIFOLockout()
+    >>> async def request_handler(route, parameters):
+            async with ratelimiter, lockout:
+                response = await some_request(route, **parameters)
+                if response.code == 429:
+                    if reset_after := response.headers.get('X-Ratelimit-Reset-After')
+                        lockout.lock_for(reset_after)
+    """
+
+    def __init__(self) -> None:
+        self._lockouts: set[asyncio.Task[None]] = set()
+        self._waiters: deque[asyncio.Future[None]] = deque()
+
+    def __repr__(self) -> str:
+        res = super().__repr__()
+        extra = "unlocked" if not self._lockouts else f"locked, timestamps={self._lockouts:!r}"
+        return f"<{res[1:-1]} [{extra}]>"
+
+    def lockout_for(self, seconds: float, /) -> None:
+        """Lock a resource for an amount of time."""
+        task = asyncio.create_task(asyncio.sleep(seconds, None))
+        self._lockouts.add(task)
+        task.add_done_callback(self._lockouts.discard)
+
+    async def __aenter__(self) -> None:
+        if not self._lockouts and all(f.cancelled() for f in self._waiters):
+            return
+
+        fut: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+        self._waiters.append(fut)
+
+        while self._lockouts:
+            await asyncio.gather(*self._lockouts)
+
+        try:
+            try:
+                await fut
+            finally:
+                self._waiters.remove(fut)
+        except asyncio.CancelledError:
+            if not self._lockouts:
+                maybe_f = next(iter(self._waiters), None)
+                if maybe_f and not maybe_f.done():
+                    maybe_f.set_result(None)
+
+    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType) -> None:
+        maybe_f = next(iter(self._waiters), None)
+        if maybe_f and not maybe_f.done():
+            maybe_f.set_result(None)
