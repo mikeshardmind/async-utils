@@ -44,6 +44,7 @@ class BGTasks:
         return self
 
     async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
-        _done, _pending = await asyncio.wait(self._tasks, timeout=self._exit_timeout)
-        for task in _pending:
-            task.cancel()
+        if tsks := self._tasks.copy():
+            _done, _pending = await asyncio.wait(tsks, timeout=self._exit_timeout)
+            for task in _pending:
+                task.cancel()
