@@ -18,14 +18,12 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Callable, Coroutine, Sequence
-from typing import Any, Generic, Literal, TypeVar, overload
-
-T = TypeVar("T")
+from typing import Any, Literal, overload
 
 __all__ = ("Waterfall",)
 
 
-class Waterfall(Generic[T]):
+class Waterfall[T]:
     """Class for batch event scheduling based on recurring intervals,
     with a quanity threshold which overrides the interval.
 

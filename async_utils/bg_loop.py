@@ -19,11 +19,11 @@ import threading
 from collections.abc import Awaitable, Generator
 from concurrent.futures import Future
 from contextlib import contextmanager
-from typing import Any, TypeAlias, TypeVar
+from typing import Any, TypeVar
 
 _T = TypeVar("_T")
 
-_FutureLike: TypeAlias = asyncio.Future[_T] | Awaitable[_T]
+type _FutureLike[_T] = asyncio.Future[_T] | Awaitable[_T]
 
 __all__ = ["threaded_loop"]
 
@@ -31,6 +31,9 @@ __all__ = ["threaded_loop"]
 class LoopWrapper:
     def __init__(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
+
+    def stop(self) -> None:
+        self._loop.call_soon_threadsafe(self._loop.stop)
 
     def schedule(self, coro: _FutureLike[_T]) -> Future[_T]:
         """Schedule a coroutine to run on the wrapped event loop"""
@@ -52,12 +55,14 @@ class LoopWrapper:
         return future.result()
 
 
-def run_forever(loop: asyncio.AbstractEventLoop) -> None:
+def run_forever(loop: asyncio.AbstractEventLoop, use_eager_task_factory: bool, /) -> None:
     asyncio.set_event_loop(loop)
+    if use_eager_task_factory:
+        loop.set_task_factory(asyncio.eager_task_factory)
     try:
         loop.run_forever()
     finally:
-        loop.run_until_complete(asyncio.sleep(0.05))
+        loop.run_until_complete(asyncio.sleep(0))
         tasks: set[asyncio.Task[Any]] = {t for t in asyncio.all_tasks(loop) if not t.done()}
         for t in tasks:
             t.cancel()
@@ -83,7 +88,7 @@ def run_forever(loop: asyncio.AbstractEventLoop) -> None:
 
 
 @contextmanager
-def threaded_loop() -> Generator[LoopWrapper, None, None]:
+def threaded_loop(*, use_eager_task_factory: bool = True) -> Generator[LoopWrapper, None, None]:
     """Starts an event loop on a background thread,
     and yields an object with scheduling methods for interacting with
     the loop.
@@ -92,7 +97,7 @@ def threaded_loop() -> Generator[LoopWrapper, None, None]:
     loop = asyncio.new_event_loop()
     thread = None
     try:
-        thread = threading.Thread(target=run_forever, args=(loop,))
+        thread = threading.Thread(target=run_forever, args=(loop, use_eager_task_factory))
         thread.start()
         yield LoopWrapper(loop)
     finally:

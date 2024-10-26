@@ -11,7 +11,7 @@ exclude = [
     "docs",
 ]
 
-pythonVersion = "3.11"
+pythonVersion = "3.12"
 typeCheckingMode = "strict"
 pythonPlatform = "All"
 reportImportCycles = "error"
@@ -24,7 +24,7 @@ reportUnnecessaryTypeIgnoreComment = "warning"
 [tool.ruff]
 
 line-length = 130
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.format]
 line-ending = "lf"

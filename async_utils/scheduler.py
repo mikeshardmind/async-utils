@@ -18,12 +18,11 @@ import asyncio
 from functools import total_ordering
 from time import time
 from types import TracebackType
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 __all__ = ("Scheduler",)
 
 MISSING: Any = object()
-T = TypeVar("T")
 
 
 class CancelationToken:
@@ -31,7 +30,7 @@ class CancelationToken:
 
 
 @total_ordering
-class _Task(Generic[T]):
+class _Task[T]:
     __slots__ = ("timestamp", "payload", "canceled", "cancel_token")
 
     def __init__(self, timestamp: float, payload: T, /):
@@ -44,7 +43,7 @@ class _Task(Generic[T]):
         return (self.timestamp, id(self)) < (other.timestamp, id(self))
 
 
-class Scheduler(Generic[T]):
+class Scheduler[T]:
     __tasks: dict[CancelationToken, _Task[T]]
     __tqueue: asyncio.PriorityQueue[_Task[T]]
     __closed: bool

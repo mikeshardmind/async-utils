@@ -15,13 +15,13 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Coroutine, Generator
+from collections.abc import Coroutine
 from contextvars import Context
 from types import TracebackType
-from typing import Any, Self, TypeAlias, TypeVar
+from typing import Any, Self, TypeVar
 
 _T = TypeVar("_T")
-_CoroutineLike: TypeAlias = Generator[Any, None, _T] | Coroutine[Any, Any, _T]
+type _CoroutineLike[_T] = Coroutine[Any, Any, _T]
 
 
 __all__ = ["BGTasks"]
