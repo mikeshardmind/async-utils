@@ -27,7 +27,7 @@ type SignalCallback = Callable[[signal.Signals | SpecialExit], Any]
 type StartStopCall = Callable[[], Any]
 type _HANDLER = Callable[[int, FrameType | None], Any] | int | signal.Handlers | None
 
-__all__ = ["SignalService"]
+__all__ = ["SignalService", "SpecialExit"]
 
 possible = "SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"
 actual = tuple(e for name, e in signal.Signals.__members__.items() if name in possible)
