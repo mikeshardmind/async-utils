@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import enum
 import select
 import signal
 import socket
@@ -22,7 +23,7 @@ from collections.abc import Callable
 from types import FrameType
 from typing import Any
 
-type SignalCallback = Callable[[signal.Signals], Any]
+type SignalCallback = Callable[[signal.Signals | SpecialExit], Any]
 type StartStopCall = Callable[[], Any]
 type _HANDLER = Callable[[int, FrameType | None], Any] | int | signal.Handlers | None
 
@@ -30,6 +31,10 @@ __all__ = ["SignalService"]
 
 possible = "SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"
 actual = tuple(e for name, e in signal.Signals.__members__.items() if name in possible)
+
+
+class SpecialExit(enum.IntEnum):
+    EXIT = 252
 
 
 class SignalService:
@@ -74,9 +79,10 @@ class SignalService:
 
         select.select([self.ss], [], [])
         data, *_ = self.ss.recv(4096)
+        sig = signal.Signals(data) if data != 252 else SpecialExit.EXIT
 
         for cb in self._cbs:
-            cb(signal.Signals(data))
+            cb(sig)
 
         for join in self._joins:
             join()
