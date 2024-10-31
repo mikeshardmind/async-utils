@@ -36,16 +36,30 @@ class SignalService:
     """Meant for graceful signal handling where the main thread is only used for signal handling.
     This should be paired with event loops being run in threads."""
 
-    def __init__(self, *, startup: list[StartStopCall], signal_cbs: list[SignalCallback], joins: list[StartStopCall]) -> None:
-        self._startup: list[StartStopCall] = startup
-        self._cbs: list[SignalCallback] = signal_cbs
-        self._joins: list[StartStopCall] = joins
+    def __init__(
+        self,
+    ) -> None:
+        self._startup: list[StartStopCall] = []
+        self._cbs: list[SignalCallback] = []
+        self._joins: list[StartStopCall] = []
+        self.ss, self.cs = socket.socketpair()
+        self.ss.setblocking(False)
+        self.cs.setblocking(False)
+
+    def get_send_socket(self) -> socket.socket:
+        return self.cs
+
+    def add_startup(self, job: StartStopCall):
+        self._startup.append(job)
+
+    def add_signal_cb(self, cb: SignalCallback):
+        self._cbs.append(cb)
+
+    def add_join(self, join: StartStopCall):
+        self._joins.append(join)
 
     def run(self):
-        ss, cs = socket.socketpair()
-        ss.setblocking(False)
-        cs.setblocking(False)
-        signal.set_wakeup_fd(cs.fileno())
+        signal.set_wakeup_fd(self.cs.fileno())
 
         original_handlers: list[_HANDLER] = []
 
@@ -58,8 +72,8 @@ class SignalService:
         for task_start in self._startup:
             task_start()
 
-        select.select([ss], [], [])
-        data, *_ = ss.recv(4096)
+        select.select([self.ss], [], [])
+        data, *_ = self.ss.recv(4096)
 
         for cb in self._cbs:
             cb(signal.Signals(data))
