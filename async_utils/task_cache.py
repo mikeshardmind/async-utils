@@ -94,6 +94,10 @@ def taskcache(
     return wrapper
 
 
+def _lru_evict(ttl: float, cache: LRU[Hashable, Any], key: Hashable, _ignored_task: object) -> None:
+    asyncio.get_running_loop().call_later(ttl, cache.remove, key)
+
+
 def lrutaskcache(
     ttl: float | None = None, maxsize: int = 1024
 ) -> Callable[[Callable[P, Coroutine[Any, Any, T]]], Callable[P, asyncio.Task[T]]]:
@@ -121,15 +125,7 @@ def lrutaskcache(
             except KeyError:
                 internal_cache[key] = task = asyncio.create_task(coro(*args, **kwargs))
                 if ttl is not None:
-                    # This results in internal_cache.pop(key, task) later
-                    # while avoiding a late binding issue with a lambda instead
-                    call_after_ttl = partial(
-                        asyncio.get_running_loop().call_later,
-                        ttl,
-                        internal_cache.remove,
-                        key,
-                    )
-                    task.add_done_callback(call_after_ttl)
+                    task.add_done_callback(partial(_lru_evict, ttl, internal_cache, key))
                 return task
 
         return wrapped
