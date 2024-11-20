@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine, Hashable
+from collections.abc import Awaitable, Callable, Coroutine, Hashable
 from functools import partial, wraps
 from typing import Any, ParamSpec, TypeVar
 
@@ -26,11 +26,10 @@ __all__ = ("corocache", "lrucorocache")
 
 P = ParamSpec("P")
 T = TypeVar("T")
-K = TypeVar("K")
-V = TypeVar("V")
 
 
 type CoroFunc[**P, T] = Callable[P, Coroutine[Any, Any, T]]
+type CoroLike[**P, T] = Callable[P, Awaitable[T]]
 
 
 class LRU[K, V]:
@@ -59,7 +58,7 @@ class LRU[K, V]:
 
 def corocache(
     ttl: float | None = None,
-) -> Callable[[CoroFunc[P, T]], CoroFunc[P, T]]:
+) -> Callable[[CoroLike[P, T]], CoroFunc[P, T]]:
     """Decorator to cache coroutine functions.
 
     This is less powerful than the version in task_cache.py but may work better for
@@ -71,17 +70,17 @@ def corocache(
 
     The ordering of args and kwargs matters."""
 
-    def wrapper(coro: CoroFunc[P, T]) -> CoroFunc[P, T]:
-        internal_cache: dict[Hashable, asyncio.Task[T]] = {}
+    def wrapper(coro: CoroLike[P, T]) -> CoroFunc[P, T]:
+        internal_cache: dict[Hashable, asyncio.Future[T]] = {}
 
         async def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
             key = make_key(args, kwargs)
             try:
                 return await internal_cache[key]
             except KeyError:
-                internal_cache[key] = task = asyncio.create_task(coro(*args, **kwargs))
+                internal_cache[key] = fut = asyncio.ensure_future(coro(*args, **kwargs))
                 if ttl is not None:
-                    # This results in internal_cache.pop(key, task) later
+                    # This results in internal_cache.pop(key, fut) later
                     # while avoiding a late binding issue with a lambda instead
                     call_after_ttl = partial(
                         asyncio.get_running_loop().call_later,
@@ -89,19 +88,19 @@ def corocache(
                         internal_cache.pop,
                         key,
                     )
-                    task.add_done_callback(call_after_ttl)
-                return await task
+                    fut.add_done_callback(call_after_ttl)
+                return await fut
 
         return wrapped
 
     return wrapper
 
 
-def _lru_evict(ttl: float, cache: LRU[Hashable, Any], key: Hashable, _ignored_task: object) -> None:
+def _lru_evict(ttl: float, cache: LRU[Hashable, Any], key: Hashable, _ignored_fut: object) -> None:
     asyncio.get_running_loop().call_later(ttl, cache.remove, key)
 
 
-def lrucorocache(ttl: float | None = None, maxsize: int = 1024) -> Callable[[CoroFunc[P, T]], CoroFunc[P, T]]:
+def lrucorocache(ttl: float | None = None, maxsize: int = 1024) -> Callable[[CoroLike[P, T]], CoroFunc[P, T]]:
     """Decorator to cache coroutine functions.
 
     This is less powerful than the version in task_cache.py but may work better for
@@ -113,11 +112,11 @@ def lrucorocache(ttl: float | None = None, maxsize: int = 1024) -> Callable[[Cor
 
     The ordering of args and kwargs matters.
 
-    tasks are evicted by LRU and ttl.
+    futs are evicted by LRU and ttl.
     """
 
-    def wrapper(coro: CoroFunc[P, T]) -> CoroFunc[P, T]:
-        internal_cache: LRU[Hashable, asyncio.Task[T]] = LRU(maxsize)
+    def wrapper(coro: CoroLike[P, T]) -> CoroFunc[P, T]:
+        internal_cache: LRU[Hashable, asyncio.Future[T]] = LRU(maxsize)
 
         @wraps(coro)
         async def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -125,10 +124,10 @@ def lrucorocache(ttl: float | None = None, maxsize: int = 1024) -> Callable[[Cor
             try:
                 return await internal_cache[key]
             except KeyError:
-                internal_cache[key] = task = asyncio.create_task(coro(*args, **kwargs))
+                internal_cache[key] = fut = asyncio.ensure_future(coro(*args, **kwargs))
                 if ttl is not None:
-                    task.add_done_callback(partial(_lru_evict, ttl, internal_cache, key))
-                return await task
+                    fut.add_done_callback(partial(_lru_evict, ttl, internal_cache, key))
+                return await fut
 
         return wrapped
 

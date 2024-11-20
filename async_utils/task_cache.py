@@ -27,6 +27,11 @@ __all__ = ("taskcache", "LRU", "lrutaskcache")
 P = ParamSpec("P")
 T = TypeVar("T")
 
+# Use below doesn't accept non-task Futures, so can't accept general awaitables
+type CoroFunc[**P, T] = Callable[P, Coroutine[Any, Any, T]]
+type TaskFunc[**P, T] = CoroFunc[P, T] | Callable[P, asyncio.Task[T]]
+type TaskCoroFunc[**P, T] = CoroFunc[P, T] | TaskFunc[P, T]
+
 
 class LRU[K, V]:
     def __init__(self, maxsize: int, /):
@@ -54,7 +59,7 @@ class LRU[K, V]:
 
 def taskcache(
     ttl: float | None = None,
-) -> Callable[[Callable[P, Coroutine[Any, Any, T]]], Callable[P, asyncio.Task[T]]]:
+) -> Callable[[TaskCoroFunc[P, T]], TaskFunc[P, T]]:
     """Decorator to modify coroutine functions to instead act as functions returning cached tasks.
 
     For general use, this leaves the end user API largely the same,
@@ -66,7 +71,7 @@ def taskcache(
 
     The ordering of args and kwargs matters."""
 
-    def wrapper(coro: Callable[P, Coroutine[Any, Any, T]]) -> Callable[P, asyncio.Task[T]]:
+    def wrapper(coro: TaskCoroFunc[P, T]) -> TaskFunc[P, T]:
         internal_cache: dict[Hashable, asyncio.Task[T]] = {}
 
         @wraps(coro, assigned=("__module__", "__name__", "__qualname__", "__doc__"))
@@ -75,7 +80,7 @@ def taskcache(
             try:
                 return internal_cache[key]
             except KeyError:
-                internal_cache[key] = task = asyncio.create_task(coro(*args, **kwargs))
+                internal_cache[key] = task = asyncio.ensure_future(coro(*args, **kwargs))
                 if ttl is not None:
                     # This results in internal_cache.pop(key, task) later
                     # while avoiding a late binding issue with a lambda instead
@@ -97,9 +102,7 @@ def _lru_evict(ttl: float, cache: LRU[Hashable, Any], key: Hashable, _ignored_ta
     asyncio.get_running_loop().call_later(ttl, cache.remove, key)
 
 
-def lrutaskcache(
-    ttl: float | None = None, maxsize: int = 1024
-) -> Callable[[Callable[P, Coroutine[Any, Any, T]]], Callable[P, asyncio.Task[T]]]:
+def lrutaskcache(ttl: float | None = None, maxsize: int = 1024) -> Callable[[TaskCoroFunc[P, T]], TaskFunc[P, T]]:
     """Decorator to modify coroutine functions to instead act as functions returning cached tasks.
 
     For general use, this leaves the end user API largely the same,
@@ -114,7 +117,7 @@ def lrutaskcache(
     tasks are evicted by LRU and ttl.
     """
 
-    def wrapper(coro: Callable[P, Coroutine[Any, Any, T]]) -> Callable[P, asyncio.Task[T]]:
+    def wrapper(coro: TaskCoroFunc[P, T]) -> TaskFunc[P, T]:
         internal_cache: LRU[Hashable, asyncio.Task[T]] = LRU(maxsize)
 
         @wraps(coro, assigned=("__module__", "__name__", "__qualname__", "__doc__"))
@@ -123,7 +126,7 @@ def lrutaskcache(
             try:
                 return internal_cache[key]
             except KeyError:
-                internal_cache[key] = task = asyncio.create_task(coro(*args, **kwargs))
+                internal_cache[key] = task = asyncio.ensure_future(coro(*args, **kwargs))
                 if ttl is not None:
                     task.add_done_callback(partial(_lru_evict, ttl, internal_cache, key))
                 return task
