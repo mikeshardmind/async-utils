@@ -21,11 +21,16 @@ from typing import Any, ParamSpec, TypeVar
 
 from ._cpython_stuff import make_key
 
-__all__ = ("taskcache", "LRU", "lrutaskcache")
+__all__ = ("corocache", "lrucorocache")
 
 
 P = ParamSpec("P")
 T = TypeVar("T")
+K = TypeVar("K")
+V = TypeVar("V")
+
+
+type CoroFunc[**P, T] = Callable[P, Coroutine[Any, Any, T]]
 
 
 class LRU[K, V]:
@@ -52,13 +57,13 @@ class LRU[K, V]:
         self.cache.pop(key, None)
 
 
-def taskcache(
+def corocache(
     ttl: float | None = None,
-) -> Callable[[Callable[P, Coroutine[Any, Any, T]]], Callable[P, asyncio.Task[T]]]:
-    """Decorator to modify coroutine functions to instead act as functions returning cached tasks.
+) -> Callable[[CoroFunc[P, T]], CoroFunc[P, T]]:
+    """Decorator to cache coroutine functions.
 
-    For general use, this leaves the end user API largely the same,
-    while leveraging tasks to allow preemptive caching.
+    This is less powerful than the version in task_cache.py but may work better for
+    some cases where typing of libraries this interacts with is too restrictive.
 
     Note: This uses the args and kwargs of the original coroutine function as a cache key.
     This includes instances (self) when wrapping methods.
@@ -66,14 +71,13 @@ def taskcache(
 
     The ordering of args and kwargs matters."""
 
-    def wrapper(coro: Callable[P, Coroutine[Any, Any, T]]) -> Callable[P, asyncio.Task[T]]:
+    def wrapper(coro: CoroFunc[P, T]) -> CoroFunc[P, T]:
         internal_cache: dict[Hashable, asyncio.Task[T]] = {}
 
-        @wraps(coro, assigned=("__module__", "__name__", "__qualname__", "__doc__"))
-        def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[T]:
+        async def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
             key = make_key(args, kwargs)
             try:
-                return internal_cache[key]
+                return await internal_cache[key]
             except KeyError:
                 internal_cache[key] = task = asyncio.create_task(coro(*args, **kwargs))
                 if ttl is not None:
@@ -86,7 +90,7 @@ def taskcache(
                         key,
                     )
                     task.add_done_callback(call_after_ttl)
-                return task
+                return await task
 
         return wrapped
 
@@ -97,13 +101,11 @@ def _lru_evict(ttl: float, cache: LRU[Hashable, Any], key: Hashable, _ignored_ta
     asyncio.get_running_loop().call_later(ttl, cache.remove, key)
 
 
-def lrutaskcache(
-    ttl: float | None = None, maxsize: int = 1024
-) -> Callable[[Callable[P, Coroutine[Any, Any, T]]], Callable[P, asyncio.Task[T]]]:
-    """Decorator to modify coroutine functions to instead act as functions returning cached tasks.
+def lrucorocache(ttl: float | None = None, maxsize: int = 1024) -> Callable[[CoroFunc[P, T]], CoroFunc[P, T]]:
+    """Decorator to cache coroutine functions.
 
-    For general use, this leaves the end user API largely the same,
-    while leveraging tasks to allow preemptive caching.
+    This is less powerful than the version in task_cache.py but may work better for
+    some cases where typing of libraries this interacts with is too restrictive.
 
     Note: This uses the args and kwargs of the original coroutine function as a cache key.
     This includes instances (self) when wrapping methods.
@@ -114,19 +116,19 @@ def lrutaskcache(
     tasks are evicted by LRU and ttl.
     """
 
-    def wrapper(coro: Callable[P, Coroutine[Any, Any, T]]) -> Callable[P, asyncio.Task[T]]:
+    def wrapper(coro: CoroFunc[P, T]) -> CoroFunc[P, T]:
         internal_cache: LRU[Hashable, asyncio.Task[T]] = LRU(maxsize)
 
-        @wraps(coro, assigned=("__module__", "__name__", "__qualname__", "__doc__"))
-        def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[T]:
+        @wraps(coro)
+        async def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
             key = make_key(args, kwargs)
             try:
-                return internal_cache[key]
+                return await internal_cache[key]
             except KeyError:
                 internal_cache[key] = task = asyncio.create_task(coro(*args, **kwargs))
                 if ttl is not None:
                     task.add_done_callback(partial(_lru_evict, ttl, internal_cache, key))
-                return task
+                return await task
 
         return wrapped
 
