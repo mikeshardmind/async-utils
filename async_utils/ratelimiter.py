@@ -18,7 +18,6 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import deque
-from types import TracebackType
 
 __all__ = ("RateLimiter",)
 
@@ -44,5 +43,5 @@ class RateLimiter:
 
         self._monotonics.append(time.monotonic())
 
-    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
+    async def __aexit__(self, *_dont_care: object):
         pass

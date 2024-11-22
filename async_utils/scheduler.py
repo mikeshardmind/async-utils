@@ -17,7 +17,6 @@ from __future__ import annotations
 import asyncio
 from functools import total_ordering
 from time import time
-from types import TracebackType
 from typing import Any
 
 __all__ = ("Scheduler",)
@@ -74,7 +73,7 @@ class Scheduler[T]:
 
         return self
 
-    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
+    async def __aexit__(self, *_dont_care: Any):
         self.__closed = True
 
     def __aiter__(self):

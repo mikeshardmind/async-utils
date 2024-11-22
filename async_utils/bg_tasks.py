@@ -17,7 +17,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Coroutine
 from contextvars import Context
-from types import TracebackType
 from typing import Any, Self, TypeVar
 
 _T = TypeVar("_T")
@@ -43,7 +42,7 @@ class BGTasks:
     async def __aenter__(self: Self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
+    async def __aexit__(self, *_dont_care: Any):
         while tsks := self._tasks.copy():
             _done, _pending = await asyncio.wait(tsks, timeout=self._exit_timeout)
             for task in _pending:

@@ -18,7 +18,6 @@ import asyncio
 import heapq
 import time
 from collections import deque
-from types import TracebackType
 
 __all__ = ("Lockout", "FIFOLockout")
 
@@ -71,7 +70,7 @@ class Lockout:
                 heapq.heappush(self._lockouts, ts)
                 await asyncio.sleep(sleep_for)
 
-    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType) -> None:
+    async def __aexit__(self, *_dont_care: object) -> None:
         pass
 
 
@@ -136,7 +135,7 @@ class FIFOLockout:
                 if maybe_f and not maybe_f.done():
                     maybe_f.set_result(None)
 
-    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType) -> None:
+    async def __aexit__(self, *_dont_care: object) -> None:
         maybe_f = next(iter(self._waiters), None)
         if maybe_f and not maybe_f.done():
             maybe_f.set_result(None)
