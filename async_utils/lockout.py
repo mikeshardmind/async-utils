@@ -19,7 +19,7 @@ import heapq
 import time
 from collections import deque
 
-__all__ = ("Lockout", "FIFOLockout")
+__all__ = ("FIFOLockout", "Lockout")
 
 
 class Lockout:

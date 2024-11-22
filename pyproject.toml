@@ -43,8 +43,6 @@ extend-ignore = [
     "PLR2004",  # Magic value comparison, may remove later
     "SIM105",  # supressable exception, I'm not paying the overhead of contextlib.supress for stylistic choices.
     "C90",  # mccabe complexity memes
-    "ANN101", # missing "Self" annotation, self is implicit
-    "ANN102", # Same, but for cls
     "ANN201", # return types
     "ANN204",  # special method return types
     "ANN401",

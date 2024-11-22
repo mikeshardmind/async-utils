@@ -30,7 +30,7 @@ class CancelationToken:
 
 @total_ordering
 class _Task[T]:
-    __slots__ = ("timestamp", "payload", "canceled", "cancel_token")
+    __slots__ = ("cancel_token", "canceled", "payload", "timestamp")
 
     def __init__(self, timestamp: float, payload: T, /):
         self.timestamp: float = timestamp
@@ -49,7 +49,7 @@ class Scheduler[T]:
     __l: asyncio.Lock
     __granularity: float
 
-    __slots__ = ("__tasks", "__tqueue", "__closed", "__l", "__granularity")
+    __slots__ = ("__closed", "__granularity", "__l", "__tasks", "__tqueue")
 
     def __init__(self, granularity: float, /):
         self.__granularity = granularity

@@ -21,7 +21,7 @@ from typing import Any, ParamSpec, TypeVar
 
 from ._cpython_stuff import make_key
 
-__all__ = ("taskcache", "LRU", "lrutaskcache")
+__all__ = ("LRU", "lrutaskcache", "taskcache")
 
 
 P = ParamSpec("P")

@@ -23,7 +23,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from typing import Any, NamedTuple
 
-__all__ = ["priority_context", "PrioritySemaphore"]
+__all__ = ["PrioritySemaphore", "priority_context"]
 
 _global_lock = threading.Lock()
 
