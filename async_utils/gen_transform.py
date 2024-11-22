@@ -32,7 +32,10 @@ def _consumer(
     **kwargs: P.kwargs,
 ) -> None:
     for val in f(*args, **kwargs):
-        loop.call_soon_threadsafe(queue.put_nowait, val)
+        # This ensures a strict ordering on other event loops
+        # uvloop in particular caused this to be needed
+        h = asyncio.run_coroutine_threadsafe(queue.put(val), loop)
+        h.result()
 
 
 def sync_to_async_gen(
@@ -54,7 +57,11 @@ def sync_to_async_gen(
     If your generator is actually a synchronous coroutine, that's super cool,
     but rewrite is as a native coroutine or use it directly then, you don't need
     what this function does."""
-    q: asyncio.Queue[YieldType] = asyncio.Queue()
+    # Provides backpressure, ensuring the underlying sync generator in a thread is lazy
+    # If the user doesn't want laziness, then using this method makes little sense, they could
+    # trivially exhaust the generator in a thread with asyncio.to_thread(lambda g: list(g()), g)
+    # to then use the values
+    q: asyncio.Queue[YieldType] = asyncio.Queue(maxsize=1)
 
     background_coro = asyncio.to_thread(_consumer, asyncio.get_running_loop(), q, f, *args, **kwargs)
     background_task = asyncio.create_task(background_coro)

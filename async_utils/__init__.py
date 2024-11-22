@@ -13,4 +13,4 @@
 #   limitations under the License.
 
 
-__version__ = "7.0.4"
+__version__ = "2024.11.22"
