@@ -44,15 +44,7 @@ class LoopWrapper:
         awaiting it finishing."""
 
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
-        finished = threading.Event()
-
-        def future_done_callback(_f: Future[Any]) -> object:
-            finished.set()
-
-        future.add_done_callback(future_done_callback)
-
-        await asyncio.get_running_loop().run_in_executor(None, finished.wait)
-        return future.result()
+        return await asyncio.wrap_future(future)
 
 
 def run_forever(loop: asyncio.AbstractEventLoop, use_eager_task_factory: bool, /) -> None:
