@@ -25,12 +25,16 @@ from typing import Any
 
 type SignalCallback = Callable[[signal.Signals | SpecialExit], Any]
 type StartStopCall = Callable[[], Any]
-type _HANDLER = Callable[[int, FrameType | None], Any] | int | signal.Handlers | None
+type _HANDLER = (
+    Callable[[int, FrameType | None], Any] | int | signal.Handlers | None
+)
 
 __all__ = ["SignalService", "SpecialExit"]
 
 possible = "SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"
-actual = tuple(e for name, e in signal.Signals.__members__.items() if name in possible)
+actual = tuple(
+    e for name, e in signal.Signals.__members__.items() if name in possible
+)
 
 
 class SpecialExit(enum.IntEnum):
@@ -38,7 +42,8 @@ class SpecialExit(enum.IntEnum):
 
 
 class SignalService:
-    """Meant for graceful signal handling where the main thread is only used for signal handling.
+    """Meant for graceful signal handling where the main thread is only used
+    for signal handling.
     This should be paired with event loops being run in threads."""
 
     def __init__(

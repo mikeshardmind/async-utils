@@ -43,14 +43,18 @@ class Lockout:
             async with ratelimiter, lockout:
                 response = await some_request(route, **parameters)
                 if response.code == 429:
-                    if reset_after := response.headers.get('X-Ratelimit-Reset-After')
-                        lockout.lock_for(reset_after)
+                    if reset := response.headers.get('X-Ratelimit-Reset-After')
+                        lockout.lock_for(reset)
 
     """
 
     def __repr__(self) -> str:
         res = super().__repr__()
-        extra = "unlocked" if not self._lockouts else f"locked, timestamps={self._lockouts:!r}"
+        extra = (
+            "unlocked"
+            if not self._lockouts
+            else f"locked, timestamps={self._lockouts:!r}"
+        )
         return f"<{res[1:-1]} [{extra}]>"
 
     def __init__(self) -> None:
@@ -105,7 +109,11 @@ class FIFOLockout:
 
     def __repr__(self) -> str:
         res = super().__repr__()
-        extra = "unlocked" if not self._lockouts else f"locked, timestamps={self._lockouts:!r}"
+        extra = (
+            "unlocked"
+            if not self._lockouts
+            else f"locked, timestamps={self._lockouts:!r}"
+        )
         return f"<{res[1:-1]} [{extra}]>"
 
     def lockout_for(self, seconds: float, /) -> None:

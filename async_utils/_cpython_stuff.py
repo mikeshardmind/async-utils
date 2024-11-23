@@ -21,12 +21,13 @@ from typing import Any
 class _HashedSeq(list[Any]):
     """This class guarantees that hash() will be called no more than once
     per element.  This is important because the lru_cache() will hash
-    the key multiple times on a cache miss.
-    """
+    the key multiple times on a cache miss."""
 
     __slots__ = ("hashvalue",)
 
-    def __init__(self, tup: tuple[Any, ...], hash: Callable[[object], int] = hash):  # noqa: A002
+    def __init__(
+        self, tup: tuple[Any, ...], hash: Callable[[object], int] = hash
+    ):  # noqa: A002
         self[:] = tup
         self.hashvalue: int = hash(tup)
 
@@ -47,8 +48,7 @@ def make_key(
     as a nested structure that would take more memory.
     If there is only a single argument and its data type is known to cache
     its hash value, then that argument is returned without a wrapper.  This
-    saves space and improves lookup speed.
-    """
+    saves space and improves lookup speed."""
     # All of code below relies on kwds preserving the order input by the user.
     # Formerly, we sorted() the kwds before looping.  The new way is *much*
     # faster; however, it means that f(x=1, y=2) will now be treated as a

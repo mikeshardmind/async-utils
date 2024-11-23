@@ -24,13 +24,15 @@ __all__ = ("Waterfall",)
 
 
 class Waterfall[T]:
-    """Class for batch event scheduling based on recurring intervals,
+    """
+    Class for batch event scheduling based on recurring intervals,
     with a quanity threshold which overrides the interval.
 
     Initial intended was batching of simple db writes with an
     acceptable tolerance for lost writes,
     though short of an application crash, this is designed
-    to allow graceful shutdown to flush pending actions."""
+    to allow graceful shutdown to flush pending actions.
+    """
 
     def __init__(
         self,
@@ -44,7 +46,9 @@ class Waterfall[T]:
         self.max_wait: float = max_wait
         self.max_wait_finalize: int = max_wait_finalize
         self.max_quantity: int = max_quantity
-        self.callback: Callable[[Sequence[T]], Coroutine[Any, Any, Any]] = async_callback
+        self.callback: Callable[[Sequence[T]], Coroutine[Any, Any, Any]] = (
+            async_callback
+        )
         self.task: asyncio.Task[None] | None = None
         self._alive: bool = False
 
@@ -85,9 +89,13 @@ class Waterfall[T]:
                 queue_items: Sequence[T] = []
                 iter_start = time.monotonic()
 
-                while (this_max_wait := (time.monotonic() - iter_start)) < self.max_wait:
+                while (
+                    this_max_wait := (time.monotonic() - iter_start)
+                ) < self.max_wait:
                     try:
-                        n = await asyncio.wait_for(self.queue.get(), this_max_wait)
+                        n = await asyncio.wait_for(
+                            self.queue.get(), this_max_wait
+                        )
                     except TimeoutError:
                         continue
                     else:
@@ -108,7 +116,9 @@ class Waterfall[T]:
                     self.queue.task_done()
 
         finally:
-            f = asyncio.create_task(self._finalize(), name="waterfall.finalizer")
+            f = asyncio.create_task(
+                self._finalize(), name="waterfall.finalizer"
+            )
             await asyncio.wait_for(f, timeout=self.max_wait_finalize)
 
     async def _finalize(self) -> None:
@@ -121,7 +131,8 @@ class Waterfall[T]:
             try:
                 ev = self.queue.get_nowait()
             except asyncio.QueueEmpty:
-                # we should never hit this, asyncio queues know their size reliably when used appropriately.
+                # we should never hit this, asyncio queues know their size
+                # reliably when used in a single threaded manner.
                 break
 
             remaining_items.append(ev)
@@ -133,7 +144,10 @@ class Waterfall[T]:
 
         pending_futures: list[asyncio.Task[Any]] = []
 
-        for chunk in (remaining_items[p : p + self.max_quantity] for p in range(0, num_remaining, self.max_quantity)):
+        for chunk in (
+            remaining_items[p : p + self.max_quantity]
+            for p in range(0, num_remaining, self.max_quantity)
+        ):
             fut = asyncio.create_task(self.callback(chunk))
             pending_futures.append(fut)
 

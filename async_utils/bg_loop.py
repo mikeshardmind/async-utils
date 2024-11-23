@@ -47,7 +47,9 @@ class LoopWrapper:
         return await asyncio.wrap_future(future)
 
 
-def run_forever(loop: asyncio.AbstractEventLoop, use_eager_task_factory: bool, /) -> None:
+def run_forever(
+    loop: asyncio.AbstractEventLoop, use_eager_task_factory: bool, /
+) -> None:
     asyncio.set_event_loop(loop)
     if use_eager_task_factory:
         loop.set_task_factory(asyncio.eager_task_factory)
@@ -55,7 +57,9 @@ def run_forever(loop: asyncio.AbstractEventLoop, use_eager_task_factory: bool, /
         loop.run_forever()
     finally:
         loop.run_until_complete(asyncio.sleep(0))
-        tasks: set[asyncio.Task[Any]] = {t for t in asyncio.all_tasks(loop) if not t.done()}
+        tasks: set[asyncio.Task[Any]] = {
+            t for t in asyncio.all_tasks(loop) if not t.done()
+        }
         for t in tasks:
             t.cancel()
         loop.run_until_complete(asyncio.sleep(0))
@@ -80,7 +84,9 @@ def run_forever(loop: asyncio.AbstractEventLoop, use_eager_task_factory: bool, /
 
 
 @contextmanager
-def threaded_loop(*, use_eager_task_factory: bool = True) -> Generator[LoopWrapper, None, None]:
+def threaded_loop(
+    *, use_eager_task_factory: bool = True
+) -> Generator[LoopWrapper, None, None]:
     """Starts an event loop on a background thread,
     and yields an object with scheduling methods for interacting with
     the loop.
@@ -89,7 +95,9 @@ def threaded_loop(*, use_eager_task_factory: bool = True) -> Generator[LoopWrapp
     loop = asyncio.new_event_loop()
     thread = None
     try:
-        thread = threading.Thread(target=run_forever, args=(loop, use_eager_task_factory))
+        thread = threading.Thread(
+            target=run_forever, args=(loop, use_eager_task_factory)
+        )
         thread.start()
         yield LoopWrapper(loop)
     finally:

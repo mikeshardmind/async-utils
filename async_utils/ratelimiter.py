@@ -34,11 +34,16 @@ class RateLimiter:
         self._monotonics: deque[float] = deque()
 
     async def __aenter__(self):
-        # The ordering of these conditions matters to avoid an async context switch between
-        # confirming the ratelimit isn't exhausted and allowing the user code to continue.
-        while (len(self._monotonics) >= self.rate_limit) and await asyncio.sleep(self.granularity, True):
+        # The ordering of these conditions matters to avoid an async context
+        # switch between confirming the ratelimit isn't exhausted and allowing
+        # the user code to continue.
+        while (
+            len(self._monotonics) >= self.rate_limit
+        ) and await asyncio.sleep(self.granularity, True):
             now = time.monotonic()
-            while self._monotonics and (now - self._monotonics[0] > self.period):
+            while self._monotonics and (
+                now - self._monotonics[0] > self.period
+            ):
                 self._monotonics.popleft()
 
         self._monotonics.append(time.monotonic())

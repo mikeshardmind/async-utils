@@ -100,14 +100,17 @@ class Scheduler[T]:
                 self.__tqueue.task_done()
         raise StopAsyncIteration
 
-    async def create_task(self, timestamp: float, payload: T, /) -> CancelationToken:
+    async def create_task(
+        self, timestamp: float, payload: T, /
+    ) -> CancelationToken:
         t = _Task(timestamp, payload)
         self.__tasks[t.cancel_token] = t
         await self.__tqueue.put(t)
         return t.cancel_token
 
     async def cancel_task(self, cancel_token: CancelationToken, /) -> bool:
-        """Returns if the task with that CancelationToken. Cancelling an already cancelled task is allowed."""
+        """Returns if the task with that CancelationToken. Cancelling an
+        already cancelled task is allowed and has no additional effect."""
         async with self.__l:
             try:
                 task = self.__tasks[cancel_token]
