@@ -19,7 +19,7 @@ import asyncio
 import contextvars
 import heapq
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from typing import Any, NamedTuple
 
@@ -55,7 +55,8 @@ class PriorityWaiter(NamedTuple):
 
 
 @contextmanager
-def priority_context(priority: int):
+def priority_context(priority: int) -> Generator[None, None, None]:
+    """Set the priority for all PrioritySemaphore use in this context."""
     token = _priority.set(priority)
     try:
         yield None
@@ -67,7 +68,8 @@ _default: Any = object()
 
 
 class PrioritySemaphore:
-    """
+    """A Semaphore with priority-based aquisition ordering.
+
     Provides a semaphore with similar semantics as asyncio.Semaphore,
     but using an underlying priority. priority is shared within a context
     manager's logical scope, but the context can be nested safely.
@@ -76,11 +78,11 @@ class PrioritySemaphore:
 
     context manager use:
 
-    sem = PrioritySemaphore(1)
+    >>> sem = PrioritySemaphore(1)
+    >>> with priority_ctx(10):
+            async with sem:
+                ...
 
-    with priority_ctx(10):
-        async with sem:
-            ...
     """
 
     _loop: asyncio.AbstractEventLoop | None = None
@@ -93,12 +95,14 @@ class PrioritySemaphore:
                 if self._loop is None:
                     self._loop = loop
         if loop is not self._loop:
-            raise RuntimeError(f"{self!r} is bound to a different event loop")
+            msg = f"{self!r} is bound to a different event loop"
+            raise RuntimeError(msg)
         return loop
 
     def __init__(self, value: int = 1):
         if value < 0:
-            raise ValueError("Semaphore initial value must be >= 0")
+            msg = "Semaphore initial value must be >= 0"
+            raise ValueError(msg)
         self._waiters: list[PriorityWaiter] | None = None
         self._value: int = value
 
@@ -120,9 +124,8 @@ class PrioritySemaphore:
     async def __aenter__(self):
         prio = _priority.get()
         await self.acquire(prio)
-        return
 
-    async def __aexit__(self, *dont_care: Any):
+    async def __aexit__(self, *dont_care: object):
         self.release()
 
     async def acquire(self, priority: int = _default) -> bool:
@@ -174,6 +177,6 @@ class PrioritySemaphore:
                 heapq.heappush(self._waiters, next_waiter)
                 break
 
-    def release(self):
+    def release(self) -> None:
         self._value += 1
         self._maybe_wake()

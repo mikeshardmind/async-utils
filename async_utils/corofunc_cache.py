@@ -39,14 +39,16 @@ def corocache(
     """Decorator to cache coroutine functions.
 
     This is less powerful than the version in task_cache.py but may work better
-    for some cases where typing of libraries this interacts with is too restrictive.
+    for some cases where typing of libraries this interacts with is too
+    restrictive.
 
     Note: This uses the args and kwargs of the original coroutine function as a
     cache key. This includes instances (self) when wrapping methods.
-    Consider not wrapping instance methods, but what those methods call when feasible
-    in cases where this may matter.
+    Consider not wrapping instance methods, but what those methods call when
+    feasible in cases where this may matter.
 
-    The ordering of args and kwargs matters."""
+    The ordering of args and kwargs matters.
+    """
 
     def wrapper(coro: CoroLike[P, R]) -> CoroFunc[P, R]:
         internal_cache: dict[Hashable, asyncio.Future[R]] = {}
@@ -88,16 +90,18 @@ def lrucorocache(
     """Decorator to cache coroutine functions.
 
     This is less powerful than the version in task_cache.py but may work better
-    for some cases where typing of libraries this interacts with is too restrictive.
+    for some cases where typing of libraries this interacts with is too
+    restrictive.
 
     Note: This uses the args and kwargs of the original coroutine function as a
     cache key. This includes instances (self) when wrapping methods.
-    Consider not wrapping instance methods, but what those methods call when feasible
-    in cases where this may matter.
+    Consider not wrapping instance methods, but what those methods call when
+    feasible in cases where this may matter.
 
     The ordering of args and kwargs matters.
 
-    cached results are evicted by LRU and ttl."""
+    Cached results are evicted by LRU and ttl.
+    """
 
     def wrapper(coro: CoroLike[P, R]) -> CoroFunc[P, R]:
         internal_cache: LRU[Hashable, asyncio.Future[R]] = LRU(maxsize)

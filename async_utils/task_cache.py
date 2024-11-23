@@ -37,7 +37,8 @@ type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
 def taskcache(
     ttl: float | None = None,
 ) -> Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]:
-    """
+    """Async caching via decorator.
+
     Decorator to modify coroutine functions to instead act as functions
     returning cached tasks.
 
@@ -92,7 +93,8 @@ def _lru_evict(
 def lrutaskcache(
     ttl: float | None = None, maxsize: int = 1024
 ) -> Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]:
-    """
+    """Async caching via decorator.
+
     Decorator to modify coroutine functions to instead act as functions
     returning cached tasks.
 

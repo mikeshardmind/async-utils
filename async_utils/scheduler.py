@@ -73,7 +73,7 @@ class Scheduler[T]:
 
         return self
 
-    async def __aexit__(self, *_dont_care: Any):
+    async def __aexit__(self, *_dont_care: object):
         self.__closed = True
 
     def __aiter__(self):
@@ -108,23 +108,22 @@ class Scheduler[T]:
         await self.__tqueue.put(t)
         return t.cancel_token
 
-    async def cancel_task(self, cancel_token: CancelationToken, /) -> bool:
-        """Returns if the task with that CancelationToken. Cancelling an
-        already cancelled task is allowed and has no additional effect."""
+    async def cancel_task(self, cancel_token: CancelationToken, /) -> None:
+        """Cancel a task.
+
+        Canceling an already canceled task is not an error
+        """
         async with self.__l:
             try:
                 task = self.__tasks[cancel_token]
                 task.canceled = True
             except KeyError:
                 pass
-            else:
-                return True
-        return False
 
-    def close(self):
-        """Closes the scheduler without waiting"""
+    def close(self) -> None:
+        """Closes the scheduler without waiting."""
         self.__closed = True
 
-    async def join(self):
-        """Waits for the scheduler's internal queue to be empty"""
+    async def join(self) -> None:
+        """Waits for the scheduler's internal queue to be empty."""
         await self.__tqueue.join()

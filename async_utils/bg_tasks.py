@@ -27,11 +27,11 @@ __all__ = ["BGTasks"]
 
 
 class BGTasks:
-    """An intentionally dumber task group"""
+    """An intentionally dumber task group."""
 
     def __init__(self, exit_timeout: float | None) -> None:
         self._tasks: set[asyncio.Task[Any]] = set()
-        self._exit_timeout: float | None = exit_timeout
+        self._etime: float | None = exit_timeout
 
     def create_task(
         self,
@@ -39,7 +39,7 @@ class BGTasks:
         *,
         name: str | None = None,
         context: Context | None = None,
-    ) -> Any:
+    ) -> asyncio.Task[_T]:
         t = asyncio.create_task(coro)
         self._tasks.add(t)
         t.add_done_callback(self._tasks.discard)
@@ -48,11 +48,9 @@ class BGTasks:
     async def __aenter__(self: Self) -> Self:
         return self
 
-    async def __aexit__(self, *_dont_care: Any):
+    async def __aexit__(self, *_dont_care: object):
         while tsks := self._tasks.copy():
-            _done, _pending = await asyncio.wait(
-                tsks, timeout=self._exit_timeout
-            )
+            _done, _pending = await asyncio.wait(tsks, timeout=self._etime)
             for task in _pending:
                 task.cancel()
             await asyncio.sleep(0)

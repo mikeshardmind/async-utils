@@ -23,7 +23,7 @@ __all__ = ("FIFOLockout", "Lockout")
 
 
 class Lockout:
-    """Lock out an async resource for an amount of time
+    """Lock out an async resource for an amount of time.
 
     Resources may be locked out multiple times.
 
@@ -79,7 +79,9 @@ class Lockout:
 
 
 class FIFOLockout:
-    """A FIFO preserving version of Lockout. This has slightly more
+    """A FIFO preserving version of Lockout.
+
+    This has slightly more
     overhead than the base Lockout class, which is not guaranteed to
     preserve FIFO, though happens to in the case of not being locked.
 

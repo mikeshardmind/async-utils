@@ -36,19 +36,20 @@ class LoopWrapper:
         self._loop.call_soon_threadsafe(self._loop.stop)
 
     def schedule(self, coro: _FutureLike[_T]) -> Future[_T]:
-        """Schedule a coroutine to run on the wrapped event loop"""
+        """Schedule a coroutine to run on the wrapped event loop."""
         return asyncio.run_coroutine_threadsafe(coro, self._loop)
 
     async def run(self, coro: _FutureLike[_T]) -> _T:
-        """Schedule a coroutine to run on the background loop,
-        awaiting it finishing."""
-
+        """Schedule and await a coroutine to run on the background loop."""
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return await asyncio.wrap_future(future)
 
 
 def run_forever(
-    loop: asyncio.AbstractEventLoop, use_eager_task_factory: bool, /
+    loop: asyncio.AbstractEventLoop,
+    /,
+    *,
+    use_eager_task_factory: bool = True,
 ) -> None:
     asyncio.set_event_loop(loop)
     if use_eager_task_factory:
@@ -69,13 +70,11 @@ def run_forever(
         for task in tasks:
             try:
                 if (exc := task.exception()) is not None:
-                    loop.call_exception_handler(
-                        {
-                            "message": "Unhandled exception in task during shutdown.",
-                            "exception": exc,
-                            "task": task,
-                        }
-                    )
+                    loop.call_exception_handler({
+                        "message": "Unhandled exception in task during shutdown.",
+                        "exception": exc,
+                        "task": task,
+                    })
             except (asyncio.InvalidStateError, asyncio.CancelledError):
                 pass
 
@@ -87,11 +86,14 @@ def run_forever(
 def threaded_loop(
     *, use_eager_task_factory: bool = True
 ) -> Generator[LoopWrapper, None, None]:
-    """Starts an event loop on a background thread,
+    """Create and use a managed event loop in a backround thread.
+
+    Starts an event loop on a background thread,
     and yields an object with scheduling methods for interacting with
     the loop.
 
-    loop is scheduled for shutdown, and thread is joined at contextmanager exit"""
+    loop is scheduled for shutdown, and thread is joined at contextmanager exit
+    """
     loop = asyncio.new_event_loop()
     thread = None
     try:

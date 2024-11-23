@@ -26,8 +26,8 @@ YieldType = TypeVar("YieldType")
 
 
 class _PeekableQueue[T](asyncio.Queue[T]):
-    """This is for internal use only, tested on both 3.12 and 3.13
-    This will be tested for 3.14 prior to 3.14's release."""
+    # This is for internal use only, tested on both 3.12 and 3.13
+    # This will be tested for 3.14 prior to 3.14's release.
 
     _get_loop: Callable[[], asyncio.AbstractEventLoop]  # pyright: ignore[reportUninitializedInstanceVariable]
     _getters: deque[asyncio.Future[None]]  # pyright: ignore[reportUninitializedInstanceVariable]
@@ -71,8 +71,7 @@ def sync_to_async_gen(
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> AsyncGenerator[YieldType]:
-    """Asynchronously iterate over a synchronous generator run in
-    background thread.
+    """Asynchronously iterate over a synchronous generator.
 
     The generator function and it's arguments must be threadsafe and will be
     iterated lazily. Generators which perform cpu intensive work while holding
@@ -84,7 +83,8 @@ def sync_to_async_gen(
 
     If your generator is actually a synchronous coroutine, that's super cool,
     but rewrite is as a native coroutine or use it directly then, you don't need
-    what this function does."""
+    what this function does.
+    """
     # Provides backpressure, ensuring the underlying sync generator in a thread
     # is lazy If the user doesn't want laziness, then using this method makes
     # little sense, they could trivially exhaust the generator in a thread with

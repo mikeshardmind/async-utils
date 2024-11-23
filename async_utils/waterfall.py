@@ -24,9 +24,7 @@ __all__ = ("Waterfall",)
 
 
 class Waterfall[T]:
-    """
-    Class for batch event scheduling based on recurring intervals,
-    with a quanity threshold which overrides the interval.
+    """Batch event scheduling based on recurring quantity-interval pairs.
 
     Initial intended was batching of simple db writes with an
     acceptable tolerance for lost writes,
@@ -52,7 +50,7 @@ class Waterfall[T]:
         self.task: asyncio.Task[None] | None = None
         self._alive: bool = False
 
-    def start(self):
+    def start(self) -> None:
         if self.task is not None:
             msg = "Already Running"
             raise RuntimeError(msg)
@@ -61,22 +59,22 @@ class Waterfall[T]:
         self.task = asyncio.create_task(self._loop())
 
     @overload
-    def stop(self, wait: Literal[True]) -> Coroutine[Any, Any, None]:
+    def stop(self, *, wait: Literal[True]) -> Coroutine[Any, Any, None]:
         pass
 
     @overload
-    def stop(self, wait: Literal[False]) -> None:
+    def stop(self, *, wait: Literal[False]) -> None:
         pass
 
     @overload
-    def stop(self, wait: bool = False) -> Coroutine[Any, Any, None] | None:
+    def stop(self, *, wait: bool = False) -> Coroutine[Any, Any, None] | None:
         pass
 
-    def stop(self, wait: bool = False) -> Coroutine[Any, Any, None] | None:
+    def stop(self, *, wait: bool = False) -> Coroutine[Any, Any, None] | None:
         self._alive = False
         return self.queue.join() if wait else None
 
-    def put(self, item: T):
+    def put(self, item: T) -> None:
         if not self._alive:
             msg = "Can't put something in a non-running Waterfall."
             raise RuntimeError(msg)

@@ -23,9 +23,12 @@ __all__ = ("RateLimiter",)
 
 
 class RateLimiter:
-    """This is an asyncio specific ratelimit implementation which does not
+    """Asyncio-specific internal application ratelimiter.
+
+    This is an asyncio specific ratelimit implementation which does not
     account for various networking effects / responses and
-    should only be used for internal limiting."""
+    should only be used for internal limiting.
+    """
 
     def __init__(self, rate_limit: int, period: float, granularity: float):
         self.rate_limit: int = rate_limit

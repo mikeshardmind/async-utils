@@ -42,9 +42,12 @@ class SpecialExit(enum.IntEnum):
 
 
 class SignalService:
-    """Meant for graceful signal handling where the main thread is only used
+    """Helper for signal handling.
+
+    Meant for graceful signal handling where the main thread is only used
     for signal handling.
-    This should be paired with event loops being run in threads."""
+    This should be paired with event loops being run in threads.
+    """
 
     def __init__(
         self,
@@ -59,16 +62,16 @@ class SignalService:
     def get_send_socket(self) -> socket.socket:
         return self.cs
 
-    def add_startup(self, job: StartStopCall):
+    def add_startup(self, job: StartStopCall) -> None:
         self._startup.append(job)
 
-    def add_signal_cb(self, cb: SignalCallback):
+    def add_signal_cb(self, cb: SignalCallback) -> None:
         self._cbs.append(cb)
 
-    def add_join(self, join: StartStopCall):
+    def add_join(self, join: StartStopCall) -> None:
         self._joins.append(join)
 
-    def run(self):
+    def run(self) -> None:
         signal.set_wakeup_fd(self.cs.fileno())
 
         original_handlers: list[_HANDLER] = []
@@ -92,5 +95,5 @@ class SignalService:
         for join in self._joins:
             join()
 
-        for sig, original in zip(actual, original_handlers):
+        for sig, original in zip(actual, original_handlers, strict=True):
             signal.signal(sig, original)
