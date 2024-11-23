@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 from collections.abc import AsyncGenerator, Callable, Generator
 from typing import ParamSpec, TypeVar
 
@@ -24,9 +25,36 @@ P = ParamSpec("P")
 YieldType = TypeVar("YieldType")
 
 
+class _PeekableQueue[T](asyncio.Queue[T]):
+    """This is for internal use only, tested on both 3.12 and 3.13
+    This will be tested for 3.14 prior to 3.14's release."""
+
+    _get_loop: Callable[[], asyncio.AbstractEventLoop]  # pyright: ignore[reportUninitializedInstanceVariable]
+    _getters: deque[asyncio.Future[None]]  # pyright: ignore[reportUninitializedInstanceVariable]
+    _wakeup_next: Callable[[deque[asyncio.Future[None]]], None]  # pyright: ignore[reportUninitializedInstanceVariable]
+    _queue: deque[T]  # pyright: ignore[reportUninitializedInstanceVariable]
+
+    async def peek(self) -> T:
+        while self.empty():
+            getter = self._get_loop().create_future()
+            self._getters.append(getter)  # type:
+            try:
+                await getter
+            except:
+                getter.cancel()
+                try:
+                    self._getters.remove(getter)
+                except ValueError:
+                    pass
+                if not self.empty() and not getter.cancelled():
+                    self._wakeup_next(self._getters)
+                raise
+        return self._queue[0]
+
+
 def _consumer(
     loop: asyncio.AbstractEventLoop,
-    queue: asyncio.Queue[YieldType],
+    queue: _PeekableQueue[YieldType],
     f: Callable[P, Generator[YieldType]],
     *args: P.args,
     **kwargs: P.kwargs,
@@ -43,12 +71,12 @@ def sync_to_async_gen(
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> AsyncGenerator[YieldType]:
-    """async iterate over synchronous generator ran in backgroun thread.
+    """Asynchronously iterate over a synchronous generator run in
+    background thread.
 
-    Generator function and it's arguments must be threadsafe.
-
-    Generators which perform cpu intensive work while holding the GIL will
-    likely not see a benefit.
+    The generator function and it's arguments must be threadsafe and will be
+    iterated lazily. Generators which perform cpu intensive work while holding
+    the GIL will likely not see a benefit.
 
     Generators which rely on two-way communication (generators as coroutines)
     are not appropriate for this function. similarly, generator return values
@@ -57,21 +85,26 @@ def sync_to_async_gen(
     If your generator is actually a synchronous coroutine, that's super cool,
     but rewrite is as a native coroutine or use it directly then, you don't need
     what this function does."""
-    # Provides backpressure, ensuring the underlying sync generator in a thread is lazy
-    # If the user doesn't want laziness, then using this method makes little sense, they could
-    # trivially exhaust the generator in a thread with asyncio.to_thread(lambda g: list(g()), g)
-    # to then use the values
-    q: asyncio.Queue[YieldType] = asyncio.Queue(maxsize=1)
+    # Provides backpressure, ensuring the underlying sync generator in a thread
+    # is lazy If the user doesn't want laziness, then using this method makes
+    # little sense, they could trivially exhaust the generator in a thread with
+    # asyncio.to_thread(lambda g: list(g()), g) to then use the values
+    q: _PeekableQueue[YieldType] = _PeekableQueue(maxsize=1)
 
-    background_coro = asyncio.to_thread(_consumer, asyncio.get_running_loop(), q, f, *args, **kwargs)
+    background_coro = asyncio.to_thread(
+        _consumer, asyncio.get_running_loop(), q, f, *args, **kwargs
+    )
     background_task = asyncio.create_task(background_coro)
 
     async def gen() -> AsyncGenerator[YieldType]:
         while not background_task.done():
-            q_get = asyncio.ensure_future(q.get())
-            done, _pending = await asyncio.wait((background_task, q_get), return_when=asyncio.FIRST_COMPLETED)
-            if q_get in done:
-                yield (await q_get)
+            q_peek = asyncio.ensure_future(q.peek())
+            done, _pending = await asyncio.wait(
+                (background_task, q_peek), return_when=asyncio.FIRST_COMPLETED
+            )
+            if q_peek in done:
+                yield (await q_peek)
+                q.get_nowait()
         while not q.empty():
             yield q.get_nowait()
         # ensure errors in the generator propogate *after* the last values yielded
