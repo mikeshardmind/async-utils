@@ -54,12 +54,14 @@ ignore = [
     "G002",  # erroneous issue with %-logging when logging can be confiured for % logging
     "ISC001", # ruff format suggested
     "PLC0105",  # no, I don't like co naming style for typevars
+    "PLC0415", # ruff gets this wrong, import needs to be not at top of file in some cases
     "PLR0912", # too many branches
     "PLR0913", # number of function arguments
     "PLR0915",  # too many statements.... in an async entrypoint handling graceful shutdown...
     "PLR0917",  # too many positional arguments
     "PLR2004",  # Magic value comparison, may remove later
     "RUF001",  # ambiguous characters not something I want to enforce here.
+    "RUF029",  # no, don't try andd tell me I'm wrong for async def when something is for an interface.
     "S101",  # use of assert here is a known quantity, blame typing memes
     "S311",  # Yes, I know that standard pseudo-random generators are not suitable for cryptographic purposes
     "SIM105",  # supressable exception, I'm not paying the overhead of contextlib.supress for stylistic choices.
