@@ -26,8 +26,10 @@ class _HashedSeq(list[Any]):
     __slots__ = ("hashvalue",)
 
     def __init__(
-        self, tup: tuple[Any, ...], hash: Callable[[object], int] = hash
-    ):  # noqa: A002
+        self,
+        tup: tuple[Any, ...],
+        hash: Callable[[object], int] = hash,  # noqa: A002
+    ):
         self[:] = tup
         self.hashvalue: int = hash(tup)
 
