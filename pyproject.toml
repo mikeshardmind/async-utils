@@ -63,6 +63,8 @@ ignore = [
     "S101",  # use of assert here is a known quantity, blame typing memes
     "S311",  # Yes, I know that standard pseudo-random generators are not suitable for cryptographic purposes
     "SIM105",  # supressable exception, I'm not paying the overhead of contextlib.supress for stylistic choices.
+    "TC001", # I prefer to avoid if TYPE_CHECKING
+    "TC002", # I prefer to avoid if TYPE_CHECKING
     "TC003", # I prefer to avoid if TYPE_CHECKING
     "UP007", # "Use | For Union" doesn't account for typevar tuple unpacking.
     "UP031", # No, I like % formatting more for some things...
