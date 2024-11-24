@@ -117,6 +117,10 @@ def sync_to_async_gen(
             )
             if q_peek in done:
                 yield (await q_peek)
+                # We peek above, then remove after we are yielded back.
+                # This retains the laziness of the generator in thread without a
+                # more complex communication channel, only using when putting the
+                # next item into the queue (with a max size of 1) is done.
                 q.get_nowait()
         while not q.empty():
             yield q.get_nowait()
