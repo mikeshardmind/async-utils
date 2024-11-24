@@ -30,6 +30,17 @@ class Waterfall[T]:
     acceptable tolerance for lost writes,
     though short of an application crash, this is designed
     to allow graceful shutdown to flush pending actions.
+
+    Parameters
+    ----------
+    max_wait: float
+        The maximum time to wait between batches.
+    max_quantity: int
+        The maximum number of items to wait before emitting a batch.
+    async_callback:
+        The coroutine function to call with each batch.
+    max_wait_finalize: int | None
+        Optionally, The number of seconds to wait for batches to complete
     """
 
     def __init__(
@@ -38,11 +49,11 @@ class Waterfall[T]:
         max_quantity: int,
         async_callback: Callable[[Sequence[T]], Coroutine[Any, Any, Any]],
         *,
-        max_wait_finalize: int = 3,
-    ):
+        max_wait_finalize: int | None = None,
+    ) -> None:
         self.queue: asyncio.Queue[T] = asyncio.Queue()
         self.max_wait: float = max_wait
-        self.max_wait_finalize: int = max_wait_finalize
+        self.max_wait_finalize: int | None = max_wait_finalize
         self.max_quantity: int = max_quantity
         self.callback: Callable[[Sequence[T]], Coroutine[Any, Any, Any]] = (
             async_callback
@@ -51,6 +62,13 @@ class Waterfall[T]:
         self._alive: bool = False
 
     def start(self) -> None:
+        """Start the background loop that handles batching and dispatching.
+
+        Raises
+        ------
+        RuntimeError
+            Raised if attempting to start an already starte Waterfall instance.
+        """
         if self.task is not None:
             msg = "Already Running"
             raise RuntimeError(msg)
@@ -71,10 +89,31 @@ class Waterfall[T]:
         pass
 
     def stop(self, *, wait: bool = False) -> Coroutine[Any, Any, None] | None:
+        """Stop accepting new tasks.
+
+        Parameters
+        ----------
+        wait: bool
+            Whether to wait on existing batches to be dispatched.
+
+        Returns
+        -------
+        If wait is True, returns an awaitable which can block current execution
+        scope until all remaining batches have been dispatched.
+
+        otherwise returns None.
+        """
         self._alive = False
         return self.queue.join() if wait else None
 
     def put(self, item: T) -> None:
+        """Put an item in for later batching.
+
+        Raises
+        ------
+        RuntimeError
+            Raised when attempting to put an item into a non-running Waterfall.
+        """
         if not self._alive:
             msg = "Can't put something in a non-running Waterfall."
             raise RuntimeError(msg)

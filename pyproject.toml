@@ -42,13 +42,14 @@ select = [
 
 ignore = [
     "ANN202", # implied return fine sometimes
-    "ANN204",  # special method return types
     "ANN401",  # Any is the correct type in some cases
     "ASYNC116", # Long sleeps are fine
     "B901", # I'm aware of how generators as coroutines work
     "C90",  # mccabe complexity memes
     "COM812", # ruff format suggested
+    "D100", # no, module level docs aren't always neededd
     "D105", # documenting magic methods is often dumb.
+    "D107", # __init__ is the wrong place to doc this.
     "E501", # ruff format suggested
     "FBT003", # Wrong end to enforce this on.
     "G002",  # erroneous issue with %-logging when logging can be confiured for % logging
@@ -77,7 +78,7 @@ unfixable = [
 ]
 
 [tool.ruff.lint.pydocstyle]
-convention = "google"
+convention = "numpy"
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 # https://discuss.python.org/t/problems-with-typeis/55410/6

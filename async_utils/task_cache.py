@@ -37,7 +37,7 @@ type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
 def taskcache(
     ttl: float | None = None,
 ) -> Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]:
-    """Async caching via decorator.
+    """Cache the results of the decorated coroutine.
 
     Decorator to modify coroutine functions to instead act as functions
     returning cached tasks.
@@ -51,6 +51,16 @@ def taskcache(
     feasible in cases where this may matter.
 
     The ordering of args and kwargs matters.
+
+    Parameters
+    ----------
+    ttl: float | None
+        The time to live in seconds for cached results. Defaults to None (forever)
+
+    Returns
+    -------
+    A decorator which wraps coroutine-like objects in functions that return
+    preemptively cached tasks.
     """
 
     def wrapper(coro: TaskCoroFunc[P, R]) -> TaskFunc[P, R]:
@@ -93,7 +103,7 @@ def _lru_evict(
 def lrutaskcache(
     ttl: float | None = None, maxsize: int = 1024
 ) -> Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]:
-    """Async caching via decorator.
+    """Cache the results of the decorated coroutine.
 
     Decorator to modify coroutine functions to instead act as functions
     returning cached tasks.
@@ -109,6 +119,20 @@ def lrutaskcache(
     The ordering of args and kwargs matters.
 
     tasks are evicted by LRU and ttl.
+
+    Parameters
+    ----------
+    ttl: float | None
+        The time to live in seconds for cached results. Defaults to None (forever)
+    maxsize: int
+        The maximum number of items to retain no matter if they have reached
+        expiration by ttl or not.
+        Items evicted by this policy are evicted by least recent use.
+
+    Returns
+    -------
+    A decorator which wraps coroutine-like objects in functions that return
+    preemptively cached tasks.
     """
 
     def wrapper(coro: TaskCoroFunc[P, R]) -> TaskFunc[P, R]:

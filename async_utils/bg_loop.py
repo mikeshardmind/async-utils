@@ -12,6 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+"""Background loop management."""
+
 from __future__ import annotations
 
 import asyncio
@@ -21,26 +23,44 @@ from concurrent.futures import Future
 from contextlib import contextmanager
 from typing import Any, TypeVar
 
-_T = TypeVar("_T")
+T = TypeVar("T")
 
-type _FutureLike[_T] = asyncio.Future[_T] | Awaitable[_T]
+type _FutureLike[T] = asyncio.Future[T] | Awaitable[T]
 
 __all__ = ["threaded_loop"]
 
 
 class LoopWrapper:
-    def __init__(self, loop: asyncio.AbstractEventLoop):
+    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop
 
-    def stop(self) -> None:
-        self._loop.call_soon_threadsafe(self._loop.stop)
+    def schedule(self, coro: _FutureLike[T], /) -> Future[T]:
+        """Schedule a coroutine to run on the wrapped event loop.
 
-    def schedule(self, coro: _FutureLike[_T]) -> Future[_T]:
-        """Schedule a coroutine to run on the wrapped event loop."""
+        Parameters
+        ----------
+        coro:
+            A thread-safe coroutine-like object
+
+        Returns
+        -------
+        asyncio.Future:
+            A Future wrapping the result.
+        """
         return asyncio.run_coroutine_threadsafe(coro, self._loop)
 
-    async def run(self, coro: _FutureLike[_T]) -> _T:
-        """Schedule and await a coroutine to run on the background loop."""
+    async def run(self, coro: _FutureLike[T], /) -> T:
+        """Schedule and await a coroutine to run on the background loop.
+
+        Parameters
+        ----------
+        coro:
+            A thread-safe coroutine-like object
+
+        Returns
+        -------
+        The returned value of the coroutine run in the background
+        """
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return await asyncio.wrap_future(future)
 
@@ -92,7 +112,12 @@ def threaded_loop(
     and yields an object with scheduling methods for interacting with
     the loop.
 
-    loop is scheduled for shutdown, and thread is joined at contextmanager exit
+    Loop is scheduled for shutdown, and thread is joined at contextmanager exit
+
+    Yields
+    ------
+    LoopWrapper
+        A wrapper with methods for interacting with the background loop.
     """
     loop = asyncio.new_event_loop()
     thread = None

@@ -84,6 +84,19 @@ def sync_to_async_gen(
     If your generator is actually a synchronous coroutine, that's super cool,
     but rewrite is as a native coroutine or use it directly then, you don't need
     what this function does.
+
+    Parameters
+    ----------
+    f:
+        The synchronous generator function to wrap.
+    *args:
+        The positional args to pass to the generator construction.
+    **kwargs:
+        The keyword arguments to pass to the generator construction.
+
+    Returns
+    -------
+    An asynchronous iterator which yields the results of the wrapped generator.
     """
     # Provides backpressure, ensuring the underlying sync generator in a thread
     # is lazy If the user doesn't want laziness, then using this method makes

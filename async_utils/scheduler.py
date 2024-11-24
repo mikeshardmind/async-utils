@@ -17,14 +17,14 @@ from __future__ import annotations
 import asyncio
 from functools import total_ordering
 from time import time
-from typing import Any
+from typing import Any, Self
 
 __all__ = ("Scheduler",)
 
 MISSING: Any = object()
 
 
-class CancelationToken:
+class CancellationToken:
     __slots__ = ()
 
 
@@ -32,18 +32,35 @@ class CancelationToken:
 class _Task[T]:
     __slots__ = ("cancel_token", "canceled", "payload", "timestamp")
 
-    def __init__(self, timestamp: float, payload: T, /):
+    def __init__(self, timestamp: float, payload: T, /) -> None:
         self.timestamp: float = timestamp
         self.payload: T = payload
         self.canceled: bool = False
-        self.cancel_token: CancelationToken = CancelationToken()
+        self.cancel_token: CancellationToken = CancellationToken()
 
-    def __lt__(self, other: _Task[T]):
+    def __lt__(self, other: _Task[T]) -> bool:
         return (self.timestamp, id(self)) < (other.timestamp, id(self))
 
 
 class Scheduler[T]:
-    __tasks: dict[CancelationToken, _Task[T]]
+    """A scheduler.
+
+    The scheduler is implemented as an async context manager that it an
+    async iterator.
+
+    Payloads can be scheduled to the context manager, and will be yielded
+    by the iterator when the time for them has come.
+
+    Parameters
+    ----------
+    granularity: float
+        The number of seconds to compare schedule events at.
+        If this is set lower than the precision of time.monotonic
+        on the host system, this is effectively the same as setting
+        it to time.monotonic's precision.
+    """
+
+    __tasks: dict[CancellationToken, _Task[T]]
     __tqueue: asyncio.PriorityQueue[_Task[T]]
     __closed: bool
     __l: asyncio.Lock
@@ -51,14 +68,14 @@ class Scheduler[T]:
 
     __slots__ = ("__closed", "__granularity", "__l", "__tasks", "__tqueue")
 
-    def __init__(self, granularity: float, /):
+    def __init__(self, granularity: float, /) -> None:
         self.__granularity = granularity
         self.__closed = MISSING
         self.__tasks = MISSING
         self.__tqueue = MISSING
         self.__l = MISSING
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         self.__closed = False
         asyncio.get_running_loop()
 
@@ -73,10 +90,10 @@ class Scheduler[T]:
 
         return self
 
-    async def __aexit__(self, *_dont_care: object):
+    async def __aexit__(self, *_dont_care: object) -> None:
         self.__closed = True
 
-    def __aiter__(self):
+    def __aiter__(self) -> Self:
         return self
 
     async def __anext__(self) -> T:
@@ -102,16 +119,36 @@ class Scheduler[T]:
 
     async def create_task(
         self, timestamp: float, payload: T, /
-    ) -> CancelationToken:
+    ) -> CancellationToken:
+        """Create a task.
+
+        Parameters
+        ----------
+        timestamp: float
+            The utc timestamp for when a payload should be emitted.
+        payload:
+            The payload to emit
+
+        Returns
+        -------
+        CancellationToken:
+            An opaque object that can be used to cancel a task.
+            You should not rely on details of this class's type.
+        """
         t = _Task(timestamp, payload)
         self.__tasks[t.cancel_token] = t
         await self.__tqueue.put(t)
         return t.cancel_token
 
-    async def cancel_task(self, cancel_token: CancelationToken, /) -> None:
+    async def cancel_task(self, cancel_token: CancellationToken, /) -> None:
         """Cancel a task.
 
         Canceling an already canceled task is not an error
+
+        Parameters
+        ----------
+        cancel_token: CancellationToken
+            The object which the scheduler gave you upon scheduling the task.
         """
         async with self.__l:
             try:
@@ -121,9 +158,9 @@ class Scheduler[T]:
                 pass
 
     def close(self) -> None:
-        """Closes the scheduler without waiting."""
+        """Close the scheduler without waiting."""
         self.__closed = True
 
     async def join(self) -> None:
-        """Waits for the scheduler's internal queue to be empty."""
+        """Wait for the scheduler's internal queue to be empty."""
         await self.__tqueue.join()

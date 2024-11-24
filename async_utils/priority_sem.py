@@ -45,7 +45,7 @@ class PriorityWaiter(NamedTuple):
     def done(self) -> Callable[[], bool]:
         return self.future.done
 
-    def __await__(self):
+    def __await__(self) -> Generator[Any, Any, None]:
         return self.future.__await__()
 
     def __lt__(self, other: Any) -> bool:
@@ -55,8 +55,14 @@ class PriorityWaiter(NamedTuple):
 
 
 @contextmanager
-def priority_context(priority: int) -> Generator[None, None, None]:
-    """Set the priority for all PrioritySemaphore use in this context."""
+def priority_context(priority: int, /) -> Generator[None, None, None]:
+    """Set the priority for all PrioritySemaphore use in this context.
+
+    Parameters
+    ----------
+    priority: int
+        The priority to use. Lower values are of a higher priority.
+    """
     token = _priority.set(priority)
     try:
         yield None
@@ -76,8 +82,14 @@ class PrioritySemaphore:
 
     Lower priority values are a higher logical priority
 
-    context manager use:
+    Parameters
+    ----------
+    value: int
+        The initial value of the internal counter.
+        The number of things that can concurrently acquire it.
 
+    Examples
+    --------
     >>> sem = PrioritySemaphore(1)
     >>> with priority_ctx(10):
             async with sem:
@@ -86,6 +98,13 @@ class PrioritySemaphore:
     """
 
     _loop: asyncio.AbstractEventLoop | None = None
+
+    def __init__(self, value: int = 1) -> None:
+        if value < 0:
+            msg = "Semaphore initial value must be >= 0"
+            raise ValueError(msg)
+        self._waiters: list[PriorityWaiter] | None = None
+        self._value: int = value
 
     def _get_loop(self) -> asyncio.AbstractEventLoop:
         loop = asyncio.get_running_loop()
@@ -99,21 +118,16 @@ class PrioritySemaphore:
             raise RuntimeError(msg)
         return loop
 
-    def __init__(self, value: int = 1):
-        if value < 0:
-            msg = "Semaphore initial value must be >= 0"
-            raise ValueError(msg)
-        self._waiters: list[PriorityWaiter] | None = None
-        self._value: int = value
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         res = super().__repr__()
-        extra = "locked" if self.locked() else f"unlocked, value:{self._value}"
+        extra = (
+            "locked" if self.__locked() else f"unlocked, value:{self._value}"
+        )
         if self._waiters:
             extra = f"{extra}, waiters:{len(self._waiters)}"
         return f"<{res[1:-1]} [{extra}]>"
 
-    def locked(self) -> bool:
+    def __locked(self) -> bool:
         # Must do a comparison based on priority then FIFO
         # in the case of existing waiters
         # not guaranteed to be immediately available
@@ -121,17 +135,17 @@ class PrioritySemaphore:
             any(not w.cancelled() for w in (self._waiters or ()))
         )
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> None:
         prio = _priority.get()
-        await self.acquire(prio)
+        await self.__acquire(prio)
 
-    async def __aexit__(self, *dont_care: object):
-        self.release()
+    async def __aexit__(self, *dont_care: object) -> None:
+        self.__release()
 
-    async def acquire(self, priority: int = _default) -> bool:
+    async def __acquire(self, priority: int = _default) -> bool:
         if priority is _default:
             priority = _priority.get()
-        if not self.locked():
+        if not self.__locked():
             self._value -= 1
             return True
 
@@ -177,6 +191,6 @@ class PrioritySemaphore:
                 heapq.heappush(self._waiters, next_waiter)
                 break
 
-    def release(self) -> None:
+    def __release(self) -> None:
         self._value += 1
         self._maybe_wake()

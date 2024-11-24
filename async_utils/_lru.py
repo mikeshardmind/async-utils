@@ -12,30 +12,58 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+"""LRU Implementation.
+
+This is currently re-exported in task_cache.py
+"""
+
 from __future__ import annotations
 
 __all__ = ("LRU",)
 
 
 class LRU[K, V]:
-    def __init__(self, maxsize: int, /):
-        self.cache: dict[K, V] = {}
-        self.maxsize = maxsize
+    """An LRU implementation.
+
+    Parameters
+    ----------
+    maxsize: int
+        The maximum number of items to retain
+    """
+
+    def __init__(self, maxsize: int, /) -> None:
+        self._cache: dict[K, V] = {}
+        self._maxsize = maxsize
 
     def get[T](self, key: K, default: T, /) -> V | T:
+        """Get a value by key or default value.
+
+        You should only use this when you have a default.
+        Otherwise, use index into the LRU by key.
+
+        Args:
+            key: The key to lookup a value for
+            default: A default value
+
+        Returns
+        -------
+            Either the value associated to a key-value pair in the LRU
+            or the specified default
+
+        """
         try:
             return self[key]
         except KeyError:
             return default
 
     def __getitem__(self, key: K, /) -> V:
-        val = self.cache[key] = self.cache.pop(key)
+        val = self._cache[key] = self._cache.pop(key)
         return val
 
-    def __setitem__(self, key: K, value: V, /):
-        self.cache[key] = value
-        if len(self.cache) > self.maxsize:
-            self.cache.pop(next(iter(self.cache)))
+    def __setitem__(self, key: K, value: V, /) -> None:
+        self._cache[key] = value
+        if len(self._cache) > self._maxsize:
+            self._cache.pop(next(iter(self._cache)))
 
     def remove(self, key: K, /) -> None:
-        self.cache.pop(key, None)
+        self._cache.pop(key, None)

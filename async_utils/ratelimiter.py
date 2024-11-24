@@ -28,15 +28,28 @@ class RateLimiter:
     This is an asyncio specific ratelimit implementation which does not
     account for various networking effects / responses and
     should only be used for internal limiting.
+
+    Parameters
+    ----------
+    ratelimit: int
+        The number of things to allow (see period)
+    period: float
+        The amount of time in seconds for which the ratelimit is allowed
+        (ratelimit per period seconds)
+    granularity: float
+        The amount of time in seconds to wake waiting tasks if the period has
+        expired.
     """
 
-    def __init__(self, rate_limit: int, period: float, granularity: float):
+    def __init__(
+        self, rate_limit: int, period: float, granularity: float
+    ) -> None:
         self.rate_limit: int = rate_limit
         self.period: float = period
         self.granularity: float = granularity
         self._monotonics: deque[float] = deque()
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> None:
         # The ordering of these conditions matters to avoid an async context
         # switch between confirming the ratelimit isn't exhausted and allowing
         # the user code to continue.
@@ -51,5 +64,5 @@ class RateLimiter:
 
         self._monotonics.append(time.monotonic())
 
-    async def __aexit__(self, *_dont_care: object):
+    async def __aexit__(self, *_dont_care: object) -> None:
         pass

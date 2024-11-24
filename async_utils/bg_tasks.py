@@ -27,7 +27,17 @@ __all__ = ["BGTasks"]
 
 
 class BGTasks:
-    """An intentionally dumber task group."""
+    """An intentionally dumber task group.
+
+    Parameters
+    ----------
+    exit_timeout: int | None
+        Optionally, the number of seconds to wait before timing out tasks.
+        In applications that care about graceful shutdown, this should
+        usually not be set. When not providedd, the context manager
+        will not exit until all tasks have ended.
+
+    """
 
     def __init__(self, exit_timeout: float | None) -> None:
         self._tasks: set[asyncio.Task[Any]] = set()
@@ -40,7 +50,13 @@ class BGTasks:
         name: str | None = None,
         context: Context | None = None,
     ) -> asyncio.Task[_T]:
-        t = asyncio.create_task(coro)
+        """Create a task bound managed by this context manager.
+
+        Returns
+        -------
+        asyncio.Task: The task that was created.
+        """
+        t = asyncio.create_task(coro, name=name, context=context)
         self._tasks.add(t)
         t.add_done_callback(self._tasks.discard)
         return t
@@ -48,7 +64,7 @@ class BGTasks:
     async def __aenter__(self: Self) -> Self:
         return self
 
-    async def __aexit__(self, *_dont_care: object):
+    async def __aexit__(self, *_dont_care: object) -> None:
         while tsks := self._tasks.copy():
             _done, _pending = await asyncio.wait(tsks, timeout=self._etime)
             for task in _pending:

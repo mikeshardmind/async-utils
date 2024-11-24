@@ -25,7 +25,7 @@ class _HashedSeq(list[Any]):
         self,
         tup: tuple[Any, ...],
         hash: Callable[[object], int] = hash,  # noqa: A002
-    ):
+    ) -> None:
         self[:] = tup
         self.hashvalue: int = hash(tup)
 
