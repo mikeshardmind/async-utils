@@ -22,6 +22,8 @@ __all__ = ("LRU",)
 class LRU[K, V]:
     """An LRU implementation.
 
+    Implements dict-like getitem/setitem access plus a couple methods.
+
     Parameters
     ----------
     maxsize: int
