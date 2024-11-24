@@ -20,9 +20,9 @@ from functools import partial, wraps
 from typing import Any, ParamSpec, TypeVar
 
 from ._cpython_stuff import make_key
-from ._lru import LRU
+from .lru import LRU
 
-__all__ = ("LRU", "lrutaskcache", "taskcache")
+__all__ = ("lrutaskcache", "taskcache")
 
 
 P = ParamSpec("P")

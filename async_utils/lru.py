@@ -12,10 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""LRU Implementation.
-
-This is currently re-exported in task_cache.py
-"""
+"""LRU Implementation."""
 
 from __future__ import annotations
 
@@ -66,4 +63,13 @@ class LRU[K, V]:
             self._cache.pop(next(iter(self._cache)))
 
     def remove(self, key: K, /) -> None:
+        """Remove a key-value pair by key.
+
+        It is not an error to attempt to remove a key which may not exist.
+
+        Parameters
+        ----------
+        key:
+            The key to remove.
+        """
         self._cache.pop(key, None)
