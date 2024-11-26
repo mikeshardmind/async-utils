@@ -33,6 +33,9 @@ type CoroFunc[**P, R] = Callable[P, Coroutine[Any, Any, R]]
 type TaskFunc[**P, R] = CoroFunc[P, R] | Callable[P, asyncio.Task[R]]
 type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
 
+# Non-annotation assignments for transformed functions
+_WRAP_ASSIGN = ("__module__", "__name__", "__qualname__", "__doc__")
+
 
 def taskcache(
     ttl: float | None = None,
@@ -66,9 +69,7 @@ def taskcache(
     def wrapper(coro: TaskCoroFunc[P, R]) -> TaskFunc[P, R]:
         internal_cache: dict[Hashable, asyncio.Task[R]] = {}
 
-        @wraps(
-            coro, assigned=("__module__", "__name__", "__qualname__", "__doc__")
-        )
+        @wraps(coro, assigned=_WRAP_ASSIGN)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[R]:
             key = make_key(args, kwargs)
             try:
@@ -138,9 +139,7 @@ def lrutaskcache(
     def wrapper(coro: TaskCoroFunc[P, R]) -> TaskFunc[P, R]:
         internal_cache: LRU[Hashable, asyncio.Task[R]] = LRU(maxsize)
 
-        @wraps(
-            coro, assigned=("__module__", "__name__", "__qualname__", "__doc__")
-        )
+        @wraps(coro, assigned=_WRAP_ASSIGN)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[R]:
             key = make_key(args, kwargs)
             try:
