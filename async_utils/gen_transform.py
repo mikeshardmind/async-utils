@@ -25,6 +25,7 @@ P = ParamSpec("P")
 YieldType = TypeVar("YieldType")
 
 
+# TODO: Implement my own queue that is fully threadsafe.
 class _PeekableQueue[T](asyncio.Queue[T]):
     # This is for internal use only, tested on both 3.12 and 3.13
     # This will be tested for 3.14 prior to 3.14's release.
