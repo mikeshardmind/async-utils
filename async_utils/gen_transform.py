@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures as cf
 from collections import deque
 from collections.abc import AsyncGenerator, Callable, Generator
 from typing import ParamSpec, TypeVar
@@ -56,6 +57,7 @@ class _PeekableQueue[T](asyncio.Queue[T]):
 def _consumer(
     loop: asyncio.AbstractEventLoop,
     queue: _PeekableQueue[YieldType],
+    cancel_future: cf.Future[None],
     f: Callable[P, Generator[YieldType]],
     *args: P.args,
     **kwargs: P.kwargs,
@@ -64,7 +66,10 @@ def _consumer(
         # This ensures a strict ordering on other event loops
         # uvloop in particular caused this to be needed
         h = asyncio.run_coroutine_threadsafe(queue.put(val), loop)
-        h.result()
+
+        done, _rem = cf.wait([h, cancel_future], return_when="FIRST_COMPLETED")
+        if cancel_future in done:
+            break
 
 
 def sync_to_async_gen(
@@ -104,28 +109,38 @@ def sync_to_async_gen(
     # little sense, they could trivially exhaust the generator in a thread with
     # asyncio.to_thread(lambda g: list(g()), g) to then use the values
     q: _PeekableQueue[YieldType] = _PeekableQueue(maxsize=1)
+    # todo: replace the above _PeekableQueue and below cancel_fut
+    # with a custom queue or channel-pair implementation.
+    cancel_fut: cf.Future[None] = cf.Future()
 
     background_coro = asyncio.to_thread(
-        _consumer, asyncio.get_running_loop(), q, f, *args, **kwargs
+        _consumer, asyncio.get_running_loop(), q, cancel_fut, f, *args, **kwargs
     )
     background_task = asyncio.create_task(background_coro)
 
     async def gen() -> AsyncGenerator[YieldType]:
-        while not background_task.done():
-            q_peek = asyncio.ensure_future(q.peek())
-            done, _pending = await asyncio.wait(
-                (background_task, q_peek), return_when=asyncio.FIRST_COMPLETED
-            )
-            if q_peek in done:
-                yield (await q_peek)
-                # We peek above, then remove after we are yielded back.
-                # This retains the laziness of the generator in thread without a
-                # more complex communication channel, only using when putting the
-                # next item into the queue (with a max size of 1) is done.
-                q.get_nowait()
-        while not q.empty():
-            yield q.get_nowait()
-        # ensure errors in the generator propogate *after* the last values yielded
-        await background_task
+        try:
+            while not background_task.done():
+                q_peek = asyncio.ensure_future(q.peek())
+                done, _pending = await asyncio.wait(
+                    (background_task, q_peek),
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                if q_peek in done:
+                    yield (await q_peek)
+                    # We peek above, then remove after we are yielded back.
+                    # This retains the laziness of the generator in thread without a
+                    # more complex communication channel, only using when putting the
+                    # next item into the queue (with a max size of 1) is done.
+                    q.get_nowait()
+            while not q.empty():
+                yield q.get_nowait()
+            # ensure errors in the generator propogate *after* the last values yielded
+            await background_task
+        finally:
+            # docs say only executors should set this, while not a typical
+            # executor, this function acts as one, and use has been tested
+            # for supported python versions.
+            cancel_fut.set_result(None)
 
     return gen()
