@@ -39,7 +39,7 @@ class _PeekableQueue[T](asyncio.Queue[T]):
     async def peek(self) -> T:
         while self.empty():
             getter = self._get_loop().create_future()
-            self._getters.append(getter)  # type:
+            self._getters.append(getter)
             try:
                 await getter
             except:
@@ -90,6 +90,15 @@ def sync_to_async_gen(
     If your generator is actually a synchronous coroutine, that's super cool,
     but rewrite is as a native coroutine or use it directly then, you don't need
     what this function does.
+
+    .. note::
+
+    This function is susceptible to leaving the background generator permanently
+    suspended if you do not close the async generator. This isn't typically
+    an issue if your application does not have pathological cancellation,
+    however if you don't don't control cancellation and don't want to explain,
+    to users that their cancellation semantics are unsound in python this
+    function in particular should be wrapped with contextlib.aclosing.
 
     Parameters
     ----------
