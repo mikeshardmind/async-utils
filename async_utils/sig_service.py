@@ -21,20 +21,21 @@ import socket
 import sys
 from collections.abc import Callable
 from types import FrameType
-from typing import Any
+from typing import Any, Literal
 
 type SignalCallback = Callable[[signal.Signals | SpecialExit], Any]
 type StartStopCall = Callable[[], Any]
 type _HANDLER = (
     Callable[[int, FrameType | None], Any] | int | signal.Handlers | None
 )
+type SignalTuple = tuple[
+    Literal["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"], ...
+]
 
 __all__ = ["SignalService", "SpecialExit"]
 
-possible = "SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"
-actual = tuple(
-    e for name, e in signal.Signals.__members__.items() if name in possible
-)
+
+default_handled = "SIGINT", "SIGTERM", "SIGBREAK"
 
 
 class SpecialExit(enum.IntEnum):
@@ -43,7 +44,7 @@ class SpecialExit(enum.IntEnum):
     EXIT = 252
 
 
-class SignalService:
+class SignalService[T: SignalTuple]:
     """Helper for signal handling.
 
     Meant for graceful signal handling where the main thread is only used
@@ -51,15 +52,18 @@ class SignalService:
     This should be paired with event loops being run in threads.
     """
 
-    def __init__(
-        self,
-    ) -> None:
+    def __init__(self, signals: T = default_handled, /) -> None:
         self._startup: list[StartStopCall] = []
         self._cbs: list[SignalCallback] = []
         self._joins: list[StartStopCall] = []
         self.ss, self.cs = socket.socketpair()
         self.ss.setblocking(False)
         self.cs.setblocking(False)
+        self._signals = tuple(
+            e
+            for name, e in signal.Signals.__members__.items()
+            if name in signals
+        )
 
     def get_send_socket(self) -> socket.socket:
         """Get the send socket.
@@ -113,7 +117,7 @@ class SignalService:
         original_handlers: list[_HANDLER] = []
 
         try:
-            for sig in actual:
+            for sig in self._signals:
                 original_handlers.append(signal.getsignal(sig))
                 signal.signal(sig, lambda s, f: None)
                 if sys.platform != "win32":
@@ -133,5 +137,7 @@ class SignalService:
                 join()
 
         finally:
-            for sig, original in zip(actual, original_handlers, strict=False):
+            for sig, original in zip(
+                self._signals, original_handlers, strict=False
+            ):
                 signal.signal(sig, original)
