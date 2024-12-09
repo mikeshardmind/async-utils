@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import heapq
+import math
 import time
 
 __all__ = ("LRU", "TTLLRU")
@@ -101,18 +102,26 @@ class TTLLRU[K, V]:
 
     Key/value references and gc:
         Keys are kept alive in a heap ordered by expiration,
-        with each access and modification removing up to one expired key
+        with each access and modification removing some number of expired keys.
         This may keep keys alive longer than an eager eviction
         would.
 
         Upon retrieving values, if they are considered expired, they
         are removed and not returned.
 
-        This keeps the per operation performance predictable.
+        When checking for values to remove based on tll
 
-        This does mean that it is possible to have up to the maxsize
-        in keys that are persistently alive if the cache ceases to be accessed
-        but is kept alive.
+        - If there are 2 or more expirations passed, at least 2 will be removed
+          from the expiration heap.
+
+        - More may be removed, the maximum amount to be checked is smoothed
+          over multiple accesses based on the number of expirations and the
+          maxsize. This will trend downward toward matching the maxsize, but
+          repeated high volume use can keep the peak number of keys kept as
+          more of a measure of volume of insertions per tll
+
+        - Keys in the expiration heap may outlive values in the cache itself.
+
 
     Parameters
     ----------
@@ -129,26 +138,29 @@ class TTLLRU[K, V]:
         self._maxsize: int = maxsize
         self._ttl: float = ttl
         self._expirations: list[tuple[float, K]] = []
+        self._smooth: int = max(int(math.log2(maxsize // 2)), 1)
 
-    def _remove_one_expired(self) -> None:
-        """Remove up to one expired entry."""
+    def _remove_some_expired(self) -> None:
+        """Remove some number of expired entries."""
         now = time.monotonic()
-        while self._expirations:
+        tr = max((len(self._expirations) - self._maxsize) >> self._smooth, 2)
+
+        while tr > 0:
             ts, k = heapq.heappop(self._expirations)
             if ts < now:
+                tr -= 1
                 try:
                     ts, _v = self._cache[k]
                 except KeyError:
                     continue
                 if ts < now:
                     self._cache.pop(k, None)
-                    return
             else:
                 heapq.heappush(self._expirations, (ts, k))
                 break
 
     def __getitem__(self, key: K, /) -> V:
-        self._remove_one_expired()
+        self._remove_some_expired()
         ts, val = self._cache[key] = self._cache.pop(key)
         now = time.monotonic()
         if now > ts:
@@ -160,7 +172,7 @@ class TTLLRU[K, V]:
         ts = time.monotonic() + self._ttl
         heapq.heappush(self._expirations, (ts, key))
         self._cache[key] = (ts, value)
-        self._remove_one_expired()
+        self._remove_some_expired()
         if len(self._cache) > self._maxsize:
             self._cache.pop(next(iter(self._cache)))
 
@@ -198,5 +210,5 @@ class TTLLRU[K, V]:
         key:
             The key to remove.
         """
-        self._remove_one_expired()
+        self._remove_some_expired()
         self._cache.pop(key, None)
