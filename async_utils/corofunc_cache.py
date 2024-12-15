@@ -64,23 +64,23 @@ def corocache(
 
         async def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             key = make_key(args, kwargs)
-            try:
-                return await internal_cache[key]
-            except KeyError:
-                internal_cache[key] = fut = asyncio.ensure_future(
-                    coro(*args, **kwargs)
+            if (cached := internal_cache.get(key)) is not None:
+                return await cached
+
+            internal_cache[key] = fut = asyncio.ensure_future(
+                coro(*args, **kwargs)
+            )
+            if ttl is not None:
+                # This results in internal_cache.pop(key, fut) later
+                # while avoiding a late binding issue with a lambda instead
+                call_after_ttl = partial(
+                    asyncio.get_running_loop().call_later,
+                    ttl,
+                    internal_cache.pop,
+                    key,
                 )
-                if ttl is not None:
-                    # This results in internal_cache.pop(key, fut) later
-                    # while avoiding a late binding issue with a lambda instead
-                    call_after_ttl = partial(
-                        asyncio.get_running_loop().call_later,
-                        ttl,
-                        internal_cache.pop,
-                        key,
-                    )
-                    fut.add_done_callback(call_after_ttl)
-                return await fut
+                fut.add_done_callback(call_after_ttl)
+            return await fut
 
         return wrapped
 
@@ -131,17 +131,17 @@ def lrucorocache(
         @wraps(coro)
         async def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             key = make_key(args, kwargs)
-            try:
-                return await internal_cache[key]
-            except KeyError:
-                internal_cache[key] = fut = asyncio.ensure_future(
-                    coro(*args, **kwargs)
+            if (cached := internal_cache.get(key, None)) is not None:
+                return await cached
+
+            internal_cache[key] = fut = asyncio.ensure_future(
+                coro(*args, **kwargs)
+            )
+            if ttl is not None:
+                fut.add_done_callback(
+                    partial(_lru_evict, ttl, internal_cache, key)
                 )
-                if ttl is not None:
-                    fut.add_done_callback(
-                        partial(_lru_evict, ttl, internal_cache, key)
-                    )
-                return await fut
+            return await fut
 
         return wrapped
 

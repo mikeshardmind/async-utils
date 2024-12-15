@@ -123,7 +123,9 @@ def threaded_loop(
     thread = None
     try:
         thread = threading.Thread(
-            target=run_forever, args=(loop, use_eager_task_factory)
+            target=run_forever,
+            args=(loop,),
+            kwargs={"use_eager_task_factory": use_eager_task_factory},
         )
         thread.start()
         yield LoopWrapper(loop)

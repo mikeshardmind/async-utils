@@ -72,23 +72,23 @@ def taskcache(
         @wraps(coro, assigned=_WRAP_ASSIGN)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[R]:
             key = make_key(args, kwargs)
-            try:
-                return internal_cache[key]
-            except KeyError:
-                internal_cache[key] = task = asyncio.ensure_future(
-                    coro(*args, **kwargs)
+            if (cached := internal_cache.get(key)) is not None:
+                return cached
+
+            internal_cache[key] = task = asyncio.ensure_future(
+                coro(*args, **kwargs)
+            )
+            if ttl is not None:
+                # This results in internal_cache.pop(key, task) later
+                # while avoiding a late binding issue with a lambda instead
+                call_after_ttl = partial(
+                    asyncio.get_running_loop().call_later,
+                    ttl,
+                    internal_cache.pop,
+                    key,
                 )
-                if ttl is not None:
-                    # This results in internal_cache.pop(key, task) later
-                    # while avoiding a late binding issue with a lambda instead
-                    call_after_ttl = partial(
-                        asyncio.get_running_loop().call_later,
-                        ttl,
-                        internal_cache.pop,
-                        key,
-                    )
-                    task.add_done_callback(call_after_ttl)
-                return task
+                task.add_done_callback(call_after_ttl)
+            return task
 
         return wrapped
 
@@ -124,7 +124,8 @@ def lrutaskcache(
     Parameters
     ----------
     ttl: float | None
-        The time to live in seconds for cached results. Defaults to None (forever)
+        The time to live in seconds for cached results.
+        Defaults to None (forever)
     maxsize: int
         The maximum number of items to retain no matter if they have reached
         expiration by ttl or not.
@@ -142,17 +143,17 @@ def lrutaskcache(
         @wraps(coro, assigned=_WRAP_ASSIGN)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[R]:
             key = make_key(args, kwargs)
-            try:
-                return internal_cache[key]
-            except KeyError:
-                internal_cache[key] = task = asyncio.ensure_future(
-                    coro(*args, **kwargs)
+            if (cached := internal_cache.get(key, None)) is not None:
+                return cached
+
+            internal_cache[key] = task = asyncio.ensure_future(
+                coro(*args, **kwargs)
+            )
+            if ttl is not None:
+                task.add_done_callback(
+                    partial(_lru_evict, ttl, internal_cache, key)
                 )
-                if ttl is not None:
-                    task.add_done_callback(
-                        partial(_lru_evict, ttl, internal_cache, key)
-                    )
-                return task
+            return task
 
         return wrapped
 
