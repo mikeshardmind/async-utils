@@ -91,15 +91,16 @@ def taskcache(
                 task.add_done_callback(call_after_ttl)
             return task
 
+        new_sig = sig = inspect.signature(coro)
         if inspect.iscoroutinefunction(coro):
-            sig = inspect.signature(coro)
             if sig.return_annotation is not inspect.Signature.empty:
                 new_ret_ann = asyncio.Task[sig.return_annotation]
             else:
                 new_ret_ann = asyncio.Task
 
             new_sig = sig.replace(return_annotation=new_ret_ann)
-            wrapped.__signature__ = new_sig  # pyright: ignore[reportAttributeAccessIssue]
+
+        wrapped.__signature__ = new_sig  # pyright: ignore[reportAttributeAccessIssue]
 
         return wrapped
 
@@ -166,15 +167,16 @@ def lrutaskcache(
                 )
             return task
 
+        new_sig = sig = inspect.signature(coro)
         if inspect.iscoroutinefunction(coro):
-            sig = inspect.signature(coro)
             if sig.return_annotation is not inspect.Signature.empty:
                 new_ret_ann = asyncio.Task[sig.return_annotation]
             else:
                 new_ret_ann = asyncio.Task
 
             new_sig = sig.replace(return_annotation=new_ret_ann)
-            wrapped.__signature__ = new_sig  # pyright: ignore[reportAttributeAccessIssue]
+
+        wrapped.__signature__ = new_sig  # pyright: ignore[reportAttributeAccessIssue]
 
         return wrapped
 
