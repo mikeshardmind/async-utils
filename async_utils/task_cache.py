@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 from collections.abc import Callable, Coroutine, Hashable
 from functools import partial, wraps
 from typing import Any, ParamSpec, TypeVar
@@ -90,6 +91,16 @@ def taskcache(
                 task.add_done_callback(call_after_ttl)
             return task
 
+        if inspect.iscoroutinefunction(coro):
+            sig = inspect.signature(coro)
+            if sig.return_annotation is not inspect.Signature.empty:
+                new_ret_ann = asyncio.Task[sig.return_annotation]
+            else:
+                new_ret_ann = asyncio.Task
+
+            new_sig = sig.replace(return_annotation=new_ret_ann)
+            wrapped.__signature__ = new_sig  # pyright: ignore[reportAttributeAccessIssue]
+
         return wrapped
 
     return wrapper
@@ -154,6 +165,16 @@ def lrutaskcache(
                     partial(_lru_evict, ttl, internal_cache, key)
                 )
             return task
+
+        if inspect.iscoroutinefunction(coro):
+            sig = inspect.signature(coro)
+            if sig.return_annotation is not inspect.Signature.empty:
+                new_ret_ann = asyncio.Task[sig.return_annotation]
+            else:
+                new_ret_ann = asyncio.Task
+
+            new_sig = sig.replace(return_annotation=new_ret_ann)
+            wrapped.__signature__ = new_sig  # pyright: ignore[reportAttributeAccessIssue]
 
         return wrapped
 
