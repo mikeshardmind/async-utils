@@ -1,9 +1,6 @@
 async-utils
 Copyright 2020-present Michael Hall
 
-async-utils contains standalone async utilities used by the author in various projects.
+async-utils contains standalone async and concurrency utilities used by the
+author in various projects.
 
-async-utils contains code which may be considered derivative of CPython.
-Files including code of this nature are marked as such and a copy of CPython's License
-should be included with any redistribution of this project or those individual files.
-CPython's License is also available online (<https://github.com/python/cpython/blob/main/LICENSE>)
