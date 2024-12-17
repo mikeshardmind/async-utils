@@ -33,9 +33,7 @@ type _HANDLER = _HTC | int | signal.Handlers | None
 type HandleableSignals = Literal["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]
 type SignalTuple = tuple[HandleableSignals, ...]
 
-
-type _DEF = tuple[Literal["SIGINT"], Literal["SIGTERM"], Literal["SIGBREAK"]]
-default_handled: Final[_DEF] = "SIGINT", "SIGTERM", "SIGBREAK"
+default_handled: Final = "SIGINT", "SIGTERM", "SIGBREAK"
 
 
 class SpecialExit(enum.IntEnum):
@@ -44,7 +42,7 @@ class SpecialExit(enum.IntEnum):
     EXIT = 252
 
 
-class SignalService[T: SignalTuple]:
+class SignalService:
     """Helper for signal handling.
 
     Meant for graceful signal handling where the main thread is only used
@@ -52,7 +50,7 @@ class SignalService[T: SignalTuple]:
     This should be paired with event loops being run in threads.
     """
 
-    def __init__(self, signals: T = default_handled, /) -> None:
+    def __init__(self, signals: SignalTuple = default_handled, /) -> None:
         self._startup: list[StartStopCall] = []
         self._cbs: list[SignalCallback] = []
         self._joins: list[StartStopCall] = []
