@@ -21,21 +21,21 @@ import socket
 import sys
 from collections.abc import Callable
 from types import FrameType
-from typing import Any, Literal
-
-type SignalCallback = Callable[[signal.Signals | SpecialExit], Any]
-type StartStopCall = Callable[[], Any]
-type _HANDLER = (
-    Callable[[int, FrameType | None], Any] | int | signal.Handlers | None
-)
-type SignalTuple = tuple[
-    Literal["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"], ...
-]
+from typing import Any, Final, Literal
 
 __all__ = ["SignalService", "SpecialExit"]
 
+type SignalCallback = Callable[[signal.Signals | SpecialExit], Any]
+type StartStopCall = Callable[[], Any]
+type _HTC = Callable[[int, FrameType | None], Any]
+type _HANDLER = _HTC | int | signal.Handlers | None
 
-default_handled = "SIGINT", "SIGTERM", "SIGBREAK"
+type HandleableSignals = Literal["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]
+type SignalTuple = tuple[HandleableSignals, ...]
+
+
+type _DEF = tuple[Literal["SIGINT"], Literal["SIGTERM"], Literal["SIGBREAK"]]
+default_handled: Final[_DEF] = "SIGINT", "SIGTERM", "SIGBREAK"
 
 
 class SpecialExit(enum.IntEnum):
@@ -137,7 +137,6 @@ class SignalService[T: SignalTuple]:
                 join()
 
         finally:
-            for sig, original in zip(
-                self._signals, original_handlers, strict=False
-            ):
+            it = zip(self._signals, original_handlers, strict=False)
+            for sig, original in it:
                 signal.signal(sig, original)
