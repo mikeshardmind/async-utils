@@ -18,16 +18,13 @@ import asyncio
 import inspect
 from collections.abc import Callable, Coroutine, Hashable
 from functools import partial, wraps
-from typing import Any, ParamSpec, TypeVar
+from typing import Any
 
 from ._paramkey import make_key
 from .lru import LRU
 
 __all__ = ("lrutaskcache", "taskcache")
 
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 # Use below doesn't accept non-task Futures, so can't accept general awaitables
 type CoroFunc[**P, R] = Callable[P, Coroutine[Any, Any, R]]
@@ -40,7 +37,7 @@ type Deco[**P, R] = Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]
 _WRAP_ASSIGN = ("__module__", "__name__", "__qualname__", "__doc__")
 
 
-def taskcache(ttl: float | None = None) -> Deco[P, R]:
+def taskcache[**P, R](ttl: float | None = None) -> Deco[P, R]:
     """Cache the results of the decorated coroutine.
 
     Decorator to modify coroutine functions to instead act as functions
@@ -103,7 +100,7 @@ def taskcache(ttl: float | None = None) -> Deco[P, R]:
     return wrapper
 
 
-def lrutaskcache(ttl: float | None = None, maxsize: int = 1024) -> Deco[P, R]:
+def lrutaskcache[**P, R](ttl: float | None = None, maxsize: int = 1024) -> Deco[P, R]:
     """Cache the results of the decorated coroutine.
 
     Decorator to modify coroutine functions to instead act as functions

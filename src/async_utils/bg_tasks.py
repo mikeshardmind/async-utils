@@ -17,10 +17,9 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Coroutine
 from contextvars import Context
-from typing import Any, Self, TypeVar
+from typing import Any, Self
 
-_T = TypeVar("_T")
-type _CoroutineLike[_T] = Coroutine[Any, Any, _T]
+type _CoroutineLike[T] = Coroutine[Any, Any, T]
 
 
 __all__ = ["BGTasks"]
@@ -40,16 +39,16 @@ class BGTasks:
     """
 
     def __init__(self, exit_timeout: float | None) -> None:
-        self._tasks: set[asyncio.Task[Any]] = set()
+        self._tasks: set[asyncio.Task[object]] = set()
         self._etime: float | None = exit_timeout
 
-    def create_task(
+    def create_task[T](
         self,
-        coro: _CoroutineLike[_T],
+        coro: _CoroutineLike[T],
         *,
         name: str | None = None,
         context: Context | None = None,
-    ) -> asyncio.Task[_T]:
+    ) -> asyncio.Task[T]:
         """Create a task bound managed by this context manager.
 
         Returns

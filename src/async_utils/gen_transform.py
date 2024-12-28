@@ -18,12 +18,8 @@ import asyncio
 import concurrent.futures as cf
 from collections import deque
 from collections.abc import AsyncGenerator, Callable, Generator
-from typing import ParamSpec, TypeVar
 
 __all__ = ["sync_to_async_gen"]
-
-P = ParamSpec("P")
-YieldType = TypeVar("YieldType")
 
 
 # TODO: Implement my own queue that is fully threadsafe.
@@ -54,11 +50,11 @@ class _PeekableQueue[T](asyncio.Queue[T]):
         return self._queue[0]
 
 
-def _consumer(
+def _consumer[**P, Y](
     loop: asyncio.AbstractEventLoop,
-    queue: _PeekableQueue[YieldType],
+    queue: _PeekableQueue[Y],
     cancel_future: cf.Future[None],
-    f: Callable[P, Generator[YieldType]],
+    f: Callable[P, Generator[Y]],
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> None:
@@ -72,11 +68,11 @@ def _consumer(
             break
 
 
-def sync_to_async_gen(
-    f: Callable[P, Generator[YieldType]],
+def sync_to_async_gen[**P, Y](
+    f: Callable[P, Generator[Y]],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> AsyncGenerator[YieldType]:
+) -> AsyncGenerator[Y]:
     """Asynchronously iterate over a synchronous generator.
 
     The generator function and it's arguments must be threadsafe and will be
@@ -117,7 +113,7 @@ def sync_to_async_gen(
     # is lazy If the user doesn't want laziness, then using this method makes
     # little sense, they could trivially exhaust the generator in a thread with
     # asyncio.to_thread(lambda g: list(g()), g) to then use the values
-    q: _PeekableQueue[YieldType] = _PeekableQueue(maxsize=1)
+    q: _PeekableQueue[Y] = _PeekableQueue(maxsize=1)
     # todo: replace the above _PeekableQueue and below cancel_fut
     # with a custom queue or channel-pair implementation.
     cancel_fut: cf.Future[None] = cf.Future()
@@ -127,7 +123,7 @@ def sync_to_async_gen(
     )
     background_task = asyncio.create_task(background_coro)
 
-    async def gen() -> AsyncGenerator[YieldType]:
+    async def gen() -> AsyncGenerator[Y]:
         try:
             while not background_task.done():
                 q_peek = asyncio.ensure_future(q.peek())

@@ -117,9 +117,7 @@ class Scheduler[T]:
                 self.__tqueue.task_done()
         raise StopAsyncIteration
 
-    async def create_task(
-        self, timestamp: float, payload: T, /
-    ) -> CancellationToken:
+    async def create_task(self, timestamp: float, payload: T, /) -> CancellationToken:
         """Create a task.
 
         Parameters

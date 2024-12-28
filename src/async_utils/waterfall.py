@@ -22,6 +22,9 @@ from typing import Any, Literal, overload
 
 __all__ = ("Waterfall",)
 
+type CBT[T] = Callable[[Sequence[T]], Coroutine[Any, Any, Any]]
+type NC = Coroutine[Any, Any, None]
+
 
 class Waterfall[T]:
     """Batch event scheduling based on recurring quantity-interval pairs.
@@ -47,7 +50,7 @@ class Waterfall[T]:
         self,
         max_wait: float,
         max_quantity: int,
-        async_callback: Callable[[Sequence[T]], Coroutine[Any, Any, Any]],
+        async_callback: CBT[T],
         *,
         max_wait_finalize: int | None = None,
     ) -> None:
@@ -55,9 +58,7 @@ class Waterfall[T]:
         self.max_wait: float = max_wait
         self.max_wait_finalize: int | None = max_wait_finalize
         self.max_quantity: int = max_quantity
-        self.callback: Callable[[Sequence[T]], Coroutine[Any, Any, Any]] = (
-            async_callback
-        )
+        self.callback: CBT[T] = async_callback
         self.task: asyncio.Task[None] | None = None
         self._alive: bool = False
 
@@ -77,7 +78,7 @@ class Waterfall[T]:
         self.task = asyncio.create_task(self._loop())
 
     @overload
-    def stop(self, *, wait: Literal[True]) -> Coroutine[Any, Any, None]:
+    def stop(self, *, wait: Literal[True]) -> NC:
         pass
 
     @overload
@@ -85,10 +86,10 @@ class Waterfall[T]:
         pass
 
     @overload
-    def stop(self, *, wait: bool = False) -> Coroutine[Any, Any, None] | None:
+    def stop(self, *, wait: bool = False) -> NC | None:
         pass
 
-    def stop(self, *, wait: bool = False) -> Coroutine[Any, Any, None] | None:
+    def stop(self, *, wait: bool = False) -> NC | None:
         """Stop accepting new tasks.
 
         Parameters
@@ -121,18 +122,14 @@ class Waterfall[T]:
 
     async def _loop(self) -> None:
         try:
-            tasks: set[asyncio.Task[Any]] = set()
+            tasks: set[asyncio.Task[object]] = set()
             while self._alive:
                 queue_items: Sequence[T] = []
                 iter_start = time.monotonic()
 
-                while (
-                    this_max_wait := (time.monotonic() - iter_start)
-                ) < self.max_wait:
+                while (this_max_wait := (time.monotonic() - iter_start)) < self.max_wait:
                     try:
-                        n = await asyncio.wait_for(
-                            self.queue.get(), this_max_wait
-                        )
+                        n = await asyncio.wait_for(self.queue.get(), this_max_wait)
                     except TimeoutError:
                         continue
                     else:
@@ -153,9 +150,7 @@ class Waterfall[T]:
                     self.queue.task_done()
 
         finally:
-            f = asyncio.create_task(
-                self._finalize(), name="waterfall.finalizer"
-            )
+            f = asyncio.create_task(self._finalize(), name="waterfall.finalizer")
             await asyncio.wait_for(f, timeout=self.max_wait_finalize)
 
     async def _finalize(self) -> None:
@@ -179,7 +174,7 @@ class Waterfall[T]:
 
         num_remaining = len(remaining_items)
 
-        pending_futures: list[asyncio.Task[Any]] = []
+        pending_futures: list[asyncio.Task[object]] = []
 
         for chunk in (
             remaining_items[p : p + self.max_quantity]

@@ -17,16 +17,12 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable, Coroutine, Hashable
 from functools import partial, wraps
-from typing import Any, ParamSpec, TypeVar
+from typing import Any
 
 from ._paramkey import make_key
 from .lru import LRU
 
 __all__ = ("corocache", "lrucorocache")
-
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 type CoroFunc[**P, R] = Callable[P, Coroutine[Any, Any, R]]
@@ -35,7 +31,7 @@ type CoroLike[**P, R] = Callable[P, Awaitable[R]]
 type Deco[**P, R] = Callable[[CoroLike[P, R]], CoroFunc[P, R]]
 
 
-def corocache(ttl: float | None = None) -> Deco[P, R]:
+def corocache[**P, R](ttl: float | None = None) -> Deco[P, R]:
     """Cache the results of the decorated coroutine.
 
     This is less powerful than the version in task_cache.py but may work better
@@ -83,7 +79,7 @@ def corocache(ttl: float | None = None) -> Deco[P, R]:
     return wrapper
 
 
-def lrucorocache(ttl: float | None = None, maxsize: int = 1024) -> Deco[P, R]:
+def lrucorocache[**P, R](ttl: float | None = None, maxsize: int = 1024) -> Deco[P, R]:
     """Cache the results of the decorated coroutine.
 
     This is less powerful than the version in task_cache.py but may work better

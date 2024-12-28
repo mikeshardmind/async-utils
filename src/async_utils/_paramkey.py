@@ -1,5 +1,5 @@
 # This used to include CPython code, some minor performance losses have been
-# taken to not tightly include upstream code and not
+# taken to not tightly include upstream code
 
 
 from __future__ import annotations

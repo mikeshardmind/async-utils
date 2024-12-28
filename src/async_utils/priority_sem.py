@@ -27,9 +27,7 @@ __all__ = ["PrioritySemaphore", "priority_context"]
 
 _global_lock = threading.Lock()
 
-_priority: contextvars.ContextVar[int] = contextvars.ContextVar(
-    "_priority", default=0
-)
+_priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
 
 
 class PriorityWaiter(NamedTuple):
@@ -120,9 +118,7 @@ class PrioritySemaphore:
 
     def __repr__(self) -> str:
         res = super().__repr__()
-        extra = (
-            "locked" if self.__locked() else f"unlocked, value:{self._value}"
-        )
+        extra = "locked" if self.__locked() else f"unlocked, value:{self._value}"
         if self._waiters:
             extra = f"{extra}, waiters:{len(self._waiters)}"
         return f"<{res[1:-1]} [{extra}]>"
@@ -131,9 +127,7 @@ class PrioritySemaphore:
         # Must do a comparison based on priority then FIFO
         # in the case of existing waiters
         # not guaranteed to be immediately available
-        return self._value == 0 or (
-            any(not w.cancelled() for w in (self._waiters or ()))
-        )
+        return self._value == 0 or (any(not w.cancelled() for w in (self._waiters or ())))
 
     async def __aenter__(self) -> None:
         prio = _priority.get()

@@ -21,9 +21,6 @@ import threading
 from collections.abc import Awaitable, Generator
 from concurrent.futures import Future
 from contextlib import contextmanager
-from typing import Any, TypeVar
-
-T = TypeVar("T")
 
 type _FutureLike[T] = asyncio.Future[T] | Awaitable[T]
 
@@ -34,7 +31,7 @@ class LoopWrapper:
     def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop
 
-    def schedule(self, coro: _FutureLike[T], /) -> Future[T]:
+    def schedule[T](self, coro: _FutureLike[T], /) -> Future[T]:
         """Schedule a coroutine to run on the wrapped event loop.
 
         Parameters
@@ -49,7 +46,7 @@ class LoopWrapper:
         """
         return asyncio.run_coroutine_threadsafe(coro, self._loop)
 
-    async def run(self, coro: _FutureLike[T], /) -> T:
+    async def run[T](self, coro: _FutureLike[T], /) -> T:
         """Schedule and await a coroutine to run on the background loop.
 
         Parameters
@@ -78,7 +75,7 @@ def run_forever(
         loop.run_forever()
     finally:
         loop.run_until_complete(asyncio.sleep(0))
-        tasks: set[asyncio.Task[Any]] = {
+        tasks: set[asyncio.Task[object]] = {
             t for t in asyncio.all_tasks(loop) if not t.done()
         }
         for t in tasks:
