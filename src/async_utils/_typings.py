@@ -26,8 +26,6 @@ else:
 
 
 def __getattr__(name: str):
-    if name == "final":  # this one actually executes at runtime
-        return final
 
     if name in {"Any", "Final", "Literal", "Self"}:
         import typing
