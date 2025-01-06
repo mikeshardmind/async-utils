@@ -18,7 +18,8 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Callable, Coroutine, Sequence
-from typing import Any, Literal, overload
+
+from ._typings import Any
 
 __all__ = ("Waterfall",)
 
@@ -77,35 +78,17 @@ class Waterfall[T]:
         self._alive = True
         self.task = asyncio.create_task(self._loop())
 
-    @overload
-    def stop(self, *, wait: Literal[True]) -> NC:
-        pass
-
-    @overload
-    def stop(self, *, wait: Literal[False]) -> None:
-        pass
-
-    @overload
-    def stop(self, *, wait: bool = False) -> NC | None:
-        pass
-
-    def stop(self, *, wait: bool = False) -> NC | None:
+    def stop(self) -> NC:
         """Stop accepting new tasks.
-
-        Parameters
-        ----------
-        wait: bool
-            Whether to wait on existing batches to be dispatched.
 
         Returns
         -------
-        If wait is True, returns an awaitable which can block current execution
+        Returns an awaitable which can block current execution
         scope until all remaining batches have been dispatched.
 
-        otherwise returns None.
         """
         self._alive = False
-        return self.queue.join() if wait else None
+        return self.queue.join()
 
     def put(self, item: T) -> None:
         """Put an item in for later batching.

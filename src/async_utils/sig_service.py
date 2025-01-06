@@ -21,7 +21,8 @@ import socket
 import sys
 from collections.abc import Callable
 from types import FrameType
-from typing import Any, Final, Literal
+
+from ._typings import Any, Final, Literal
 
 __all__ = ["SignalService", "SpecialExit"]
 

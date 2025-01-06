@@ -17,7 +17,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Coroutine
 from contextvars import Context
-from typing import Any, Self
+
+from ._typings import Any, Self
 
 type _CoroutineLike[T] = Coroutine[Any, Any, T]
 

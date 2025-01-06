@@ -21,7 +21,8 @@ import heapq
 import threading
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from typing import Any, NamedTuple
+
+from ._typings import Any, Self
 
 __all__ = ["PrioritySemaphore", "priority_context"]
 
@@ -30,10 +31,23 @@ _global_lock = threading.Lock()
 _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
 
 
-class PriorityWaiter(NamedTuple):
-    priority: int
-    ts: float
-    future: asyncio.Future[None]
+class PriorityWaiter(tuple[int, float, asyncio.Future[None]]):
+    __slots__ = ()
+
+    def __new__(cls, priority: int, ts: float, future: asyncio.Future[None]) -> Self:
+        return super().__new__(cls, (priority, ts, future))
+
+    @property
+    def priority(self) -> int:
+        return self[0]
+
+    @property
+    def ts(self) -> float:
+        return self[1]
+
+    @property
+    def future(self) -> asyncio.Future[None]:
+        return self[2]
 
     @property
     def cancelled(self) -> Callable[[], bool]:
@@ -49,7 +63,7 @@ class PriorityWaiter(NamedTuple):
     def __lt__(self, other: Any) -> bool:
         if not isinstance(other, PriorityWaiter):
             return NotImplemented
-        return (self.priority, self.ts) < (other.priority, other.ts)
+        return self[:2] < other[:2]
 
 
 @contextmanager

@@ -17,7 +17,8 @@ from __future__ import annotations
 import asyncio
 from functools import total_ordering
 from time import time
-from typing import Any, Self
+
+from ._typings import Any, Self
 
 __all__ = ("Scheduler",)
 

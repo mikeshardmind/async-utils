@@ -18,9 +18,9 @@ import asyncio
 import inspect
 from collections.abc import Callable, Coroutine, Hashable
 from functools import partial, wraps
-from typing import Any
 
 from ._paramkey import make_key
+from ._typings import Any
 from .lru import LRU
 
 __all__ = ("lrutaskcache", "taskcache")

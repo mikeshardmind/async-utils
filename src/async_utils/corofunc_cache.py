@@ -17,9 +17,9 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable, Coroutine, Hashable
 from functools import partial, wraps
-from typing import Any
 
 from ._paramkey import make_key
+from ._typings import Any
 from .lru import LRU
 
 __all__ = ("corocache", "lrucorocache")
