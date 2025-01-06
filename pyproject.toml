@@ -90,6 +90,13 @@ convention = "numpy"
 "typing.runtime_checkable".msg = "Runtime checkable is fundamentally unsafe."
 "typing_extensions.runtime_checkable".msg = "Runtime checkable is fundamentally unsafe."
 
+# these don't work as deferred imports, intentionally, because type checkers are dumb
+# and require they be imported directly from typing to work, this breaks the deferred re-export.
+"typing.Final".msg = "see https://github.com/microsoft/pyright/issues/9664#issuecomment-2574042580"
+"typing_extensions.Final".msg = "see https://github.com/microsoft/pyright/issues/9664#issuecomment-2574042580"
+"typing.final".msg = "see https://github.com/microsoft/pyright/issues/9664#issuecomment-2574042580"
+"typing_extensions.final".msg = "see https://github.com/microsoft/pyright/issues/9664#issuecomment-2574042580"
+
 [project]
 name = "async-utils"
 description = "Various async utilities"

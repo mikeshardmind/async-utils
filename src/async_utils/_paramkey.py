@@ -23,7 +23,6 @@ from collections.abc import Hashable
 from . import _typings as t
 
 
-@t.final
 class _HK:
     __slots__ = ("_hashvalue", "_tup")
 
@@ -40,7 +39,7 @@ class _HK:
         return self._tup == other._tup
 
 
-_marker: t.Final[tuple[object]] = (object(),)
+_marker: tuple[object] = (object(),)
 
 
 def make_key(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any]) -> Hashable:

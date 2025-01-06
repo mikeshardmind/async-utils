@@ -34,7 +34,7 @@ type _HANDLER = _HTC | int | signal.Handlers | None
 type HandleableSignals = t.Literal["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]
 type SignalTuple = tuple[HandleableSignals, ...]
 
-default_handled: t.Final = "SIGINT", "SIGTERM", "SIGBREAK"
+default_handled: SignalTuple = "SIGINT", "SIGTERM", "SIGBREAK"
 
 
 class SpecialExit(enum.IntEnum):
