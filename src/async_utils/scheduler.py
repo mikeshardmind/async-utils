@@ -18,11 +18,11 @@ import asyncio
 from functools import total_ordering
 from time import time
 
-from ._typings import Any, Self
+from . import _typings as t
 
 __all__ = ("Scheduler",)
 
-MISSING: Any = object()
+MISSING: t.Any = object()
 
 
 class CancellationToken:
@@ -76,7 +76,7 @@ class Scheduler[T]:
         self.__tqueue = MISSING
         self.__l = MISSING
 
-    async def __aenter__(self) -> Self:
+    async def __aenter__(self) -> t.Self:
         self.__closed = False
         asyncio.get_running_loop()
 
@@ -94,7 +94,7 @@ class Scheduler[T]:
     async def __aexit__(self, *_dont_care: object) -> None:
         self.__closed = True
 
-    def __aiter__(self) -> Self:
+    def __aiter__(self) -> t.Self:
         return self
 
     async def __anext__(self) -> T:

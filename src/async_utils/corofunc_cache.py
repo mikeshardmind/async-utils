@@ -18,14 +18,14 @@ import asyncio
 from collections.abc import Awaitable, Callable, Coroutine, Hashable
 from functools import partial, wraps
 
+from . import _typings as t
 from ._paramkey import make_key
-from ._typings import Any
 from .lru import LRU
 
 __all__ = ("corocache", "lrucorocache")
 
 
-type CoroFunc[**P, R] = Callable[P, Coroutine[Any, Any, R]]
+type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
 type CoroLike[**P, R] = Callable[P, Awaitable[R]]
 
 type Deco[**P, R] = Callable[[CoroLike[P, R]], CoroFunc[P, R]]

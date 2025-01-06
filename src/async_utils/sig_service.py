@@ -22,19 +22,19 @@ import sys
 from collections.abc import Callable
 from types import FrameType
 
-from ._typings import Any, Final, Literal
+from . import _typings as t
 
 __all__ = ["SignalService", "SpecialExit"]
 
-type SignalCallback = Callable[[signal.Signals | SpecialExit], Any]
-type StartStopCall = Callable[[], Any]
-type _HTC = Callable[[int, FrameType | None], Any]
+type SignalCallback = Callable[[signal.Signals | SpecialExit], t.Any]
+type StartStopCall = Callable[[], t.Any]
+type _HTC = Callable[[int, FrameType | None], t.Any]
 type _HANDLER = _HTC | int | signal.Handlers | None
 
-type HandleableSignals = Literal["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]
+type HandleableSignals = t.Literal["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]
 type SignalTuple = tuple[HandleableSignals, ...]
 
-default_handled: Final = "SIGINT", "SIGTERM", "SIGBREAK"
+default_handled: t.Final = "SIGINT", "SIGTERM", "SIGBREAK"
 
 
 class SpecialExit(enum.IntEnum):

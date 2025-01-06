@@ -19,15 +19,15 @@ import inspect
 from collections.abc import Callable, Coroutine, Hashable
 from functools import partial, wraps
 
+from . import _typings as t
 from ._paramkey import make_key
-from ._typings import Any
 from .lru import LRU
 
 __all__ = ("lrutaskcache", "taskcache")
 
 
 # Use below doesn't accept non-task Futures, so can't accept general awaitables
-type CoroFunc[**P, R] = Callable[P, Coroutine[Any, Any, R]]
+type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
 type TaskFunc[**P, R] = CoroFunc[P, R] | Callable[P, asyncio.Task[R]]
 type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
 

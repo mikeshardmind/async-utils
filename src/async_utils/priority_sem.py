@@ -22,7 +22,7 @@ import threading
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 
-from ._typings import Any, Self
+from . import _typings as t
 
 __all__ = ["PrioritySemaphore", "priority_context"]
 
@@ -34,7 +34,7 @@ _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", def
 class PriorityWaiter(tuple[int, float, asyncio.Future[None]]):
     __slots__ = ()
 
-    def __new__(cls, priority: int, ts: float, future: asyncio.Future[None]) -> Self:
+    def __new__(cls, priority: int, ts: float, future: asyncio.Future[None]) -> t.Self:
         return super().__new__(cls, (priority, ts, future))
 
     @property
@@ -57,10 +57,10 @@ class PriorityWaiter(tuple[int, float, asyncio.Future[None]]):
     def done(self) -> Callable[[], bool]:
         return self.future.done
 
-    def __await__(self) -> Generator[Any, Any, None]:
+    def __await__(self) -> Generator[t.Any, t.Any, None]:
         return self.future.__await__()
 
-    def __lt__(self, other: Any) -> bool:
+    def __lt__(self, other: t.Any) -> bool:
         if not isinstance(other, PriorityWaiter):
             return NotImplemented
         return self[:2] < other[:2]
@@ -82,7 +82,7 @@ def priority_context(priority: int, /) -> Generator[None, None, None]:
         _priority.reset(token)
 
 
-_default: Any = object()
+_default: t.Any = object()
 
 
 class PrioritySemaphore:

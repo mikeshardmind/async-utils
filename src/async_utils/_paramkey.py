@@ -20,10 +20,10 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 
-from ._typings import Any, Final, final
+from . import _typings as t
 
 
-@final
+@t.final
 class _HK:
     __slots__ = ("_hashvalue", "_tup")
 
@@ -40,11 +40,11 @@ class _HK:
         return self._tup == other._tup
 
 
-_marker: Final[tuple[object]] = (object(),)
+_marker: t.Final[tuple[object]] = (object(),)
 
 
-def make_key(args: tuple[Any, ...], kwds: dict[Any, Any]) -> Hashable:
-    key: tuple[Any, ...] = args
+def make_key(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any]) -> Hashable:
+    key: tuple[t.Any, ...] = args
     if kwds:
         key += _marker
         for item in kwds.items():

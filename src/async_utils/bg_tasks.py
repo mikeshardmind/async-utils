@@ -18,9 +18,9 @@ import asyncio
 from collections.abc import Coroutine
 from contextvars import Context
 
-from ._typings import Any, Self
+from . import _typings as t
 
-type _CoroutineLike[T] = Coroutine[Any, Any, T]
+type _CoroutineLike[T] = Coroutine[t.Any, t.Any, T]
 
 
 __all__ = ["BGTasks"]
@@ -61,7 +61,7 @@ class BGTasks:
         t.add_done_callback(self._tasks.discard)
         return t
 
-    async def __aenter__(self: Self) -> Self:
+    async def __aenter__(self: t.Self) -> t.Self:
         return self
 
     async def __aexit__(self, *_dont_care: object) -> None:

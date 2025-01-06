@@ -19,12 +19,12 @@ import asyncio
 import time
 from collections.abc import Callable, Coroutine, Sequence
 
-from ._typings import Any
+from . import _typings as t
 
 __all__ = ("Waterfall",)
 
-type CBT[T] = Callable[[Sequence[T]], Coroutine[Any, Any, Any]]
-type NC = Coroutine[Any, Any, None]
+type CBT[T] = Callable[[Sequence[T]], Coroutine[t.Any, t.Any, t.Any]]
+type NC = Coroutine[t.Any, t.Any, None]
 
 
 class Waterfall[T]:
