@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
+import inspect  # This import is *always* used in the decorators below
 from collections.abc import Callable, Coroutine, Hashable
 from functools import partial, wraps
 
