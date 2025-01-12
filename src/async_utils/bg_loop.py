@@ -17,10 +17,12 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures as cf
 import threading
 from collections.abc import Awaitable, Generator
-from concurrent.futures import Future
 from contextlib import contextmanager
+
+from . import _typings as t
 
 type _FutureLike[T] = asyncio.Future[T] | Awaitable[T]
 
@@ -30,8 +32,9 @@ __all__ = ["threaded_loop"]
 class LoopWrapper:
     def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop
+        self._futures: set[cf.Future[t.Any]] = set()
 
-    def schedule[T](self, coro: _FutureLike[T], /) -> Future[T]:
+    def schedule[T](self, coro: _FutureLike[T], /) -> cf.Future[T]:
         """Schedule a coroutine to run on the wrapped event loop.
 
         Parameters
@@ -44,7 +47,10 @@ class LoopWrapper:
         asyncio.Future:
             A Future wrapping the result.
         """
-        return asyncio.run_coroutine_threadsafe(coro, self._loop)
+        future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        self._futures.add(future)
+        future.add_done_callback(self._futures.discard)
+        return future
 
     async def run[T](self, coro: _FutureLike[T], /) -> T:
         """Schedule and await a coroutine to run on the background loop.
@@ -59,7 +65,30 @@ class LoopWrapper:
         The returned value of the coroutine run in the background
         """
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        self._futures.add(future)
+        future.add_done_callback(self._futures.discard)
         return await asyncio.wrap_future(future)
+
+    def cancel_all(self) -> None:
+        """Cancel all remaining futures."""
+        for future in self._futures:
+            future.cancel()
+
+    def wait_sync(self, timeout: float | None) -> bool:
+        """Wait for remaining futures.
+
+        Parameters
+        ----------
+        timeout: float | None
+            Optionally, how long to wait for
+
+        Returns
+        -------
+        bool
+            True if all futures finished, otherwise False
+        """
+        _done, pending = cf.wait(self._futures, timeout=timeout)
+        return not pending
 
 
 def run_forever(
@@ -101,7 +130,7 @@ def run_forever(
 
 @contextmanager
 def threaded_loop(
-    *, use_eager_task_factory: bool = True
+    *, use_eager_task_factory: bool = True, wait_on_exit: bool = True
 ) -> Generator[LoopWrapper, None, None]:
     """Create and use a managed event loop in a backround thread.
 
@@ -109,7 +138,10 @@ def threaded_loop(
     and yields an object with scheduling methods for interacting with
     the loop.
 
-    Loop is scheduled for shutdown, and thread is joined at contextmanager exit
+    At context manager exit, if wait_on_exit is True (default), then
+    the context manager waits on the remaining futures. When it is done, or
+    if that parameter is False, the loop is event loop is scheduled for shutdown
+    and the thread is joined.
 
     Yields
     ------
@@ -118,6 +150,7 @@ def threaded_loop(
     """
     loop = asyncio.new_event_loop()
     thread = None
+    wrapper = None
     try:
         thread = threading.Thread(
             target=run_forever,
@@ -125,8 +158,11 @@ def threaded_loop(
             kwargs={"use_eager_task_factory": use_eager_task_factory},
         )
         thread.start()
-        yield LoopWrapper(loop)
+        wrapper = LoopWrapper(loop)
+        yield wrapper
     finally:
+        if wrapper and wait_on_exit:
+            wrapper.wait_sync(None)
         loop.call_soon_threadsafe(loop.stop)
         if thread:
             thread.join()
