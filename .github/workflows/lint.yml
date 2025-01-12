@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@d0a0e814ec17e92d33be7d24dd922b479f1bcd38
+      - uses: astral-sh/ruff-action@31a518504640beb4897d0b9f9e50a2a9196e75ba
         with:
           args: 'format --check'
-      - uses: astral-sh/ruff-action@d0a0e814ec17e92d33be7d24dd922b479f1bcd38
+      - uses: astral-sh/ruff-action@31a518504640beb4897d0b9f9e50a2a9196e75ba
         with:
           args: 'check'
 
@@ -26,7 +26,7 @@ jobs:
 
     name: check ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
