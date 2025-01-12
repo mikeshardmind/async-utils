@@ -33,9 +33,8 @@ class _NMWaiter:
     __slots__ = ("_future", "_val")
 
     def __init__(self, val: int = 1, /) -> None:
-        self._future: cf.Future[None] = (
-            cf.Future()
-        )  # This is why this is for internal use only
+        # This is why this is for internal use only
+        self._future: cf.Future[None] = cf.Future()
         self._val = val
 
     def __lt__(self, other: object) -> bool:
@@ -55,7 +54,8 @@ class _NMWaiter:
     def wake(self) -> None:
         if not self._future.done():
             try:
-                self._future.set_result(None)  # This is why this is for internal use only
+                # This is why this is for internal use only
+                self._future.set_result(None)
             except cf.InvalidStateError:
                 # Race condition possible with multiple attempts to wake
                 # Racing in some cases is less expensive than locking in all
