@@ -31,13 +31,20 @@ type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
 type TaskFunc[**P, R] = CoroFunc[P, R] | Callable[P, asyncio.Task[R]]
 type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
 
+type _CT_RET = tuple[tuple[t.Any, ...], dict[t.str, t.Any]]
+type CacheTransformer = Callable[[tuple[t.Any, ...], dict[t.str, t.Any]], _CT_RET]
+
 type Deco[**P, R] = Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]
 
 # Non-annotation assignments for transformed functions
 _WRAP_ASSIGN = ("__module__", "__name__", "__qualname__", "__doc__")
 
 
-def taskcache[**P, R](ttl: float | None = None) -> Deco[P, R]:
+def taskcache[**P, R](
+    ttl: float | None = None,
+    *,
+    cache_transform: CacheTransformer | None = None,
+) -> Deco[P, R]:
     """Cache the results of the decorated coroutine.
 
     Decorator to modify coroutine functions to instead act as functions
@@ -46,10 +53,10 @@ def taskcache[**P, R](ttl: float | None = None) -> Deco[P, R]:
     For general use, this leaves the end user API largely the same,
     while leveraging tasks to allow preemptive caching.
 
-    Note: This uses the args and kwargs of the original coroutine function as a
-    cache key. This includes instances (self) when wrapping methods.
+    Note: This by default uses the args and kwargs of the original coroutine
+    function as a cache key. This includes instances (self) when wrapping methods.
     Consider not wrapping instance methods, but what those methods call when
-    feasible in cases where this may matter.
+    feasible in cases where this may matter, or using a cache transform.
 
     The ordering of args and kwargs matters.
 
@@ -57,12 +64,21 @@ def taskcache[**P, R](ttl: float | None = None) -> Deco[P, R]:
     ----------
     ttl: float | None
         The time to live in seconds for cached results. Defaults to None (forever)
+    cache_transform: CacheTransformer | None
+        An optional callable that transforms args and kwargs used
+        as a cache key.
 
     Returns
     -------
     A decorator which wraps coroutine-like objects in functions that return
     preemptively cached tasks.
     """
+    if cache_transform is None:
+        key_func = make_key
+    else:
+
+        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any]) -> Hashable:
+            return make_key(*cache_transform(args, kwds))
 
     def wrapper(coro: TaskCoroFunc[P, R]) -> TaskFunc[P, R]:
         internal_cache: dict[Hashable, asyncio.Task[R]] = {}
@@ -74,7 +90,7 @@ def taskcache[**P, R](ttl: float | None = None) -> Deco[P, R]:
 
         @wraps(coro, assigned=_WRAP_ASSIGN)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[R]:
-            key = make_key(args, kwargs)
+            key = key_func(args, kwargs)
             if (cached := internal_cache.get(key)) is not None:
                 return cached
 
@@ -100,7 +116,12 @@ def taskcache[**P, R](ttl: float | None = None) -> Deco[P, R]:
     return wrapper
 
 
-def lrutaskcache[**P, R](ttl: float | None = None, maxsize: int = 1024) -> Deco[P, R]:
+def lrutaskcache[**P, R](
+    ttl: float | None = None,
+    maxsize: int = 1024,
+    *,
+    cache_transform: CacheTransformer | None = None,
+) -> Deco[P, R]:
     """Cache the results of the decorated coroutine.
 
     Decorator to modify coroutine functions to instead act as functions
@@ -109,10 +130,10 @@ def lrutaskcache[**P, R](ttl: float | None = None, maxsize: int = 1024) -> Deco[
     For general use, this leaves the end user API largely the same,
     while leveraging tasks to allow preemptive caching.
 
-    Note: This uses the args and kwargs of the original coroutine function as a
-    cache key. This includes instances (self) when wrapping methods.
+    Note: This by default uses the args and kwargs of the original coroutine
+    function as a cache key. This includes instances (self) when wrapping methods.
     Consider not wrapping instance methods, but what those methods call when
-    feasible in cases where this may matter.
+    feasible in cases where this may matter, or using a cache transform.
 
     The ordering of args and kwargs matters.
 
@@ -127,12 +148,21 @@ def lrutaskcache[**P, R](ttl: float | None = None, maxsize: int = 1024) -> Deco[
         The maximum number of items to retain no matter if they have reached
         expiration by ttl or not.
         Items evicted by this policy are evicted by least recent use.
+    cache_transform: CacheTransformer | None
+        An optional callable that transforms args and kwargs used
+        as a cache key.
 
     Returns
     -------
     A decorator which wraps coroutine-like objects in functions that return
     preemptively cached tasks.
     """
+    if cache_transform is None:
+        key_func = make_key
+    else:
+
+        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any]) -> Hashable:
+            return make_key(*cache_transform(args, kwds))
 
     def wrapper(coro: TaskCoroFunc[P, R]) -> TaskFunc[P, R]:
         internal_cache: LRU[Hashable, asyncio.Task[R]] = LRU(maxsize)
@@ -144,7 +174,7 @@ def lrutaskcache[**P, R](ttl: float | None = None, maxsize: int = 1024) -> Deco[
 
         @wraps(coro, assigned=_WRAP_ASSIGN)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[R]:
-            key = make_key(args, kwargs)
+            key = key_func(args, kwargs)
             if (cached := internal_cache.get(key, None)) is not None:
                 return cached
 
