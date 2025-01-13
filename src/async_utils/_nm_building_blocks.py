@@ -80,6 +80,9 @@ class _WrappedRLock:
     async def __aenter__(self) -> None:
         acquired = False
         while not acquired:
+            # TODO: This kindof sucks, and we can avoid this
+            # if we're also the scheduler, find a way not to use this in
+            # any async scheduler that is threading-aware when I get to that.
             acquired = self._lock.acquire(blocking=False)
             await asyncio.sleep(0)
 

@@ -127,7 +127,7 @@ class Waterfall[T]:
 
                 t = asyncio.create_task(self.callback(queue_items))
                 tasks.add(t)
-                t.add_done_callback(tasks.remove)
+                t.add_done_callback(tasks.discard)
 
                 for _ in range(num_items):
                     self.queue.task_done()
@@ -137,7 +137,10 @@ class Waterfall[T]:
             await asyncio.wait_for(f, timeout=self.max_wait_finalize)
 
     async def _finalize(self) -> None:
-        # WARNING: Do not allow an async context switch before the gather below
+        # WARNING: Do not allow an async context switch before the queue is drained
+        # This can be changed to utilize queue.Shutdown in 3.13+
+        # or when more of asyncio queues have been replaced here
+        # as part of freethreading efforts.
 
         self._alive = False
         remaining_items: Sequence[T] = []
@@ -152,27 +155,28 @@ class Waterfall[T]:
 
             remaining_items.append(ev)
 
+        # Context switches are safe again.
+
         if not remaining_items:
             return
 
         num_remaining = len(remaining_items)
 
-        pending_futures: list[asyncio.Task[object]] = []
+        remaining_tasks: set[asyncio.Task[object]] = set()
 
         for chunk in (
             remaining_items[p : p + self.max_quantity]
             for p in range(0, num_remaining, self.max_quantity)
         ):
             fut = asyncio.create_task(self.callback(chunk))
-            pending_futures.append(fut)
+            fut.add_done_callback(remaining_tasks.discard)
+            remaining_tasks.add(fut)
 
-        gathered = asyncio.gather(*pending_futures)
+        timeout = self.max_wait_finalize
+        _done, pending = await asyncio.wait(remaining_tasks, timeout=timeout)
 
-        try:
-            await asyncio.wait_for(gathered, timeout=self.max_wait_finalize)
-        except TimeoutError:
-            for task in pending_futures:
-                task.cancel()
+        for task in pending:
+            task.cancel()
 
         for _ in range(num_remaining):
             self.queue.task_done()
