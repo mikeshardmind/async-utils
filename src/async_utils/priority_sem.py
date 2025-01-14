@@ -19,51 +19,17 @@ import asyncio
 import contextvars
 import heapq
 import threading
-from collections.abc import Callable, Generator
+from collections.abc import Generator
 from contextlib import contextmanager
 
 from . import _typings as t
+from ._faux_native import PriorityWaiter
 
 __all__ = ["PrioritySemaphore", "priority_context"]
 
 _global_lock = threading.Lock()
 
 _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
-
-
-class PriorityWaiter(tuple[int, float, asyncio.Future[None]]):
-    __slots__ = ()
-
-    def __new__(cls, priority: int, ts: float, future: asyncio.Future[None]) -> t.Self:
-        return super().__new__(cls, (priority, ts, future))
-
-    @property
-    def priority(self) -> int:
-        return self[0]
-
-    @property
-    def ts(self) -> float:
-        return self[1]
-
-    @property
-    def future(self) -> asyncio.Future[None]:
-        return self[2]
-
-    @property
-    def cancelled(self) -> Callable[[], bool]:
-        return self.future.cancelled
-
-    @property
-    def done(self) -> Callable[[], bool]:
-        return self.future.done
-
-    def __await__(self) -> Generator[t.Any, t.Any, None]:
-        return self.future.__await__()
-
-    def __lt__(self, other: t.Any) -> bool:
-        if not isinstance(other, PriorityWaiter):
-            return NotImplemented
-        return self[:2] < other[:2]
 
 
 @contextmanager
