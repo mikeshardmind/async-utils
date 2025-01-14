@@ -21,15 +21,38 @@ import heapq
 import threading
 from collections.abc import Generator
 from contextlib import contextmanager
+from operator import attrgetter
 
 from . import _typings as t
-from ._faux_native import PriorityWaiter
 
 __all__ = ["PrioritySemaphore", "priority_context"]
 
 _global_lock = threading.Lock()
 
 _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
+
+
+class PriorityWaiter:
+    __slots__ = ("future", "ord")
+
+    def __init__(self, priority: int, ts: float, future: asyncio.Future[None], /) -> None:
+        self.ord = (priority, ts)
+        self.future = future
+
+    cancelled = property(attrgetter("future.cancelled"))
+    done = property(attrgetter("future.done"))
+    __await__: t.Any = property(attrgetter("future.__await__"))
+
+    def __lt__(self: t.Self, other: object) -> bool:
+        if not isinstance(other, PriorityWaiter):
+            return NotImplemented
+        return self.ord < other.ord
+
+    __final__ = True
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
 
 
 @contextmanager
