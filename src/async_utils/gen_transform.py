@@ -97,16 +97,21 @@ def sync_to_async_gen[**P, Y](
     background_task = asyncio.create_task(background_coro)
 
     async def gen() -> AsyncGenerator[Y]:
+        q_get = None
         try:
             while not background_task.done():
-                q_get = asyncio.ensure_future(q.async_get())
-                done, _pending = await asyncio.wait(
-                    (background_task, q_get),
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-                if q_get in done:
-                    yield (await q_get)
-                    laziness_ev.set()
+                try:
+                    q_get = asyncio.ensure_future(q.async_get())
+                    done, _pending = await asyncio.wait(
+                        (background_task, q_get),
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                    if q_get in done:
+                        yield (await q_get)
+                        laziness_ev.set()
+                finally:
+                    if q_get is not None:
+                        q_get.cancel()
             laziness_ev.clear()
             while q:
                 yield (await q.async_get())
