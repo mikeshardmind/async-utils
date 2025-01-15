@@ -91,7 +91,9 @@ def sync_to_async_gen[**P, Y](
     laziness_ev.set()
     cancel_ev = Event()
 
-    background_coro = asyncio.to_thread(_consumer, laziness_ev, q, cancel_ev, f, *args, **kwargs)
+    background_coro = asyncio.to_thread(
+        _consumer, laziness_ev, q, cancel_ev, f, *args, **kwargs
+    )
     background_task = asyncio.create_task(background_coro)
 
     async def gen() -> AsyncGenerator[Y]:

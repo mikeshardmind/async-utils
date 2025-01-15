@@ -109,8 +109,13 @@ async def _sget(q: Queue[int | None]) -> None:
 
 
 def _main() -> None:
-    with _with_logging(), threaded_loop() as loop1, threaded_loop() as loop2, threaded_loop() as loop3, threaded_loop() as loop4:
-
+    with (
+        _with_logging(),
+        threaded_loop() as loop1,
+        threaded_loop() as loop2,
+        threaded_loop() as loop3,
+        threaded_loop() as loop4,
+    ):
         loops = [loop1, loop2]
 
         q: Queue[int | None] = Queue(maxsize=5)

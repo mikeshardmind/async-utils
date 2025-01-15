@@ -69,10 +69,10 @@ class AsyncEvent:
 
         return cancelled
 
-    def is_set(self, /):
+    def is_set(self, /) -> bool:
         return not self._unset
 
-    def is_cancelled(self, /):
+    def is_cancelled(self, /) -> bool:
         return self._cancelled
 
     def __await__(self, /) -> Generator[t.Any, t.Any, bool]:
@@ -91,14 +91,14 @@ class AsyncEvent:
 
         return True
 
-    def _set_state(self, /):
+    def _set_state(self, /) -> None:
         if (future := self._future) is not None:
             try:  # faster to race than lock
                 future.set_result(True)
             except asyncio.InvalidStateError:
                 pass
 
-    def set_state(self, /):
+    def set(self, /) -> bool:
         success = True
 
         if is_unset := self._unset:
@@ -176,7 +176,7 @@ class ThreadingEvent:
     def is_cancelled(self, /) -> bool:
         return self._cancelled
 
-    def set_state(self, /) -> bool:
+    def set(self, /) -> bool:
         success = True
 
         if is_unset := self._unset:
@@ -408,7 +408,7 @@ class _BaseQueue[T]:
 
         return success
 
-    def _acquire_nowait_get(self, /):
+    def _acquire_nowait_get(self, /) -> bool:
         if unlocked := self.__unlocked:
             if self._qsize() > 0:
                 try:
@@ -429,7 +429,7 @@ class _BaseQueue[T]:
 
         return success
 
-    def _release(self, /):
+    def _release(self, /) -> None:
         maxsize = self.maxsize
 
         unlocked = self.__unlocked
@@ -450,7 +450,7 @@ class _BaseQueue[T]:
                 except IndexError:
                     pass
                 else:
-                    if event.set_state():
+                    if event.set():
                         break
             else:
                 unlocked.append(True)
@@ -460,7 +460,7 @@ class _BaseQueue[T]:
 
             break
 
-    async def async_put(self, /, item: T, *, blocking: bool = True):
+    async def async_put(self, item: T, /) -> None:
         waiters = self.__waiters
         put_waiters = self.__put_waiters
         success = self._acquire_nowait_put()
@@ -496,8 +496,8 @@ class _BaseQueue[T]:
                 self._release()
 
     def sync_put(
-        self, /, item: T, *, blocking: bool = True, timeout: float | None = None
-    ):
+        self, item: T, /, *, blocking: bool = True, timeout: float | None = None
+    ) -> None:
         waiters = self.__waiters
         put_waiters = self.__put_waiters
         success = self._acquire_nowait_put()
@@ -572,9 +572,7 @@ class _BaseQueue[T]:
 
         return item
 
-    def sync_get(
-        self, /, *, blocking: bool = True, timeout: float | None = None
-    ) -> T:
+    def sync_get(self, /, *, blocking: bool = True, timeout: float | None = None) -> T:
         waiters = self.__waiters
         get_waiters = self.__get_waiters
 
@@ -621,51 +619,57 @@ class _BaseQueue[T]:
     def _items(self, /) -> list[T]:
         raise NotImplementedError
 
-    def _put(self, /, item: T) -> None:
+    def _put(self, item: T, /) -> None:
         raise NotImplementedError
 
     def _get(self, /) -> T:
         raise NotImplementedError
 
     @property
-    def waiting(self, /):
+    def waiting(self, /) -> int:
         return len(self.__waiters)
 
     @property
-    def putting(self, /):
+    def putting(self, /) -> int:
         return len(self.__put_waiters)
 
     @property
-    def getting(self, /):
+    def getting(self, /) -> int:
         return len(self.__get_waiters)
 
 
 class Queue[T](_BaseQueue[T]):
+    """A thread-safe queue with both sync and async access methods."""
+
     __slots__ = ("_data",)
 
     def __init__(self, /, maxsize: int | None = None) -> None:
         super().__init__(maxsize)
         self._data: deque[T] = deque()
 
-    def _qsize(self, /):
+    def _qsize(self, /) -> int:
         return len(self._data)
 
-    def _items(self, /):
+    def _items(self, /) -> list[T]:
         return list(self._data)
 
-    def _put(self, /, item: T):
+    def _put(self, item: T, /) -> None:
         self._data.append(item)
 
-    def _get(self, /):
+    def _get(self, /) -> T:
         return self._data.popleft()
 
 
 class LIFOQueue[T](Queue[T]):
-    def _get(self, /):
+    """A thread-safe queue with both sync and async access methods."""
+
+    def _get(self, /) -> T:
         return self._data.pop()
 
 
 class PriorityQueue[T](_BaseQueue[T]):
+    """A thread-safe queue with both sync and async access methods."""
+
     __slots__ = ("_data",)
 
     def __init__(self, /, maxsize: int | None = None) -> None:
@@ -678,7 +682,7 @@ class PriorityQueue[T](_BaseQueue[T]):
     def _items(self, /) -> list[T]:
         return self._data.copy()
 
-    def _put(self, /, item: T):
+    def _put(self, item: T, /) -> None:
         heappush(self._data, item)
 
     def _get(self, /) -> T:
