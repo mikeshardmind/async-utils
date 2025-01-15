@@ -208,7 +208,7 @@ def lrucorocache[**P, R](
     return wrapper
 
 
-def get_stats(f: Deco[..., t.Any]) -> CacheStats:
+def get_stats(f: CoroFunc[..., t.Any]) -> CacheStats:
     """Get cache stats from a decorated function.
 
     Raises
@@ -225,7 +225,7 @@ def get_stats(f: Deco[..., t.Any]) -> CacheStats:
         raise LookupError from None
 
 
-def reset_stats(f: Deco[..., t.Any]) -> None:
+def reset_stats(f: CoroFunc[..., t.Any]) -> None:
     """Reset cache stats from a decorated function.
 
     Raises

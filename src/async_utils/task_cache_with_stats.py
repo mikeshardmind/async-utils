@@ -245,7 +245,7 @@ def lrutaskcache[**P, R](
     return wrapper
 
 
-def get_stats(f: Deco[..., t.Any]) -> CacheStats:
+def get_stats(f: TaskFunc[..., t.Any]) -> CacheStats:
     """Get cache stats from a decorated function.
 
     Raises
@@ -262,7 +262,7 @@ def get_stats(f: Deco[..., t.Any]) -> CacheStats:
         raise LookupError from None
 
 
-def reset_stats(f: Deco[..., t.Any]) -> None:
+def reset_stats(f: TaskFunc[..., t.Any]) -> None:
     """Reset cache stats from a decorated function.
 
     Raises
