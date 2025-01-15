@@ -30,16 +30,16 @@ TYPE_CHECKING = False
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Never, Self
+else:
 
+    def __getattr__(name: str):
+        if name in {"Any", "Literal", "Never", "Self"}:
+            import typing
 
-def __getattr__(name: str):
-    if name in {"Any", "Literal", "Never", "Self"}:
-        import typing
+            return getattr(typing, name)
 
-        return getattr(typing, name)
-
-    msg = f"module {__name__!r} has no attribute {name!r}"
-    raise AttributeError(msg)
+        msg = f"module {__name__!r} has no attribute {name!r}"
+        raise AttributeError(msg)
 
 
 __all__ = ["Any", "Literal", "Never", "Self"]

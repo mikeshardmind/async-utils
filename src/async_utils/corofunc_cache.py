@@ -28,8 +28,8 @@ __all__ = ("corocache", "lrucorocache")
 type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
 type CoroLike[**P, R] = Callable[P, Awaitable[R]]
 
-type _CT_RET = tuple[tuple[t.Any, ...], dict[t.str, t.Any]]
-type CacheTransformer = Callable[[tuple[t.Any, ...], dict[t.str, t.Any]], _CT_RET]
+type _CT_RET = tuple[tuple[t.Any, ...], dict[str, t.Any]]
+type CacheTransformer = Callable[[tuple[t.Any, ...], dict[str, t.Any]], _CT_RET]
 
 type Deco[**P, R] = Callable[[CoroLike[P, R]], CoroFunc[P, R]]
 
