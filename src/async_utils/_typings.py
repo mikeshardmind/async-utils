@@ -29,11 +29,11 @@ from __future__ import annotations
 TYPE_CHECKING = False
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, Self
+    from typing import Any, Literal, Never, Self
 
 
 def __getattr__(name: str):
-    if name in {"Any", "Literal", "Self"}:
+    if name in {"Any", "Literal", "Never", "Self"}:
         import typing
 
         return getattr(typing, name)
@@ -42,4 +42,4 @@ def __getattr__(name: str):
     raise AttributeError(msg)
 
 
-__all__ = ["Any", "Literal", "Self"]
+__all__ = ["Any", "Literal", "Never", "Self"]

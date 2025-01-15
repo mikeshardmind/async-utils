@@ -90,7 +90,7 @@ class _WrappedRLock:
         self._lock.release()
 
 
-class NMSemaphore:
+class NMSemaphore_v1:
     __final__ = True
     __slots__ = ("_lock", "_value", "_waiters")
 
