@@ -572,7 +572,7 @@ class _BaseQueue[T]:
 
         return item
 
-    def threading_get(
+    def sync_get(
         self, /, *, blocking: bool = True, timeout: float | None = None
     ) -> T:
         waiters = self.__waiters
