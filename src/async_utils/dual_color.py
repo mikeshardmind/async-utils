@@ -14,6 +14,6 @@
 
 from __future__ import annotations
 
-from ._qs import LIFOQueue, PriorityQueue, Queue, QueueEmpty, QueueFull, Semaphore
+from ._qs import LIFOQueue, PriorityQueue, Queue, QueueEmpty, QueueFull
 
-__all__ = ("LIFOQueue", "PriorityQueue", "Queue", "QueueEmpty", "QueueFull", "Semaphore")
+__all__ = ("LIFOQueue", "PriorityQueue", "Queue", "QueueEmpty", "QueueFull")
