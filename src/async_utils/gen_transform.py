@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures as cf
 from collections.abc import AsyncGenerator, Callable, Generator
 from threading import Event
 
@@ -26,28 +27,54 @@ __all__ = ["sync_to_async_gen"]
 def _consumer[**P, Y](
     laziness_ev: Event,
     queue: Queue[Y],
-    cancel_event: Event,
+    cancel_future: cf.Future[None],
     f: Callable[P, Generator[Y]],
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> None:
-    for val in f(*args, **kwargs):
-        if cancel_event.is_set():
-            break
+    gen = f(*args, **kwargs)
+
+    for val in gen:
         laziness_ev.wait()
-        if cancel_event.is_set():
-            break
         queue.sync_put(val)
         laziness_ev.clear()
-        if cancel_event.is_set():
-            break
+
+        if cancel_future.cancelled():
+            gen.throw(cf.CancelledError)
+
+        if cancel_future.done():
+            if exc := cancel_future.exception():
+                gen.throw(type(exc), exc)
+            else:
+                gen.throw(cf.CancelledError)
+
+
+class ACTX[Y]:
+    def __init__(self, g: AsyncGenerator[Y], f: cf.Future[None]) -> None:
+        self.g = g
+        self.f = f
+
+    async def __aenter__(self) -> AsyncGenerator[Y]:
+        return self.g
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: object,
+    ) -> bool:
+        if exc_value is not None:
+            self.f.set_exception(exc_value)
+
+        await self.g.aclose()
+        return False
 
 
 def sync_to_async_gen[**P, Y](
     f: Callable[P, Generator[Y]],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> AsyncGenerator[Y]:
+) -> ACTX[Y]:
     """Asynchronously iterate over a synchronous generator.
 
     The generator function and it's arguments must be threadsafe and will be
@@ -64,13 +91,6 @@ def sync_to_async_gen[**P, Y](
 
     .. note::
 
-    This function is susceptible to leaving the background generator permanently
-    suspended if you do not close the async generator. This isn't typically
-    an issue if your application does not have pathological cancellation,
-    however if you don't don't control cancellation and don't want to explain,
-    to users that their cancellation semantics are unsound in python this
-    function in particular should be wrapped with contextlib.aclosing.
-
     Parameters
     ----------
     f:
@@ -82,17 +102,19 @@ def sync_to_async_gen[**P, Y](
 
     Returns
     -------
-    An asynchronous iterator which yields the results of the wrapped generator.
+    ACTX
+        This is an async context manager,
+        that when entered, returns an async iterable.
     """
     # TODO: consider shutdownable queue rather than the double event use
     # needs to be a seperate queue if so
     q: Queue[Y] = Queue(maxsize=1)
     laziness_ev = Event()  # used to preserve generator laziness
     laziness_ev.set()
-    cancel_ev = Event()
+    cancel_future: cf.Future[None] = cf.Future()
 
     background_coro = asyncio.to_thread(
-        _consumer, laziness_ev, q, cancel_ev, f, *args, **kwargs
+        _consumer, laziness_ev, q, cancel_future, f, *args, **kwargs
     )
     background_task = asyncio.create_task(background_coro)
 
@@ -107,18 +129,22 @@ def sync_to_async_gen[**P, Y](
                         return_when=asyncio.FIRST_COMPLETED,
                     )
                     if q_get in done:
+                        laziness_ev.clear()
                         yield (await q_get)
                         laziness_ev.set()
                 finally:
                     if q_get is not None:
                         q_get.cancel()
-            laziness_ev.clear()
+
+        finally:
+            try:
+                cancel_future.set_result(None)
+            except cf.InvalidStateError:
+                pass
+            laziness_ev.set()
             while q:
                 yield (await q.async_get())
             # ensure errors in the generator propogate *after* the last values yielded
             await background_task
-        finally:
-            cancel_ev.set()
-            laziness_ev.set()
 
-    return gen()
+    return ACTX(gen(), cancel_future)
