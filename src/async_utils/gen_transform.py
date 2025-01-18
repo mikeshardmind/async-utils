@@ -19,9 +19,10 @@ import concurrent.futures as cf
 from collections.abc import AsyncGenerator, Callable, Generator
 from threading import Event
 
+from . import _typings as t
 from ._qs import Queue
 
-__all__ = ["sync_to_async_gen"]
+__all__ = ["ACTX", "sync_to_async_gen", "sync_to_async_gen_noctx"]
 
 
 def _consumer[**P, Y](
@@ -50,6 +51,17 @@ def _consumer[**P, Y](
 
 
 class ACTX[Y]:
+    """Context manager to forward exception context to generator in thread.
+
+    Not intended for public construction.
+    """
+
+    __final__ = True
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this."
+        raise RuntimeError(msg)
+
     def __init__(self, g: AsyncGenerator[Y], f: cf.Future[None]) -> None:
         self.g = g
         self.f = f
@@ -70,42 +82,11 @@ class ACTX[Y]:
         return False
 
 
-def sync_to_async_gen[**P, Y](
+def _sync_to_async_gen[**P, Y](
     f: Callable[P, Generator[Y]],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> ACTX[Y]:
-    """Asynchronously iterate over a synchronous generator.
-
-    The generator function and it's arguments must be threadsafe and will be
-    iterated lazily. Generators which perform cpu intensive work while holding
-    the GIL will likely not see a benefit.
-
-    Generators which rely on two-way communication (generators as coroutines)
-    are not appropriate for this function. similarly, generator return values
-    are completely swallowed.
-
-    If your generator is actually a synchronous coroutine, that's super cool,
-    but rewrite is as a native coroutine or use it directly then, you don't need
-    what this function does.
-
-    .. note::
-
-    Parameters
-    ----------
-    f:
-        The synchronous generator function to wrap.
-    *args:
-        The positional args to pass to the generator construction.
-    **kwargs:
-        The keyword arguments to pass to the generator construction.
-
-    Returns
-    -------
-    ACTX
-        This is an async context manager,
-        that when entered, returns an async iterable.
-    """
+) -> tuple[AsyncGenerator[Y], cf.Future[None]]:
     # TODO: consider shutdownable queue rather than the double event use
     # needs to be a seperate queue if so
     q: Queue[Y] = Queue(maxsize=1)
@@ -147,4 +128,83 @@ def sync_to_async_gen[**P, Y](
             # ensure errors in the generator propogate *after* the last values yielded
             await background_task
 
-    return ACTX(gen(), cancel_future)
+    return gen(), cancel_future
+
+
+def sync_to_async_gen[**P, Y](
+    f: Callable[P, Generator[Y]],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> ACTX[Y]:
+    """Asynchronously iterate over a synchronous generator.
+
+    The generator function and it's arguments must be threadsafe and will be
+    iterated lazily. Generators which perform cpu intensive work while holding
+    the GIL will likely not see a benefit.
+
+    Generators which rely on two-way communication (generators as coroutines)
+    are not appropriate for this function. similarly, generator return values
+    are completely swallowed.
+
+    If your generator is actually a synchronous coroutine, that's super cool,
+    but rewrite is as a native coroutine or use it directly then, you don't need
+    what this function does.
+
+    .. note::
+
+    Parameters
+    ----------
+    f:
+        The synchronous generator function to wrap.
+    *args:
+        The positional args to pass to the generator construction.
+    **kwargs:
+        The keyword arguments to pass to the generator construction.
+
+    Returns
+    -------
+    ACTX
+        This is an async context manager,
+        that when entered, returns an async iterable.
+    """
+    return ACTX(*_sync_to_async_gen(f, *args, **kwargs))
+
+
+def sync_to_async_gen_noctx[**P, Y](
+    f: Callable[P, Generator[Y]],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> AsyncGenerator[Y]:
+    """Asynchronously iterate over a synchronous generator.
+
+    The generator function and it's arguments must be threadsafe and will be
+    iterated lazily. Generators which perform cpu intensive work while holding
+    the GIL will likely not see a benefit.
+
+    Generators which rely on two-way communication (generators as coroutines)
+    are not appropriate for this function. similarly, generator return values
+    are completely swallowed.
+
+    If your generator is actually a synchronous coroutine, that's super cool,
+    but rewrite is as a native coroutine or use it directly then, you don't need
+    what this function does.
+
+    This version does not forward exception context and is not a context manager.
+
+    .. note::
+
+    Parameters
+    ----------
+    f:
+        The synchronous generator function to wrap.
+    *args:
+        The positional args to pass to the generator construction.
+    **kwargs:
+        The keyword arguments to pass to the generator construction.
+
+    Returns
+    -------
+    AsyncGenerator[Y]
+    """
+    gen, _fut = _sync_to_async_gen(f, *args, **kwargs)
+    return gen
