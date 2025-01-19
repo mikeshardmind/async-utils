@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# Do NOT add `from __future__ import annotations` to this file.
 
 import ast
 import inspect
@@ -21,6 +22,7 @@ from types import FunctionType
 _cycle_blocked = False
 
 
+#: PYUPDATE: py3.14, annotationslib based check as well.
 def ensure_annotations[T: type | FunctionType](f: T) -> T:
     """Ensure annotations are runtime valid.
 
