@@ -18,6 +18,7 @@ import ast
 import inspect
 import sys
 from types import FunctionType
+from typing import Any
 
 _cycle_blocked = False
 
@@ -56,6 +57,18 @@ def ensure_annotations[T: type | FunctionType](f: T) -> T:
     return env[f.__name__]
 
 
+def version_specific_annotation_interactions(obj: Any):
+    if sys.version_info[:2] >= (3, 14):
+        import annotationlib  # pyright: ignore[reportMissingImports]
+
+        if isinstance(obj, type):
+            for t in inspect.getmro(obj):
+                for _name, static_obj in inspect.getmembers_static(t):
+                    annotationlib.get_annotations(static_obj)  # pyright: ignore[reportUnknownMemberType]
+        else:
+            annotationlib.get_annotations(obj)  # pyright: ignore[reportUnknownMemberType]
+
+
 if __name__ == "__main__":
     import importlib
     import pkgutil
@@ -70,7 +83,8 @@ if __name__ == "__main__":
         for name in getattr(mod, "__all__", ()):
             obj = getattr(mod, name)
             try:
-                ensure_annotations(obj)
+                no_annot_fut_obj = ensure_annotations(obj)
+                version_specific_annotation_interactions(no_annot_fut_obj)
             except TypeError:
                 pass
             except (NameError, AttributeError) as exc:
