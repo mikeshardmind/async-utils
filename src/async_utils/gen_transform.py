@@ -33,21 +33,24 @@ def _consumer[**P, Y](
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> None:
-    gen = f(*args, **kwargs)
+    try:
+        gen = f(*args, **kwargs)
 
-    for val in gen:
-        laziness_ev.wait()
-        queue.sync_put(val)
-        laziness_ev.clear()
+        for val in gen:
+            laziness_ev.wait()
+            queue.sync_put(val)
+            laziness_ev.clear()
 
-        if cancel_future.cancelled():
-            gen.throw(cf.CancelledError)
-
-        if cancel_future.done():
-            if exc := cancel_future.exception():
-                gen.throw(type(exc), exc)
-            else:
+            if cancel_future.cancelled():
                 gen.throw(cf.CancelledError)
+
+            if cancel_future.done():
+                if exc := cancel_future.exception():
+                    gen.throw(type(exc), exc)
+                else:
+                    gen.throw(cf.CancelledError)
+    except StopIteration:
+        pass
 
 
 class ACTX[Y]:
