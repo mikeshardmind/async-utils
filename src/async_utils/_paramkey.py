@@ -22,6 +22,8 @@ from collections.abc import Hashable
 
 from . import _typings as t
 
+__all__ = ["make_key"]
+
 
 class _HK:
     __slots__ = ("_hashvalue", "_tup")

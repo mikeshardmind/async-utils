@@ -51,3 +51,8 @@ jobs:
       - name: Verify No CLRF line endings.
         run: >
           ! $(find . ! -path "./.git/*" -not -type d -exec file "{}" ";" |& grep -q " CRLF ")
+
+      - name: Ensure runtime validity of annotations
+        run: |
+          python -m pip install .
+          python _misc/_ensure_annotations.py

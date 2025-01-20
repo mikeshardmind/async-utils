@@ -23,7 +23,7 @@ from . import _typings as t
 type _CoroutineLike[T] = Coroutine[t.Any, t.Any, T]
 
 
-__all__ = ["BGTasks"]
+__all__ = ("BGTasks",)
 
 
 class BGTasks:

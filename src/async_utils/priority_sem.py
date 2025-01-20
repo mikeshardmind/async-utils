@@ -25,7 +25,7 @@ from operator import attrgetter
 
 from . import _typings as t
 
-__all__ = ["PrioritySemaphore", "priority_context"]
+__all__ = ("PrioritySemaphore", "priority_context")
 
 _global_lock = threading.Lock()
 

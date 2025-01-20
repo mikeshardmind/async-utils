@@ -22,7 +22,7 @@ from threading import Event
 from . import _typings as t
 from ._qs import Queue
 
-__all__ = ["ACTX", "sync_to_async_gen", "sync_to_async_gen_noctx"]
+__all__ = ("ACTX", "sync_to_async_gen", "sync_to_async_gen_noctx")
 
 
 def _consumer[**P, Y](

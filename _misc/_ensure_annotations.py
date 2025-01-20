@@ -54,3 +54,31 @@ def ensure_annotations[T: type | FunctionType](f: T) -> T:
         _cycle_blocked = False
 
     return env[f.__name__]
+
+
+if __name__ == "__main__":
+    import importlib
+    import pkgutil
+    import sys
+
+    import async_utils
+
+    failures: list[tuple[str, Exception]] = []
+
+    for mod_info in pkgutil.iter_modules(async_utils.__spec__.submodule_search_locations):
+        mod = importlib.import_module(f"async_utils.{mod_info.name}")
+        for name in getattr(mod, "__all__", ()):
+            obj = getattr(mod, name)
+            try:
+                ensure_annotations(obj)
+            except TypeError:
+                pass
+            except (NameError, AttributeError) as exc:
+                failures.append((f"{mod_info.name}.{name}", exc))
+
+    if failures:
+        for failing_obj, _exc in failures:
+            exc_info = f"{_exc.__class__.__name__}: {_exc.args[0]}"
+            print(failing_obj, exc_info, flush=True)  # noqa: T201
+
+        sys.exit(1)
