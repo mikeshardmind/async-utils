@@ -41,6 +41,8 @@ class LRU[K, V]:
         The maximum number of items to retain
     """
 
+    __slots__ = ("_cache", "_maxsize")
+
     def __init__(self, maxsize: int, /) -> None:
         self._cache: dict[K, V] = {}
         self._maxsize = maxsize
@@ -132,6 +134,8 @@ class TTLLRU[K, V]:
         Items are not eagerly evicted at expiration.
         Getting items does not refresh their ttl.
     """
+
+    __slots__ = ("_cache", "_expirations", "_maxsize", "_smooth", "_ttl")
 
     def __init__(self, maxsize: int, ttl: float) -> None:
         self._cache: dict[K, tuple[float, V]] = {}
