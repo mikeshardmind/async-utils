@@ -26,14 +26,19 @@ get imported. Instead, import the module and use symbols via attribute access as
 
 from __future__ import annotations
 
-TYPE_CHECKING = False
 
+def _overload[T](f: T) -> T:
+    return f
+
+
+TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import Any, Literal, Never, Self, overload
 else:
-    overload = lambda f: f  # noqa: E731
 
     def __getattr__(name: str):
+        if name == "overload":
+            return _overload
         if name in {"Any", "Literal", "Never", "Self"}:
             import typing
 

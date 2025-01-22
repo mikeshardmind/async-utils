@@ -24,6 +24,7 @@ _cycle_blocked = False
 
 
 #: PYUPDATE: py3.14, annotationslib based check as well.
+#: TODO: This runs into issues with indentation, dedent source?
 def ensure_annotations[T: type | FunctionType](f: T) -> T:
     """Ensure annotations are runtime valid.
 
