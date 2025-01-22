@@ -29,8 +29,9 @@ from __future__ import annotations
 TYPE_CHECKING = False
 
 if TYPE_CHECKING:
-    from typing import Any, Literal, Never, Self
+    from typing import Any, Literal, Never, Self, overload
 else:
+    overload = lambda f: f  # noqa: E731
 
     def __getattr__(name: str):
         if name in {"Any", "Literal", "Never", "Self"}:
@@ -42,4 +43,4 @@ else:
         raise AttributeError(msg)
 
 
-__all__ = ["Any", "Literal", "Never", "Self"]
+__all__ = ["TYPE_CHECKING", "Any", "Literal", "Never", "Self", "overload"]

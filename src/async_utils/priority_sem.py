@@ -19,7 +19,7 @@ import asyncio
 import contextvars
 import heapq
 import threading
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from operator import attrgetter
 
@@ -31,6 +31,39 @@ _global_lock = threading.Lock()
 
 _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
 
+type CN = Callable[[], None]
+type CNN = Callable[[None], None]
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    # see: https://discuss.python.org/t/compatability-of-descriptor-objects-in-protocols/77998/2
+    type DunderAwait[T] = t.Any
+else:
+    type DunderAwait[T] = Generator[t.Any, t.Any, T]
+
+
+class prop[T, R]:
+    def __init__(self, fget: Callable[[T], R]) -> None:
+        self.fget = fget
+
+    def __call__(self) -> R: ...
+
+    def __set__(self, instance: T | None, owner: type[T]) -> t.Never:
+        raise AttributeError
+
+    if TYPE_CHECKING:
+
+        @t.overload
+        def __get__(self, obj: T, objtype: type[T] | None) -> R: ...
+
+        @t.overload
+        def __get__(self, obj: None, objtype: type[T] | None) -> Callable[[t.Any], R]: ...
+
+    def __get__(self, obj: T | None, objtype: t.Any):
+        if obj is None:
+            return self.fget
+        return self.fget(obj)
+
 
 class PriorityWaiter:
     __slots__ = ("future", "ord")
@@ -39,9 +72,10 @@ class PriorityWaiter:
         self.ord = (priority, ts)
         self.future = future
 
-    cancelled = property(attrgetter("future.cancelled"))
-    done = property(attrgetter("future.done"))
-    __await__: t.Any = property(attrgetter("future.__await__"))
+    cancelled: prop[t.Self, CN] = prop(attrgetter("future.cancelled"))
+    done: prop[t.Self, CN] = prop(attrgetter("future.done"))
+    __await__: prop[t.Self, DunderAwait[None]] = prop(attrgetter("future.__await__"))
+    set_result: prop[t.Self, CNN] = prop(attrgetter("future.set_result"))
 
     def __lt__(self: t.Self, other: object) -> bool:
         if not isinstance(other, PriorityWaiter):
@@ -176,7 +210,7 @@ class PrioritySemaphore:
 
             if not (next_waiter.done() or next_waiter.cancelled()):
                 self._value -= 1
-                next_waiter.future.set_result(None)
+                next_waiter.set_result(None)
 
         while self._waiters:
             # cleanup maintaining heap invariant

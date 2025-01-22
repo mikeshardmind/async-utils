@@ -77,12 +77,11 @@ class ACTX[Y]:
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: object,
-    ) -> bool:
+    ) -> None:
         if exc_value is not None:
             self.f.set_exception(exc_value)
 
         await self.g.aclose()
-        return False
 
 
 def _sync_to_async_gen[**P, Y](
