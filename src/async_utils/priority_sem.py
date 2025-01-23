@@ -31,38 +31,13 @@ _global_lock = threading.Lock()
 
 _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
 
-type CN = Callable[[], None]
-type CNN = Callable[[None], None]
-
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    # see: https://discuss.python.org/t/compatability-of-descriptor-objects-in-protocols/77998/2
-    type DunderAwait[T] = t.Any
-else:
-    type DunderAwait[T] = Generator[t.Any, t.Any, T]
+type StateCheck = Callable[[PriorityWaiter], Callable[[], bool]]
+type SetResult = Callable[[PriorityWaiter], Callable[[None], None]]
 
 
-class prop[T, R]:
-    def __init__(self, fget: Callable[[T], R]) -> None:
-        self.fget = fget
-
-    def __call__(self) -> R: ...
-
-    def __set__(self, instance: T | None, owner: type[T]) -> t.Never:
-        raise AttributeError
-
-    if TYPE_CHECKING:
-
-        @t.overload
-        def __get__(self, obj: T, objtype: type[T] | None) -> R: ...
-
-        @t.overload
-        def __get__(self, obj: None, objtype: type[T] | None) -> Callable[[t.Any], R]: ...
-
-    def __get__(self, obj: T | None, objtype: t.Any):
-        if obj is None:
-            return self.fget
-        return self.fget(obj)
+_fut_canceled: StateCheck = attrgetter("future.cancelled")
+_fut_done: StateCheck = attrgetter("future.done")
+_fut_set_result: SetResult = attrgetter("future.set_result")
 
 
 class PriorityWaiter:
@@ -72,10 +47,15 @@ class PriorityWaiter:
         self.ord = (priority, ts)
         self.future = future
 
-    cancelled: prop[t.Self, CN] = prop(attrgetter("future.cancelled"))
-    done: prop[t.Self, CN] = prop(attrgetter("future.done"))
-    __await__: prop[t.Self, DunderAwait[None]] = prop(attrgetter("future.__await__"))
-    set_result: prop[t.Self, CNN] = prop(attrgetter("future.set_result"))
+    cancelled = property(_fut_canceled)
+    done = property(_fut_done)
+    set_result = property(_fut_set_result)
+
+    def __await__(self) -> Generator[t.Any, t.Any, None]:
+        # see: https://discuss.python.org/t/compatability-of-descriptor-objects-in-protocols/77998/2
+        # for why this one isn't using the property delegation.
+        # This has some minor extra runtime overhead in the meantime.
+        return (yield from self.future.__await__())
 
     def __lt__(self: t.Self, other: object) -> bool:
         if not isinstance(other, PriorityWaiter):
