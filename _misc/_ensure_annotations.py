@@ -79,6 +79,8 @@ if __name__ == "__main__":
 
     failures: list[tuple[str, Exception]] = []
 
+    print("Checking annotations for runtime validity", flush=True)  # noqa: T201
+
     for mod_info in pkgutil.iter_modules(async_utils.__spec__.submodule_search_locations):
         mod = importlib.import_module(f"async_utils.{mod_info.name}")
         for name in getattr(mod, "__all__", ()):

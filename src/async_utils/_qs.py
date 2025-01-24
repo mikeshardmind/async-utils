@@ -40,7 +40,7 @@ class AsyncEvent:
 
     def __init__(self, /) -> None:
         self._loop = asyncio.get_running_loop()
-        self._future = None
+        self._future: asyncio.Future[bool] | None = None
         self._unset = [True]
         self._cancelled = False
 
@@ -80,16 +80,14 @@ class AsyncEvent:
             self._future = self._loop.create_future()
 
             try:
-                yield from self._future.__await__()
+                return (yield from self._future.__await__())
             except BaseException:
                 self.cancel()
                 raise
             finally:
                 self._future = None
-        else:
-            yield from asyncio.sleep(0).__await__()
 
-        return True
+        return (yield from asyncio.sleep(0, True).__await__())
 
     def _set_state(self, /) -> None:
         if (future := self._future) is not None:

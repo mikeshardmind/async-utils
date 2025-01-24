@@ -25,8 +25,8 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
 
-from src.async_utils._qs import Queue  # noqa: PLC2701
-from src.async_utils.bg_loop import threaded_loop
+from async_utils.bg_loop import threaded_loop
+from async_utils.dual_color import Queue
 
 log = logging.getLogger()
 
