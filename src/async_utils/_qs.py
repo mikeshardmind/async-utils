@@ -198,7 +198,6 @@ class _BaseQueue[T]:
         "__put_waiters",
         "__unlocked",
         "__waiters",
-        "_data",
         "maxsize",
     )
 
