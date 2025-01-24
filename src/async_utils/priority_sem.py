@@ -19,9 +19,8 @@ import asyncio
 import contextvars
 import heapq
 import threading
-from collections.abc import Callable, Generator
+from collections.abc import Generator
 from contextlib import contextmanager
-from operator import attrgetter
 
 from . import _typings as t
 
@@ -31,14 +30,6 @@ _global_lock = threading.Lock()
 
 _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
 
-type StateCheck = Callable[[PriorityWaiter], Callable[[], bool]]
-type SetResult = Callable[[PriorityWaiter], Callable[[None], None]]
-
-
-_fut_canceled: StateCheck = attrgetter("future.cancelled")
-_fut_done: StateCheck = attrgetter("future.done")
-_fut_set_result: SetResult = attrgetter("future.set_result")
-
 
 class PriorityWaiter:
     __slots__ = ("future", "ord")
@@ -47,14 +38,18 @@ class PriorityWaiter:
         self.ord = (priority, ts)
         self.future = future
 
-    cancelled = property(_fut_canceled)
-    done = property(_fut_done)
-    set_result = property(_fut_set_result)
+    def cancelled(self) -> bool:
+        return self.future.cancelled()
+
+    def done(self) -> bool:
+        return self.future.done()
+
+    def set_result(self, val: None) -> None:
+        self.future.set_result(val)
 
     def __await__(self) -> Generator[t.Any, t.Any, None]:
         # see: https://discuss.python.org/t/compatability-of-descriptor-objects-in-protocols/77998/2
-        # for why this one isn't using the property delegation.
-        # This has some minor extra runtime overhead in the meantime.
+        # for why this isn't using property delegation.
         return (yield from self.future.__await__())
 
     def __lt__(self: t.Self, other: object) -> bool:
