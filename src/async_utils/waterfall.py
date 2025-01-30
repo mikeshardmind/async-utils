@@ -23,8 +23,8 @@ from . import _typings as t
 
 __all__ = ("Waterfall",)
 
-type CBT[T] = Callable[[Sequence[T]], Coroutine[t.Any, t.Any, t.Any]]
-type NC = Coroutine[t.Any, t.Any, None]
+type AnyCoro = Coroutine[t.Any, t.Any, t.Any]
+type CallbackType[T] = Callable[[Sequence[T]], AnyCoro]
 
 
 class Waterfall[T]:
@@ -51,7 +51,7 @@ class Waterfall[T]:
         self,
         max_wait: float,
         max_quantity: int,
-        async_callback: CBT[T],
+        async_callback: CallbackType[T],
         *,
         max_wait_finalize: int | None = None,
     ) -> None:
@@ -59,7 +59,7 @@ class Waterfall[T]:
         self.max_wait: float = max_wait
         self.max_wait_finalize: int | None = max_wait_finalize
         self.max_quantity: int = max_quantity
-        self.callback: CBT[T] = async_callback
+        self.callback: CallbackType[T] = async_callback
         self.task: asyncio.Task[None] | None = None
         self._alive: bool = False
 
@@ -78,7 +78,7 @@ class Waterfall[T]:
         self._alive = True
         self.task = asyncio.create_task(self._loop())
 
-    def stop(self) -> NC:
+    def stop(self) -> Coroutine[t.Any, t.Any, None]:
         """Stop accepting new tasks.
 
         Returns
