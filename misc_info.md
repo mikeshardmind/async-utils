@@ -30,3 +30,14 @@ all of, but may need to revisit in the future related to it.
     - Note: extremely unlikely to impact anyone, asyncio.create_subprocess_* doesn't construct this prior to an await.
 
 \* Likely not a meaningfully new place, awaiting these immediately is the most common use.
+
+
+## EventLoop.create_task + Task.set_name
+
+- While asyncio.Task has had these since 3.8, 3.13 is the first version where
+  the presence of `set_name` is mandatory.
+- 3.12 eager_tasks don't have their name set when using `loop.create_task`,
+  being set by an internal function aware of the above issue in `asyncio.create_task`.
+  This divergent behavior has to be kept track of, however, relying on task names
+  being reliably set prior to python 3.13 as a library or application
+  minimum is unsafe.
