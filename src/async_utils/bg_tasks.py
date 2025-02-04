@@ -21,9 +21,19 @@ from contextvars import Context
 from . import _typings as t
 
 type _CoroutineLike[T] = Coroutine[t.Any, t.Any, T]
+type _LoopLike = asyncio.AbstractEventLoop | _UnboundLoopSentinel
 
 
 __all__ = ("BGTasks",)
+
+
+class _UnboundLoopSentinel:
+    def create_task(*args: object, **kwargs: object) -> t.Never:
+        msg = """
+        BGTasks is intended for use as a context manager. Using create_task
+        prior to entering the context is not supported.
+        """
+        raise RuntimeError(msg)
 
 
 class BGTasks:
@@ -42,6 +52,7 @@ class BGTasks:
     def __init__(self, exit_timeout: float | None) -> None:
         self._tasks: set[asyncio.Task[object]] = set()
         self._etime: float | None = exit_timeout
+        self._loop: _LoopLike = _UnboundLoopSentinel()
 
     def create_task[T](
         self,
@@ -50,18 +61,29 @@ class BGTasks:
         name: str | None = None,
         context: Context | None = None,
     ) -> asyncio.Task[T]:
-        """Create a task bound managed by this context manager.
+        """Create a task attached to this context manager.
 
         Returns
         -------
         asyncio.Task: The task that was created.
         """
-        t = asyncio.create_task(coro, name=name, context=context)
+        t = self._loop.create_task(coro, name=name, context=context)
+        if name is not None:
+            # See: python/cpython#113050
+            # PYUPDATE: remove this block at python 3.13 minimum
+            try:
+                set_name = t.set_name
+            except AttributeError:
+                pass
+            else:
+                set_name(name)
+
         self._tasks.add(t)
         t.add_done_callback(self._tasks.discard)
         return t
 
     async def __aenter__(self: t.Self) -> t.Self:
+        self._loop = asyncio.get_running_loop()
         return self
 
     async def __aexit__(self, *_dont_care: object) -> None:
