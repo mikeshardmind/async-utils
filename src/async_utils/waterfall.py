@@ -25,6 +25,12 @@ __all__ = ("Waterfall",)
 
 type AnyCoro = Coroutine[t.Any, t.Any, t.Any]
 type CallbackType[T] = Callable[[Sequence[T]], AnyCoro]
+type _LoopLike = asyncio.AbstractEventLoop | _UnboundLoopSentinel
+
+
+class _UnboundLoopSentinel:
+    def create_task(*args: object, **kwargs: object) -> t.Never:
+        raise RuntimeError
 
 
 class Waterfall[T]:
@@ -62,6 +68,7 @@ class Waterfall[T]:
         self.callback: CallbackType[T] = async_callback
         self.task: asyncio.Task[None] | None = None
         self._alive: bool = False
+        self._event_loop: _LoopLike = _UnboundLoopSentinel()
 
     def start(self) -> None:
         """Start the background loop that handles batching and dispatching.
@@ -76,7 +83,8 @@ class Waterfall[T]:
             raise RuntimeError(msg)
 
         self._alive = True
-        self.task = asyncio.create_task(self._loop())
+        loop = self._event_loop = asyncio.get_running_loop()
+        self.task = loop.create_task(self._dispatch_loop())
 
     def stop(self) -> Coroutine[t.Any, t.Any, None]:
         """Stop accepting new tasks.
@@ -103,7 +111,7 @@ class Waterfall[T]:
             raise RuntimeError(msg)
         self.queue.put_nowait(item)
 
-    async def _loop(self) -> None:
+    async def _dispatch_loop(self) -> None:
         try:
             tasks: set[asyncio.Task[object]] = set()
             while self._alive:
@@ -125,7 +133,7 @@ class Waterfall[T]:
 
                 num_items = len(queue_items)
 
-                t = asyncio.create_task(self.callback(queue_items))
+                t = self._event_loop.create_task(self.callback(queue_items))
                 tasks.add(t)
                 t.add_done_callback(tasks.discard)
 
@@ -133,7 +141,14 @@ class Waterfall[T]:
                     self.queue.task_done()
 
         finally:
-            f = asyncio.create_task(self._finalize(), name="waterfall.finalizer")
+            f = self._event_loop.create_task(self._finalize())
+            try:
+                set_name = f.set_name
+            except AttributeError:
+                pass  # See: python/cpython#113050
+                # PYUPDATE: remove this block at python 3.13 minimum
+            else:
+                set_name("waterfall.finalizer")
             await asyncio.wait_for(f, timeout=self.max_wait_finalize)
 
     async def _finalize(self) -> None:
@@ -168,7 +183,7 @@ class Waterfall[T]:
             remaining_items[p : p + self.max_quantity]
             for p in range(0, num_remaining, self.max_quantity)
         ):
-            fut = asyncio.create_task(self.callback(chunk))
+            fut = self._event_loop.create_task(self.callback(chunk))
             fut.add_done_callback(remaining_tasks.discard)
             remaining_tasks.add(fut)
 
