@@ -51,9 +51,10 @@ class RateLimiter:
         # The ordering of these conditions matters to avoid an async context
         # switch between confirming the ratelimit isn't exhausted and allowing
         # the user code to continue.
-        while (len(self._monotonics) >= self.rate_limit) and await asyncio.sleep(
-            self.granularity, True
-        ):
+        while (
+            len(self._monotonics) >= self.rate_limit
+            and await asyncio.sleep(self.granularity, True)
+        ):  # fmt: skip
             now = time.monotonic()
             while self._monotonics and (now - self._monotonics[0] > self.period):
                 self._monotonics.popleft()
