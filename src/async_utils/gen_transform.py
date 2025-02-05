@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures as cf  #: PYUPDATE: py3.14, check cf.Future use
+from asyncio import FIRST_COMPLETED as FC
 from collections.abc import AsyncGenerator, Callable, Generator
 from threading import Event
 
@@ -92,45 +93,40 @@ def _sync_to_async_gen[**P, Y](
     # TODO: consider shutdownable queue rather than the double event use
     # needs to be a seperate queue if so
     q: Queue[Y] = Queue(maxsize=1)
-    laziness_ev = Event()  # used to preserve generator laziness
-    laziness_ev.set()
-    cancel_future: cf.Future[None] = cf.Future()
+    lazy_ev = Event()  # used to preserve generator laziness
+    lazy_ev.set()
+    cancel_fut: cf.Future[None] = cf.Future()
 
-    background_coro = asyncio.to_thread(
-        _consumer, laziness_ev, q, cancel_future, f, *args, **kwargs
-    )
-    background_task = asyncio.create_task(background_coro)
+    bg_coro = asyncio.to_thread(_consumer, lazy_ev, q, cancel_fut, f, *args, **kwargs)
+    bg_task = asyncio.create_task(bg_coro)
 
     async def gen() -> AsyncGenerator[Y]:
         q_get = None
         try:
-            while not background_task.done():
+            while not bg_task.done():
                 try:
                     q_get = asyncio.ensure_future(q.async_get())
-                    done, _pending = await asyncio.wait(
-                        (background_task, q_get),
-                        return_when=asyncio.FIRST_COMPLETED,
-                    )
+                    done, _ = await asyncio.wait((bg_task, q_get), return_when=FC)
                     if q_get in done:
-                        laziness_ev.clear()
+                        lazy_ev.clear()
                         yield (await q_get)
-                        laziness_ev.set()
+                        lazy_ev.set()
                 finally:
                     if q_get is not None:
                         q_get.cancel()
 
         finally:
             try:
-                cancel_future.set_result(None)
+                cancel_fut.set_result(None)
             except cf.InvalidStateError:
                 pass
-            laziness_ev.set()
+            lazy_ev.set()
             while q:
                 yield (await q.async_get())
             # ensure errors in the generator propogate *after* the last values yielded
-            await background_task
+            await bg_task
 
-    return gen(), cancel_future
+    return gen(), cancel_fut
 
 
 def sync_to_async_gen[**P, Y](

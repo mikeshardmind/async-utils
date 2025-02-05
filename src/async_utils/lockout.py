@@ -50,12 +50,8 @@ class Lockout:
 
     def __repr__(self) -> str:
         res = super().__repr__()
-        extra = (
-            "unlocked"
-            if not self._lockouts
-            else f"locked, timestamps={self._lockouts:!r}"
-        )
-        return f"<{res[1:-1]} [{extra}]>"
+        x = f"locked, timestamps={self._lockouts:!r}" if self._lockouts else "unlocked"
+        return f"<{res[1:-1]} [{x}]>"
 
     def __init__(self) -> None:
         self._lockouts: list[float] = []
@@ -111,12 +107,8 @@ class FIFOLockout:
 
     def __repr__(self) -> str:
         res = super().__repr__()
-        extra = (
-            "unlocked"
-            if not self._lockouts
-            else f"locked, timestamps={self._lockouts:!r}"
-        )
-        return f"<{res[1:-1]} [{extra}]>"
+        x = f"locked, timestamps={self._lockouts:!r}" if self._lockouts else "unlocked"
+        return f"<{res[1:-1]} [{x}]>"
 
     def lockout_for(self, seconds: float, /) -> None:
         """Lock a resource for an amount of time."""

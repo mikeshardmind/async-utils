@@ -95,10 +95,10 @@ def run_forever(
     loop: asyncio.AbstractEventLoop,
     /,
     *,
-    use_eager_task_factory: bool = True,
+    eager: bool = True,
 ) -> None:
     asyncio.set_event_loop(loop)
-    if use_eager_task_factory:
+    if eager:
         loop.set_task_factory(asyncio.eager_task_factory)
     try:
         loop.run_forever()
@@ -152,11 +152,8 @@ def threaded_loop(
     thread = None
     wrapper = None
     try:
-        thread = threading.Thread(
-            target=run_forever,
-            args=(loop,),
-            kwargs={"use_eager_task_factory": use_eager_task_factory},
-        )
+        args, kwargs = (loop,), {"eager": use_eager_task_factory}
+        thread = threading.Thread(target=run_forever, args=args, kwargs=kwargs)
         thread.start()
         wrapper = LoopWrapper(loop)
         yield wrapper

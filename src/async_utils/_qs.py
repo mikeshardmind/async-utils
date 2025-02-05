@@ -191,18 +191,12 @@ class ThreadingEvent:
 
 
 class _BaseQueue[T]:
-    __slots__ = (
-        "__get_waiters",
-        "__put_waiters",
-        "__unlocked",
-        "__waiters",
-        "maxsize",
-    )
+    __slots__ = ("__get_ws", "__put_ws", "__unlocked", "__unlocked", "__ws", "maxsize")
 
     def __init__(self, /, maxsize: int | None = None) -> None:
-        self.__waiters: deque[AsyncEvent | ThreadingEvent] = deque()
-        self.__get_waiters: deque[AsyncEvent | ThreadingEvent] = deque()
-        self.__put_waiters: deque[AsyncEvent | ThreadingEvent] = deque()
+        self.__ws: deque[AsyncEvent | ThreadingEvent] = deque()
+        self.__get_ws: deque[AsyncEvent | ThreadingEvent] = deque()
+        self.__put_ws: deque[AsyncEvent | ThreadingEvent] = deque()
         self.__unlocked: list[bool] = [True]
         self.maxsize: int = maxsize if maxsize is not None else 0
 
@@ -285,11 +279,11 @@ class _BaseQueue[T]:
             size = self._qsize()
 
             if not size:
-                actual_waiters = self.__put_waiters
+                actual_waiters = self.__put_ws
             elif size >= maxsize > 0:
-                actual_waiters = self.__get_waiters
+                actual_waiters = self.__get_ws
             else:
-                actual_waiters = self.__waiters
+                actual_waiters = self.__ws
 
             while actual_waiters:
                 try:
@@ -308,8 +302,8 @@ class _BaseQueue[T]:
             break
 
     async def async_put(self, item: T, /) -> None:
-        waiters = self.__waiters
-        put_waiters = self.__put_waiters
+        waiters = self.__ws
+        put_waiters = self.__put_ws
         success = self._acquire_nowait_put()
 
         try:
@@ -345,8 +339,8 @@ class _BaseQueue[T]:
     def sync_put(
         self, item: T, /, *, blocking: bool = True, timeout: float | None = None
     ) -> None:
-        waiters = self.__waiters
-        put_waiters = self.__put_waiters
+        waiters = self.__ws
+        put_waiters = self.__put_ws
         success = self._acquire_nowait_put()
 
         try:
@@ -383,8 +377,8 @@ class _BaseQueue[T]:
                 self._release()
 
     async def async_get(self, /) -> T:
-        waiters = self.__waiters
-        get_waiters = self.__get_waiters
+        waiters = self.__ws
+        get_waiters = self.__get_ws
         success = self._acquire_nowait_get()
 
         try:
@@ -420,8 +414,8 @@ class _BaseQueue[T]:
         return item
 
     def sync_get(self, /, *, blocking: bool = True, timeout: float | None = None) -> T:
-        waiters = self.__waiters
-        get_waiters = self.__get_waiters
+        waiters = self.__ws
+        get_waiters = self.__get_ws
 
         success = self._acquire_nowait_get()
 
@@ -474,15 +468,15 @@ class _BaseQueue[T]:
 
     @property
     def waiting(self, /) -> int:
-        return len(self.__waiters)
+        return len(self.__ws)
 
     @property
     def putting(self, /) -> int:
-        return len(self.__put_waiters)
+        return len(self.__put_ws)
 
     @property
     def getting(self, /) -> int:
-        return len(self.__get_waiters)
+        return len(self.__get_ws)
 
 
 class Queue[T](_BaseQueue[T]):

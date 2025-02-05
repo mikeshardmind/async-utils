@@ -17,10 +17,13 @@
 import ast
 import inspect
 import sys
+from functools import partial
 from types import FunctionType
 from typing import Any
 
 _cycle_blocked = False
+
+rec = partial(compile, filename="<string>", mode="exec", flags=0, dont_inherit=True)
 
 
 #: PYUPDATE: py3.14, annotationslib based check as well.
@@ -38,14 +41,7 @@ def ensure_annotations[T: type | FunctionType](f: T) -> T:
     if _cycle_blocked:
         return f
 
-    new_ast = compile(
-        ast.parse(inspect.getsource(f)),
-        "<string>",
-        "exec",
-        flags=0,
-        dont_inherit=True,
-        optimize=1,
-    )
+    new_ast = rec(ast.parse(inspect.getsource(f)), optimize=1)
 
     env = sys.modules[f.__module__].__dict__
 

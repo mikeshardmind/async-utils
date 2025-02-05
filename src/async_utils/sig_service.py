@@ -58,9 +58,8 @@ class SignalService:
         self.ss, self.cs = socket.socketpair()
         self.ss.setblocking(False)
         self.cs.setblocking(False)
-        self._signals = tuple(
-            e for name, e in signal.Signals.__members__.items() if name in signals
-        )
+        sig_members = signal.Signals.__members__.items()
+        self._signals = tuple(e for name, e in sig_members if name in signals)
 
     def get_send_socket(self) -> socket.socket:
         """Get the send socket.
