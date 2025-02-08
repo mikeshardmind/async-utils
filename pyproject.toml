@@ -71,6 +71,7 @@ ignore = [
     "UP031", # No, I like % formatting more for some things...
     # As PYI058 modifies return values to be more narrow than they actually are
     "PYI058", # This opinionated "fix" causes incompatabilties with things expecting a generator.
+    "TC004", # may re-enable after: https://github.com/astral-sh/ruff/issues/16045
 ]
 unfixable = [
     "E501",  # line length handled in other ways by ruff format
