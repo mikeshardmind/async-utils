@@ -25,12 +25,6 @@ __all__ = ("Waterfall",)
 
 type AnyCoro = Coroutine[t.Any, t.Any, t.Any]
 type CallbackType[T] = Callable[[Sequence[T]], AnyCoro]
-type _LoopLike = asyncio.AbstractEventLoop | _UnboundLoopSentinel
-
-
-class _UnboundLoopSentinel:
-    def create_task(*args: object, **kwargs: object) -> t.Never:
-        raise RuntimeError
 
 
 class Waterfall[T]:
@@ -68,7 +62,7 @@ class Waterfall[T]:
         self.callback: CallbackType[T] = async_callback
         self.task: asyncio.Task[None] | None = None
         self._alive: bool = False
-        self._event_loop: _LoopLike = _UnboundLoopSentinel()
+        self._event_loop: asyncio.AbstractEventLoop | None = None
 
     def start(self) -> None:
         """Start the background loop that handles batching and dispatching.
@@ -112,6 +106,8 @@ class Waterfall[T]:
         self.queue.put_nowait(item)
 
     async def _dispatch_loop(self) -> None:
+        if (loop := self._event_loop) is None:
+            loop = self._event_loop = asyncio.get_running_loop()
         try:
             tasks: set[asyncio.Task[object]] = set()
             while self._alive:
@@ -133,7 +129,7 @@ class Waterfall[T]:
 
                 num_items = len(queue_items)
 
-                t = self._event_loop.create_task(self.callback(queue_items))
+                t = loop.create_task(self.callback(queue_items))
                 tasks.add(t)
                 t.add_done_callback(tasks.discard)
 
@@ -141,7 +137,7 @@ class Waterfall[T]:
                     self.queue.task_done()
 
         finally:
-            f = self._event_loop.create_task(self._finalize())
+            f = loop.create_task(self._finalize())
             try:
                 set_name = f.set_name
             except AttributeError:
@@ -152,6 +148,8 @@ class Waterfall[T]:
             await asyncio.wait_for(f, timeout=self.max_wait_finalize)
 
     async def _finalize(self) -> None:
+        loop = self._event_loop
+        assert loop is not None
         # WARNING: Do not allow an async context switch before the queue is drained
         # This can be changed to utilize queue.Shutdown in 3.13+
         # or when more of asyncio queues have been replaced here
@@ -183,7 +181,7 @@ class Waterfall[T]:
             remaining_items[p : p + self.max_quantity]
             for p in range(0, num_remaining, self.max_quantity)
         ):
-            fut = self._event_loop.create_task(self.callback(chunk))
+            fut = loop.create_task(self.callback(chunk))
             fut.add_done_callback(remaining_tasks.discard)
             remaining_tasks.add(fut)
 

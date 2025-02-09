@@ -104,6 +104,7 @@ class FIFOLockout:
     def __init__(self) -> None:
         self._lockouts: set[asyncio.Task[None]] = set()
         self._waiters: deque[asyncio.Future[None]] = deque()
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     def __repr__(self) -> str:
         res = super().__repr__()
@@ -112,15 +113,19 @@ class FIFOLockout:
 
     def lockout_for(self, seconds: float, /) -> None:
         """Lock a resource for an amount of time."""
-        task = asyncio.create_task(asyncio.sleep(seconds, None))
+        if (loop := self._loop) is None:
+            loop = self._loop = asyncio.get_running_loop()
+        task = loop.create_task(asyncio.sleep(seconds, None))
         self._lockouts.add(task)
         task.add_done_callback(self._lockouts.discard)
 
     async def __aenter__(self) -> None:
+        if (loop := self._loop) is None:
+            loop = self._loop = asyncio.get_running_loop()
         if not self._lockouts and all(f.cancelled() for f in self._waiters):
             return
 
-        fut: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+        fut: asyncio.Future[None] = loop.create_future()
         self._waiters.append(fut)
 
         while self._lockouts:

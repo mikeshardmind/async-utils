@@ -104,9 +104,7 @@ def run_forever(
         loop.run_forever()
     finally:
         loop.run_until_complete(asyncio.sleep(0))
-        tasks: set[asyncio.Task[object]] = {
-            t for t in asyncio.all_tasks(loop) if not t.done()
-        }
+        tasks = {t for t in asyncio.all_tasks(loop) if not t.done()}
         for t in tasks:
             t.cancel()
         loop.run_until_complete(asyncio.sleep(0))
