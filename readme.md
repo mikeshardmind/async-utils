@@ -1,6 +1,44 @@
 # async-utils
 This contains various async utility functions I've written
 
+## Using it
+
+### Warning, this is not stable yet
+
+While my intent is that all of this is already suitably ready for use
+(and started by extracting private in-use code for public consumption) and will
+not require breaking changes, you may want to Subscribe to this issue for
+breaking change notices https://github.com/mikeshardmind/async-utils/issues/10
+
+### Breaking policy
+
+Until I publish a version *Without* labeling it either alpha or beta, I intend
+to keep the option of breaking usage if it improves performance, behavior,
+or ergonomics to do so.
+
+Until that time, git history may be re-written as well. an artificial history
+explaining how certain things came to be will more useful in the long term than
+the reality of how some of this was extracted from other
+projects of mine for reuse, as well as the amount I have been willing to make
+small changes for things as small as aesthetics during the early development
+lifecycle.
+
+A more detailed policy will be provided when I'm more sure of the ergonomics of the
+provided APIs
+
+### Just tell me how to install it already
+
+```
+pip install mikeshardmind-async-utils
+```
+or
+```
+pip install async-utils @ git+https://github.com/mikeshardmind/async-utils
+```
+
+swap pip commands for pdm, uv, or other tool as desired.
+
+
 ## Design goals
 
 ### 1. The obvious use should be correct
@@ -29,6 +67,25 @@ This includes:
 There's not much further to say about this goal right now, but this
 should be expanded on later in the WIP accompanying guide on making
 concurrent systems written in python fault tolerant at scale.
+
+### 4. Typed
+
+- The public API service should be well-typed.
+- The public API service should be introspectible at runtime.
+- Decorators that transform types should not destroy introspection.
+- Expensive types should be lazily imported or otherwise avoided.
+- Typing only changes are not
+
+
+The public api surface is defined by everything in any non-underscored
+import name's `__all__`. Certain type aliases are provided, but are not
+exported as part of the public api surface, and may change.
+
+The project currently uses pyright for development, and both pyright and mypy
+when ensuring the public api surface is well-typed and compatible with strict
+use of typechecking. The configurations used are in pyproject.toml.
+
+Use of Any in a few places is *intentional* for internals.
 
 # Documentation
 

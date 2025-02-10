@@ -101,7 +101,7 @@ convention = "numpy"
 "typing_extensions.final".msg = "see https://github.com/microsoft/pyright/issues/9664#issuecomment-2574042580"
 
 [project]
-name = "async-utils"
+name = "mikeshardmind-async-utils"
 description = "Various async utilities"
 readme = "readme.md"
 license = {text = "Apache-2.0"}
@@ -149,6 +149,8 @@ requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 
+# mypy support is provided on an "as reasonable" basis.
+# and may be limited to the public api surface
 [tool.mypy]
 python_version = 3.12
 
