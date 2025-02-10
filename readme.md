@@ -74,7 +74,6 @@ concurrent systems written in python fault tolerant at scale.
 - The public API service should be introspectible at runtime.
 - Decorators that transform types should not destroy introspection.
 - Expensive types should be lazily imported or otherwise avoided.
-- Typing only changes are not
 
 
 The public api surface is defined by everything in any non-underscored
