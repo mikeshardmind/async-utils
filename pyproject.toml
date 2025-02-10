@@ -147,3 +147,21 @@ distribution = true
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+
+[tool.mypy]
+python_version = 3.12
+
+warn_unused_configs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_unimported = true
+strict_optional = true
+report_deprecated_as_note = true
+disallow_untyped_globals = true
+extra_checks = true

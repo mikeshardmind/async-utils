@@ -111,7 +111,7 @@ class Waterfall[T]:
         try:
             tasks: set[asyncio.Task[object]] = set()
             while self._alive:
-                queue_items: Sequence[T] = []
+                queue_items: list[T] = []
                 iter_start = time.monotonic()
 
                 while (this_max_wait := (time.monotonic() - iter_start)) < self.max_wait:
@@ -156,7 +156,7 @@ class Waterfall[T]:
         # as part of freethreading efforts.
 
         self._alive = False
-        remaining_items: Sequence[T] = []
+        remaining_items: list[T] = []
 
         while not self.queue.empty():
             try:

@@ -91,7 +91,7 @@ def _sync_to_async_gen[**P, Y](
     **kwargs: P.kwargs,
 ) -> tuple[AsyncGenerator[Y], cf.Future[None]]:
     # TODO: consider shutdownable queue rather than the double event use
-    # needs to be a seperate queue if so
+    # needs to be a seperate queue if so, shutdown requires explicit sync
     q: Queue[Y] = Queue(maxsize=1)
     lazy_ev = Event()  # used to preserve generator laziness
     lazy_ev.set()

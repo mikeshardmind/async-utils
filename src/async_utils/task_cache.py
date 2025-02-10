@@ -102,10 +102,11 @@ def taskcache[**P, R](
 
         new_sig = sig = inspect.signature(coro)
         if inspect.iscoroutinefunction(coro):
-            if sig.return_annotation is not inspect.Signature.empty:
-                new_ret_ann = asyncio.Task[sig.return_annotation]
-            else:
-                new_ret_ann = asyncio.Task
+            new_ret_ann = (
+                asyncio.Task
+                if sig.return_annotation is inspect.Signature.empty
+                else asyncio.Task[sig.return_annotation]
+            )
 
             new_sig = sig.replace(return_annotation=new_ret_ann)
 
@@ -186,10 +187,11 @@ def lrutaskcache[**P, R](
 
         new_sig = sig = inspect.signature(coro)
         if inspect.iscoroutinefunction(coro):
-            if sig.return_annotation is not inspect.Signature.empty:
-                new_ret_ann = asyncio.Task[sig.return_annotation]
-            else:
-                new_ret_ann = asyncio.Task
+            new_ret_ann = (
+                asyncio.Task
+                if sig.return_annotation is inspect.Signature.empty
+                else asyncio.Task[sig.return_annotation]
+            )
 
             new_sig = sig.replace(return_annotation=new_ret_ann)
 

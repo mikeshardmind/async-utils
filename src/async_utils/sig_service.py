@@ -113,11 +113,11 @@ class SignalService:
         original_handlers: list[_HANDLER] = []
 
         try:
-            for sig in self._signals:
-                original_handlers.append(signal.getsignal(sig))
-                signal.signal(sig, lambda s, f: None)
+            for handled_sig in self._signals:
+                original_handlers.append(signal.getsignal(handled_sig))
+                signal.signal(handled_sig, lambda s, f: None)
                 if sys.platform != "win32":
-                    signal.siginterrupt(sig, False)
+                    signal.siginterrupt(handled_sig, False)
 
             for task_start in self._startup:
                 task_start()
