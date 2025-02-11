@@ -26,6 +26,14 @@ lifecycle.
 A more detailed policy will be provided when I'm more sure of the ergonomics of the
 provided APIs
 
+### Subclassing
+
+Unless specifically documented as supporting it, none of the types within
+are intended to be subclassed, and things which impact that will **not** be taken
+into account. These are not marked with ``typing.Final`` due to typecheckers
+not supporting the usage pattern required to have lazy typing imports when
+taking ``Final`` into account.
+
 ### Just tell me how to install it already
 
 ```
