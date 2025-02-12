@@ -24,7 +24,7 @@ from types import FrameType
 
 from . import _typings as t
 
-__all__ = ["SignalService", "SpecialExit"]
+__all__ = ("SignalService", "SpecialExit")
 
 type SignalCallback = Callable[[signal.Signals | SpecialExit], t.Any]
 type StartStopCall = Callable[[], t.Any]

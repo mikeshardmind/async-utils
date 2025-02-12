@@ -22,7 +22,7 @@ from collections.abc import Hashable
 
 from . import _typings as t
 
-__all__ = ["make_key"]
+__all__ = ("make_key",)
 
 
 class _HK:

@@ -41,4 +41,4 @@ else:
         raise AttributeError(msg)
 
 
-__all__ = ["TYPE_CHECKING", "Any", "Literal", "Never", "Self"]
+__all__ = ("TYPE_CHECKING", "Any", "Literal", "Never", "Self")

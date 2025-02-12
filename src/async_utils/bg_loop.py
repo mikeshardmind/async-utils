@@ -26,7 +26,7 @@ from . import _typings as t
 
 type _FutureLike[T] = asyncio.Future[T] | Awaitable[T]
 
-__all__ = ["threaded_loop"]
+__all__ = ("threaded_loop",)
 
 
 class LoopWrapper:
