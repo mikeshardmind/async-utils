@@ -43,10 +43,10 @@ class BGTasks:
     ----------
     exit_timeout: int | None
         Optionally, the number of seconds to wait before timing out tasks.
-        In applications that care about graceful shutdown, this should
-        usually not be set. When not providedd, the context manager
-        will not exit until all tasks have ended.
 
+        In applications that care about graceful shutdown, this should
+        usually not be set. When not provided, the context manager
+        will not exit until all tasks have ended.
     """
 
     def __init__(self, exit_timeout: float | None) -> None:
