@@ -107,6 +107,12 @@ class PrioritySemaphore:
 
     """
 
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
     _loop: asyncio.AbstractEventLoop | None = None
 
     def __init__(self, value: int = 1) -> None:

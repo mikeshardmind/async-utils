@@ -484,6 +484,12 @@ class Queue[T](_BaseQueue[T]):
 
     __slots__ = ("_data",)
 
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
     def __init__(self, /, maxsize: int | None = None) -> None:
         super().__init__(maxsize)
         self._data: deque[T] = deque()
@@ -501,8 +507,29 @@ class Queue[T](_BaseQueue[T]):
         return self._data.popleft()
 
 
-class LIFOQueue[T](Queue[T]):
+class LIFOQueue[T](_BaseQueue[T]):
     """A thread-safe queue with both sync and async access methods."""
+
+    __slots__ = ("_data",)
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
+    def __init__(self, /, maxsize: int | None = None) -> None:
+        super().__init__(maxsize)
+        self._data: deque[T] = deque()
+
+    def _qsize(self, /) -> int:
+        return len(self._data)
+
+    def _items(self, /) -> list[T]:
+        return list(self._data)
+
+    def _put(self, item: T, /) -> None:
+        self._data.append(item)
 
     def _get(self, /) -> T:
         return self._data.pop()
@@ -512,6 +539,12 @@ class PriorityQueue[T](_BaseQueue[T]):
     """A thread-safe queue with both sync and async access methods."""
 
     __slots__ = ("_data",)
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
 
     def __init__(self, /, maxsize: int | None = None) -> None:
         super().__init__(maxsize)

@@ -19,6 +19,8 @@ import heapq
 import time
 from collections import deque
 
+from . import _typings as t
+
 __all__ = ("FIFOLockout", "Lockout")
 
 
@@ -47,6 +49,12 @@ class Lockout:
                         lockout.lock_for(reset)
 
     """
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
 
     def __repr__(self) -> str:
         res = super().__repr__()
@@ -100,6 +108,12 @@ class FIFOLockout:
                     if reset_after := response.headers.get('X-Ratelimit-Reset-After')
                         lockout.lock_for(reset_after)
     """
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
 
     def __init__(self) -> None:
         self._lockouts: set[asyncio.Task[None]] = set()

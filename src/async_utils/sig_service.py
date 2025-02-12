@@ -51,6 +51,12 @@ class SignalService:
     This should be paired with event loops being run in threads.
     """
 
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
     def __init__(self, signals: SignalTuple = default_handled, /) -> None:
         self._startup: list[StartStopCall] = []
         self._cbs: list[SignalCallback] = []

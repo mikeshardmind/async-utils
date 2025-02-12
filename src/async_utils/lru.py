@@ -20,6 +20,8 @@ import heapq
 import math
 import time
 
+from . import _typings as t
+
 __all__ = ("LRU", "TTLLRU")
 
 
@@ -42,6 +44,12 @@ class LRU[K, V]:
     """
 
     __slots__ = ("_cache", "_maxsize")
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
 
     def __init__(self, maxsize: int, /) -> None:
         self._cache: dict[K, V] = {}
@@ -136,6 +144,12 @@ class TTLLRU[K, V]:
     """
 
     __slots__ = ("_cache", "_expirations", "_maxsize", "_smooth", "_ttl")
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
 
     def __init__(self, maxsize: int, ttl: float) -> None:
         self._cache: dict[K, tuple[float, V]] = {}

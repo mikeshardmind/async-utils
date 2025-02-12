@@ -61,6 +61,12 @@ class Scheduler[T]:
         it to time.monotonic's precision.
     """
 
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
     __tasks: dict[CancellationToken, _Task[T]]
     __tqueue: asyncio.PriorityQueue[_Task[T]]
     __closed: bool

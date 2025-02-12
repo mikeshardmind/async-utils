@@ -78,8 +78,8 @@ concurrent systems written in python fault tolerant at scale.
 
 ### 4. Typed
 
-- The public API service should be well-typed.
-- The public API service should be introspectible at runtime.
+- The public API surface should be well-typed.
+- The public API surface should be introspectible at runtime.
 - Decorators that transform types should not destroy introspection.
 - Expensive types should be lazily imported or otherwise avoided.
 

@@ -47,6 +47,12 @@ class Waterfall[T]:
         Optionally, The number of seconds to wait for batches to complete
     """
 
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
     def __init__(
         self,
         max_wait: float,

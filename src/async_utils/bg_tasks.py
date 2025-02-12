@@ -28,6 +28,12 @@ __all__ = ("BGTasks",)
 
 
 class _UnboundLoopSentinel:
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
     def create_task(*args: object, **kwargs: object) -> t.Never:
         msg = """
         BGTasks is intended for use as a context manager. Using create_task
@@ -48,6 +54,12 @@ class BGTasks:
         usually not be set. When not provided, the context manager
         will not exit until all tasks have ended.
     """
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
 
     def __init__(self, exit_timeout: float | None) -> None:
         self._tasks: set[asyncio.Task[object]] = set()

@@ -19,6 +19,8 @@ import asyncio
 import time
 from collections import deque
 
+from . import _typings as t
+
 __all__ = ("RateLimiter",)
 
 
@@ -40,6 +42,12 @@ class RateLimiter:
         The amount of time in seconds to wake waiting tasks if the period has
         expired.
     """
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
 
     def __init__(self, rate_limit: int, period: float, granularity: float) -> None:
         self.rate_limit: int = rate_limit

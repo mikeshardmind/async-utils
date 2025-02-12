@@ -30,6 +30,12 @@ __all__ = ("threaded_loop",)
 
 
 class LoopWrapper:
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
     def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop
         self._futures: set[cf.Future[t.Any]] = set()
