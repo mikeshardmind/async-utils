@@ -87,6 +87,25 @@ class LRU[K, V]:
         if len(self._cache) > self._maxsize:
             self._cache.pop(next(iter(self._cache)))
 
+    def setdefault(self, key: K, value: V, /) -> V:
+        """Set a value if not already set, returning the actual value.
+
+        Parameters
+        ----------
+        key:
+            The key to set a value for
+        value:
+            The value to set
+
+        Returns
+        -------
+            Either a preexisting value, or the one which was set.
+        """
+        value = self._cache.setdefault(key, value)
+        if len(self._cache) > self._maxsize:
+            self._cache.pop(next(iter(self._cache)))
+        return value
+
     def remove(self, key: K, /) -> None:
         """Remove a key-value pair by key.
 

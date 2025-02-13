@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures as cf
 import inspect  # This import is *always* used in the decorators below
 from collections.abc import Callable, Coroutine, Hashable
 from functools import partial, wraps
@@ -42,6 +43,19 @@ type Deco[**P, R] = Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]
 
 # Non-annotation assignments for transformed functions
 _WRAP_ASSIGN = ("__module__", "__name__", "__qualname__", "__doc__")
+
+
+def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]):
+    if a_fut.cancelled():
+        c_fut.cancel()
+    elif exc := a_fut.exception():
+        c_fut.set_exception(exc)
+    else:
+        c_fut.set_result(a_fut.result())
+
+
+async def _await[R](fut: asyncio.Future[R]) -> R:
+    return await fut
 
 
 def taskcache[**P, R](
@@ -85,7 +99,7 @@ def taskcache[**P, R](
             return make_key(*cache_transform(args, kwds))
 
     def wrapper(coro: TaskCoroFunc[P, R]) -> TaskFunc[P, R]:
-        internal_cache: dict[Hashable, asyncio.Task[R]] = {}
+        internal_cache: dict[Hashable, cf.Future[R]] = {}
 
         def _internal_cache_evict(key: Hashable, _ignored_task: object) -> None:
             if ttl is not None:
@@ -95,14 +109,21 @@ def taskcache[**P, R](
         @wraps(coro, assigned=_WRAP_ASSIGN)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[R]:
             key = key_func(args, kwargs)
-            if (cached := internal_cache.get(key)) is not None:
-                return cached
+
+            ours: cf.Future[R] = cf.Future()
+            cached = internal_cache.setdefault(key, ours)
+
+            if cached is not ours:
+                fut = asyncio.wrap_future(cached)
+                return asyncio.create_task(_await(fut))
+            cb = partial(_internal_cache_evict, key)
+            ours.add_done_callback(cb)
 
             c = coro(*args, **kwargs)
-            internal_cache[key] = task = asyncio.ensure_future(c)
-            cb = partial(_internal_cache_evict, key)
-            task.add_done_callback(cb)
-            return task
+            a_fut = asyncio.ensure_future(c)
+            a_fut.add_done_callback(partial(_chain_fut, ours))
+
+            return a_fut
 
         new_sig = sig = inspect.signature(coro)
         if inspect.iscoroutinefunction(coro):
@@ -170,7 +191,7 @@ def lrutaskcache[**P, R](
             return make_key(*cache_transform(args, kwds))
 
     def wrapper(coro: TaskCoroFunc[P, R]) -> TaskFunc[P, R]:
-        internal_cache: LRU[Hashable, asyncio.Task[R]] = LRU(maxsize)
+        internal_cache: LRU[Hashable, cf.Future[R]] = LRU(maxsize)
 
         def _internal_cache_evict(key: Hashable, _ignored_task: object) -> None:
             if ttl is not None:
@@ -180,14 +201,21 @@ def lrutaskcache[**P, R](
         @wraps(coro, assigned=_WRAP_ASSIGN)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> asyncio.Task[R]:
             key = key_func(args, kwargs)
-            if (cached := internal_cache.get(key, None)) is not None:
-                return cached
+
+            ours: cf.Future[R] = cf.Future()
+            cached = internal_cache.setdefault(key, ours)
+
+            if cached is not ours:
+                fut = asyncio.wrap_future(cached)
+                return asyncio.create_task(_await(fut))
+            cb = partial(_internal_cache_evict, key)
+            ours.add_done_callback(cb)
 
             c = coro(*args, **kwargs)
-            internal_cache[key] = task = asyncio.ensure_future(c)
-            cb = partial(_internal_cache_evict, key)
-            task.add_done_callback(cb)
-            return task
+            a_fut = asyncio.ensure_future(c)
+            a_fut.add_done_callback(partial(_chain_fut, ours))
+
+            return a_fut
 
         new_sig = sig = inspect.signature(coro)
         if inspect.iscoroutinefunction(coro):

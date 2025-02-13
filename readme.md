@@ -94,6 +94,20 @@ use of typechecking. The configurations used are in pyproject.toml.
 
 Use of Any in a few places is *intentional* for internals.
 
+### 5. Threading and multiple event loops
+
+When possible, things should "just work" even in event loop per thread scenarios.
+
+Examples: caching decorators and ratelimiter
+
+## Non-goals
+
+At the current moment, the following are non-goals
+
+- compatability with gevent or other libraries which patch threading and async behavior.
+- compatability with non-asyncio event loops
+- compatability with non CPython python implementations
+
 # Documentation
 
 Most things now have initial documentation, but no rendered docs site, examples, or

@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import deque
+from threading import RLock
 
 from . import _typings as t
 
@@ -30,6 +31,8 @@ class RateLimiter:
     This is an asyncio specific ratelimit implementation which does not
     account for various networking effects / responses and
     should only be used for internal limiting.
+
+    This is thread-safe and re-entrant.
 
     Parameters
     ----------
@@ -54,20 +57,24 @@ class RateLimiter:
         self.period: float = period
         self.granularity: float = granularity
         self._monotonics: deque[float] = deque()
+        self._lock = RLock()
 
     async def __aenter__(self) -> None:
-        # The ordering of these conditions matters to avoid an async context
-        # switch between confirming the ratelimit isn't exhausted and allowing
-        # the user code to continue.
-        while (
-            len(self._monotonics) >= self.rate_limit
-            and await asyncio.sleep(self.granularity, True)
-        ):  # fmt: skip
-            now = time.monotonic()
-            while self._monotonics and (now - self._monotonics[0] > self.period):
-                self._monotonics.popleft()
+        with self._lock:
+            while len(self._monotonics) >= self.rate_limit:
+                try:
+                    self._lock.release()
+                    await asyncio.sleep(self.granularity, True)
+                finally:
+                    self._lock.acquire()
 
-        self._monotonics.append(time.monotonic())
+            now = time.monotonic()
+            with self._lock:
+                while self._monotonics and (now - self._monotonics[0] > self.period):
+                    self._monotonics.popleft()
+
+        with self._lock:
+            self._monotonics.append(time.monotonic())
 
     async def __aexit__(self, *_dont_care: object) -> None:
         pass
