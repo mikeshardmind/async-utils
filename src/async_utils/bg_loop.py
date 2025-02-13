@@ -19,12 +19,12 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures as cf
 import threading
-from collections.abc import Awaitable, Generator
+from collections.abc import Coroutine, Generator
 from contextlib import contextmanager
 
 from . import _typings as t
 
-type _FutureLike[T] = asyncio.Future[T] | Awaitable[T]
+type CoroReturning[R] = Coroutine[t.Any, t.Any, R]
 
 __all__ = ("threaded_loop",)
 
@@ -40,7 +40,7 @@ class LoopWrapper:
         self._loop = loop
         self._futures: set[cf.Future[t.Any]] = set()
 
-    def schedule[T](self, coro: _FutureLike[T], /) -> cf.Future[T]:
+    def schedule[T](self, coro: CoroReturning[T], /) -> cf.Future[T]:
         """Schedule a coroutine to run on the wrapped event loop.
 
         Parameters
@@ -58,7 +58,7 @@ class LoopWrapper:
         future.add_done_callback(self._futures.discard)
         return future
 
-    async def run[T](self, coro: _FutureLike[T], /) -> T:
+    async def run[T](self, coro: CoroReturning[T], /) -> T:
         """Schedule and await a coroutine to run on the background loop.
 
         Parameters
