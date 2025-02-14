@@ -54,6 +54,60 @@ def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]):
         c_fut.set_result(a_fut.result())
 
 
+if sys.version_info[:2] >= (3, 14):
+
+    class _314WrappedSignature[**P, R]:
+        def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]):
+            self._f = f
+            self._w = w
+            self._sig = None
+
+        def __getattr__(self, name: str) -> t.Any:
+            import inspect
+
+            if (sig := self._sig) is None:
+                sig = inspect.signature(self._f)
+                if inspect.iscoroutinefunction(self._f):
+                    new_ret_ann = (
+                        asyncio.Task
+                        if sig.return_annotation is inspect.Signature.empty
+                        else asyncio.Task[sig.return_annotation]
+                    )
+
+                    sig = sig.replace(return_annotation=new_ret_ann)
+
+                setattr(self._w, "__signature__", sig)
+                self._sig = sig
+            return getattr(sig, name)
+
+        def __repr__(self):
+            if self._sig is not None:
+                import inspect
+
+                sig = getattr(self._w, "__signature__")
+                return inspect.Signature.__repr__(sig)
+            return super().__repr__()
+
+        @property
+        def __class__(self):  # type: ignore
+            import inspect
+
+            if self._sig is None:
+                sig = inspect.signature(self._f)
+                if inspect.iscoroutinefunction(self._f):
+                    new_ret_ann = (
+                        asyncio.Task
+                        if sig.return_annotation is inspect.Signature.empty
+                        else asyncio.Task[sig.return_annotation]
+                    )
+
+                    sig = sig.replace(return_annotation=new_ret_ann)
+
+                setattr(self._w, "__signature__", sig)
+                self._sig = sig
+            return inspect.Signature
+
+
 async def _await[R](fut: asyncio.Future[R]) -> R:
     return await fut
 
@@ -141,10 +195,9 @@ def taskcache[**P, R](
 
         # PYUPGRADE: this does not work as a callable in py 3.14
         # see: https://github.com/python/cpython/pull/116234
-        # This is a temporary thing to not block users on this
-        # `__subclass_hook__` shenanigans might be required.
+        # Needs continued checking per-version.
         if sys.version_info[:2] >= (3, 14):
-            wrapped.__signature__ = deferred_sig()  # pyright: ignore[reportAttributeAccessIssue]
+            wrapped.__signature__ = _314WrappedSignature(coro, wrapped)  # pyright: ignore[reportAttributeAccessIssue]
         else:
             wrapped.__signature__ = deferred_sig  # pyright: ignore[reportAttributeAccessIssue]
 
@@ -244,10 +297,9 @@ def lrutaskcache[**P, R](
 
         # PYUPGRADE: this does not work as a callable in py 3.14
         # see: https://github.com/python/cpython/pull/116234
-        # This is a temporary thing to not block users on this
-        # `__subclass_hook__` shenanigans might be required.
+        # Needs continued checking per-version.
         if sys.version_info[:2] >= (3, 14):
-            wrapped.__signature__ = deferred_sig()  # pyright: ignore[reportAttributeAccessIssue]
+            wrapped.__signature__ = _314WrappedSignature(coro, wrapped)  # pyright: ignore[reportAttributeAccessIssue]
         else:
             wrapped.__signature__ = deferred_sig  # pyright: ignore[reportAttributeAccessIssue]
 
