@@ -30,10 +30,10 @@ line-ending = "lf"
 [tool.ruff.lint]
 select = [
     "A", "ANN", "ASYNC", "B", "BLE", "C4", "COM", "D", "DOC", "DTZ", "E",
-    "EM", "ERA", "F", "FA", "FBT", "FURB", "G", "I", "INP", "ISC", "NPY",
+    "EM", "ERA", "F", "FA", "FBT", "FURB", "G", "I", "ICN", "INP", "ISC", "LOG", "NPY",
     "PD", "PERF", "PGH", "PIE", "PLC", "PLE", "PLR", "PLW", "PTH", "PYI",
     "Q", "Q003", "RET", "RSE", "RUF", "S", "SIM", "SLOT", "T20", "TC", "TID",
-    "TRY", "UP", "YTT"
+    "TRY", "UP", "W", "YTT"
 ]
 
 typing-modules = ["async_utils._typings"]
@@ -80,6 +80,12 @@ unfixable = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.ruff.lint.flake8-comprehensions]
+allow-dict-calls-with-keyword-arguments = true
+
+[tool.ruff.lint.flake8-import-conventions.aliases]
+"concurrent.futures" = "cf"
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 # https://discuss.python.org/t/problems-with-typeis/55410/6

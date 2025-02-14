@@ -32,7 +32,7 @@ if (vi.major, vi.minor) > (3, 13):
         *yet*. If you encounter an issue with it, please do still report it.
         """
 
-        logging.getLogger(__file__).warning(msg)
+        logging.getLogger(__name__).warning(msg)
     else:
         msg += """\nYou can change this error to a warning if you are sure it is
         safe and are willing to take the risk on yourself before I have verified
