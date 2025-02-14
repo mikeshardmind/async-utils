@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures as cf
-import inspect  # This import is *always* used in the decorators below
+import sys
 from collections.abc import Callable, Coroutine, Hashable
 from functools import partial, wraps
 
@@ -125,17 +125,28 @@ def taskcache[**P, R](
 
             return a_fut
 
-        new_sig = sig = inspect.signature(coro)
-        if inspect.iscoroutinefunction(coro):
-            new_ret_ann = (
-                asyncio.Task
-                if sig.return_annotation is inspect.Signature.empty
-                else asyncio.Task[sig.return_annotation]
-            )
+        def deferred_sig():
+            import inspect
 
-            new_sig = sig.replace(return_annotation=new_ret_ann)
+            sig = inspect.signature(coro)
+            if inspect.iscoroutinefunction(coro):
+                new_ret_ann = (
+                    asyncio.Task
+                    if sig.return_annotation is inspect.Signature.empty
+                    else asyncio.Task[sig.return_annotation]
+                )
 
-        wrapped.__signature__ = new_sig  # pyright: ignore[reportAttributeAccessIssue]
+                return sig.replace(return_annotation=new_ret_ann)
+            return sig
+
+        # PYUPGRADE: this does not work as a callable in py 3.14
+        # see: https://github.com/python/cpython/pull/116234
+        # This is a temporary thing to not block users on this
+        # `__subclass_hook__` shenanigans might be required.
+        if sys.version_info[:2] >= (3, 14):
+            wrapped.__signature__ = deferred_sig()  # pyright: ignore[reportAttributeAccessIssue]
+        else:
+            wrapped.__signature__ = deferred_sig  # pyright: ignore[reportAttributeAccessIssue]
 
         return wrapped
 
@@ -217,17 +228,28 @@ def lrutaskcache[**P, R](
 
             return a_fut
 
-        new_sig = sig = inspect.signature(coro)
-        if inspect.iscoroutinefunction(coro):
-            new_ret_ann = (
-                asyncio.Task
-                if sig.return_annotation is inspect.Signature.empty
-                else asyncio.Task[sig.return_annotation]
-            )
+        def deferred_sig():
+            import inspect
 
-            new_sig = sig.replace(return_annotation=new_ret_ann)
+            sig = inspect.signature(coro)
+            if inspect.iscoroutinefunction(coro):
+                new_ret_ann = (
+                    asyncio.Task
+                    if sig.return_annotation is inspect.Signature.empty
+                    else asyncio.Task[sig.return_annotation]
+                )
 
-        wrapped.__signature__ = new_sig  # pyright: ignore[reportAttributeAccessIssue]
+                return sig.replace(return_annotation=new_ret_ann)
+            return sig
+
+        # PYUPGRADE: this does not work as a callable in py 3.14
+        # see: https://github.com/python/cpython/pull/116234
+        # This is a temporary thing to not block users on this
+        # `__subclass_hook__` shenanigans might be required.
+        if sys.version_info[:2] >= (3, 14):
+            wrapped.__signature__ = deferred_sig()  # pyright: ignore[reportAttributeAccessIssue]
+        else:
+            wrapped.__signature__ = deferred_sig  # pyright: ignore[reportAttributeAccessIssue]
 
         return wrapped
 

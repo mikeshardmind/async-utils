@@ -9,15 +9,18 @@ __title__ = "async_utils"
 __author__ = "Michael Hall"
 __license__ = "Apache-2.0"
 __copyright__ = "Copyright 2020-Present Michael Hall"
-__version__ = "2025.02.13b"
+__version__ = "2025.02.14b"
 
 import os
 import sys
 
 vi = sys.version_info
 
-# Check use of concurrent.futures.Future before extending this version.
-# update `_misc._ensure_annotations.py` before extending this version.
+# - Check use of concurrent.futures.Future before extending this version.
+# - update `_misc._ensure_annotations.py` before extending this version.
+# - Find an alternative method that works on python3.14 for deferring inspect import
+#   Idk why callable `__signature__` was removed with so little discussion, but it's
+#   a noticable problem.
 if (vi.major, vi.minor) > (3, 13):
     msg = """This library is not tested for use on python versions above 3.13
     This library relies on a few internal details that are not safe to rely upon
