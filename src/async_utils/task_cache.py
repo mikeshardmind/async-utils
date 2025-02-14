@@ -60,12 +60,12 @@ if sys.version_info[:2] >= (3, 14):
         def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
             self._f = f
             self._w = w
-            self._sig = None
+            self._sig: t.Any | None = None
 
-        def __getattr__(self, name: str) -> t.Any:
-            import inspect
-
+        def _asyncutils_wrapped_sig(self) -> t.Any:
             if (sig := self._sig) is None:
+                import inspect
+
                 sig = inspect.signature(self._f)
                 if inspect.iscoroutinefunction(self._f):
                     new_ret_ann = (
@@ -73,38 +73,26 @@ if sys.version_info[:2] >= (3, 14):
                         if sig.return_annotation is inspect.Signature.empty
                         else asyncio.Task[sig.return_annotation]
                     )
-
                     sig = sig.replace(return_annotation=new_ret_ann)
-
                 self._w.__signature__ = sig  # pyright: ignore[reportFunctionMemberAccess]
                 self._sig = sig
-            return getattr(sig, name)
+            return sig
+
+        def __getattr__(self, name: str) -> t.Any:
+            return getattr(self._asyncutils_wrapped_sig, name)
 
         def __repr__(self) -> str:
             if self._sig is not None:
                 import inspect
 
-                sig = getattr(self._w, "__signature__")
-                return inspect.Signature.__repr__(sig)
+                return inspect.Signature.__repr__(self._sig)
             return super().__repr__()
 
         @property
         def __class__(self) -> type:  # pyright: ignore[reportIncompatibleMethodOverride]
             import inspect
 
-            if self._sig is None:
-                sig = inspect.signature(self._f)
-                if inspect.iscoroutinefunction(self._f):
-                    new_ret_ann = (
-                        asyncio.Task
-                        if sig.return_annotation is inspect.Signature.empty
-                        else asyncio.Task[sig.return_annotation]
-                    )
-
-                    sig = sig.replace(return_annotation=new_ret_ann)
-
-                self._w.__signature__ = sig  # pyright: ignore[reportFunctionMemberAccess]
-                self._sig = sig
+            self._asyncutils_wrapped_sig()
             return inspect.Signature
 
 
@@ -143,7 +131,10 @@ def taskcache[**P, R](
     Returns
     -------
     A decorator which wraps coroutine-like objects in functions that return
-    preemptively cached tasks.
+    preemptively cached tasks. The returned function requires an event loop
+    be running when it is called despite not being a coroutine itself, but
+    does not bind itself to a particular event loop and can be safely shared
+    between multiple event loops.
     """
     if cache_transform is None:
         key_func = make_key
@@ -245,7 +236,10 @@ def lrutaskcache[**P, R](
     Returns
     -------
     A decorator which wraps coroutine-like objects in functions that return
-    preemptively cached tasks.
+    preemptively cached tasks. The returned function requires an event loop
+    be running when it is called despite not being a coroutine itself, but
+    does not bind itself to a particular event loop and can be safely shared
+    between multiple event loops.
     """
     if cache_transform is None:
         key_func = make_key
