@@ -36,7 +36,7 @@ type _CT_RET = tuple[tuple[t.Any, ...], dict[str, t.Any]]
 
 #: Note CacheTransformers recieve a tuple (args) and dict(kwargs)
 #: rather than a ParamSpec of the decorated function.
-#: Warning: Mutating the dict will impact callsite, return a new dict instead!
+#: Warning: Mutations will impact callsite, return new objects as needed.
 type CacheTransformer = Callable[[tuple[t.Any, ...], dict[str, t.Any]], _CT_RET]
 
 type Deco[**P, R] = Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]
