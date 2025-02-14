@@ -57,7 +57,7 @@ def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]):
 if sys.version_info[:2] >= (3, 14):
 
     class _314WrappedSignature[**P, R]:
-        def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]):
+        def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
             self._f = f
             self._w = w
             self._sig = None
@@ -76,11 +76,11 @@ if sys.version_info[:2] >= (3, 14):
 
                     sig = sig.replace(return_annotation=new_ret_ann)
 
-                setattr(self._w, "__signature__", sig)
+                self._w.__signature__ = sig  # pyright: ignore[reportFunctionMemberAccess]
                 self._sig = sig
             return getattr(sig, name)
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             if self._sig is not None:
                 import inspect
 
@@ -89,7 +89,7 @@ if sys.version_info[:2] >= (3, 14):
             return super().__repr__()
 
         @property
-        def __class__(self):  # type: ignore
+        def __class__(self) -> type:  # pyright: ignore[reportIncompatibleMethodOverride]
             import inspect
 
             if self._sig is None:
@@ -103,7 +103,7 @@ if sys.version_info[:2] >= (3, 14):
 
                     sig = sig.replace(return_annotation=new_ret_ann)
 
-                setattr(self._w, "__signature__", sig)
+                self._w.__signature__ = sig  # pyright: ignore[reportFunctionMemberAccess]
                 self._sig = sig
             return inspect.Signature
 
