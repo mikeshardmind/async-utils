@@ -36,6 +36,7 @@ if (vi.major, vi.minor) > (3, 13):
         logging.getLogger(__name__).warning(msg)
     elif sys.version_info.releaselevel in {"alpha", "beta", "candidate"}:
         import logging
+
         msg += """\nThanks for testing this prior to release!.\n"""
         logging.getLogger(__name__).warning(msg)
     else:

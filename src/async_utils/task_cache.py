@@ -70,9 +70,7 @@ class _WrappedSignature[**P, R]:
             if inspect.iscoroutinefunction(self._f):
                 rn: t.Any = sig.return_annotation
                 new_ret_ann = (
-                    asyncio.Task
-                    if rn is inspect.Signature.empty
-                    else asyncio.Task[rn]
+                    asyncio.Task if rn is inspect.Signature.empty else asyncio.Task[rn]
                 )
                 sig = sig.replace(return_annotation=new_ret_ann)
             setattr(self._w, "__signature__", sig)  # noqa: B010
