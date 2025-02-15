@@ -44,7 +44,7 @@ type Deco[**P, R] = Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]
 _WRAP_ASSIGN = ("__module__", "__name__", "__qualname__", "__doc__")
 
 
-def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]):
+def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
     if a_fut.cancelled():
         c_fut.cancel()
     elif exc := a_fut.exception():
@@ -68,13 +68,14 @@ class _WrappedSignature[**P, R]:
 
             sig = inspect.signature(self._f)
             if inspect.iscoroutinefunction(self._f):
+                rn: t.Any = sig.return_annotation
                 new_ret_ann = (
                     asyncio.Task
-                    if sig.return_annotation is inspect.Signature.empty
-                    else asyncio.Task[sig.return_annotation]
+                    if rn is inspect.Signature.empty
+                    else asyncio.Task[rn]
                 )
                 sig = sig.replace(return_annotation=new_ret_ann)
-            self._w.__signature__ = sig  # pyright: ignore[reportFunctionMemberAccess]
+            setattr(self._w, "__signature__", sig)  # noqa: B010
             self._sig = sig
         return sig
 
@@ -89,12 +90,16 @@ class _WrappedSignature[**P, R]:
         return super().__repr__()
 
     @property
-    def __class__(self) -> type:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def __class__(self) -> type:
         # This is for the isinstance check inspect.signature does.
         import inspect
 
         self._asyncutils_wrapped_sig()
         return inspect.Signature
+
+    @__class__.setter
+    def __class__(self, value: type) -> t.Never:
+        raise RuntimeError
 
 
 async def _await[R](fut: asyncio.Future[R]) -> R:
@@ -172,7 +177,7 @@ def taskcache[**P, R](
             return a_fut
 
         # PYUPGRADE: 3.14.0 recheck, 3.15+
-        wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # pyright: ignore[reportAttributeAccessIssue]
+        wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # type: ignore[attr-defined]
 
         return wrapped
 
@@ -258,7 +263,7 @@ def lrutaskcache[**P, R](
             return a_fut
 
         # PYUPGRADE: 3.14.0 recheck, 3.15+
-        wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # pyright: ignore[reportAttributeAccessIssue]
+        wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # type: ignore[attr-defined]
 
         return wrapped
 

@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 
-from src.async_utils.task_cache import taskcache
+from async_utils.task_cache import taskcache
 
 
 @taskcache(None)

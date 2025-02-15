@@ -39,7 +39,7 @@ type CacheTransformer = Callable[[tuple[t.Any, ...], dict[str, t.Any]], _CT_RET]
 type Deco[**P, R] = Callable[[CoroLike[P, R]], CoroFunc[P, R]]
 
 
-def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]):
+def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
     if a_fut.cancelled():
         c_fut.cancel()
     elif exc := a_fut.exception():

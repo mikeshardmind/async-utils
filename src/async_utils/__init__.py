@@ -18,9 +18,7 @@ vi = sys.version_info
 
 # - Check use of concurrent.futures.Future before extending this version.
 # - update `_misc._ensure_annotations.py` before extending this version.
-# - Find an alternative method that works on python3.14 for deferring inspect import
-#   Idk why callable `__signature__` was removed with so little discussion, but it's
-#   a noticable problem.
+# - ensure `task_cache.__WrappedSignature` still works
 if (vi.major, vi.minor) > (3, 13):
     msg = """This library is not tested for use on python versions above 3.13
     This library relies on a few internal details that are not safe to rely upon
@@ -29,12 +27,16 @@ if (vi.major, vi.minor) > (3, 13):
     if os.getenv("ASYNC_UTILS_UNCHECKED_PY_VER", ""):
         import logging
 
-        msg += """\nThis is not neccessarily broken, but if you encounter an
+        msg += """\n\nThis is not neccessarily broken, but if you encounter an
         issue with it, please be aware that the library has not actively
         chosen to support the python version you have opted into using this on
         *yet*. If you encounter an issue with it, please do still report it.
         """
 
+        logging.getLogger(__name__).warning(msg)
+    elif sys.version_info.releaselevel in {"alpha", "beta", "candidate"}:
+        import logging
+        msg += """\nThanks for testing this prior to release!.\n"""
         logging.getLogger(__name__).warning(msg)
     else:
         msg += """\nYou can change this error to a warning if you are sure it is

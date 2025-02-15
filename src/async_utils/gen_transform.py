@@ -31,6 +31,7 @@ def _consumer[**P, Y](
     queue: Queue[Y],
     cancel_future: cf.Future[None],
     f: Callable[P, Generator[Y]],
+    /,
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> None:
@@ -52,6 +53,12 @@ def _consumer[**P, Y](
                     gen.throw(cf.CancelledError)
     except StopIteration:
         pass
+
+
+type _ConGen[**P, Y] = Callable[P, Generator[Y]]
+type ConsumerType[**P, Y] = Callable[
+    t.Concatenate[Event, Queue[Y], cf.Future[None], _ConGen[P, Y], P], None
+]
 
 
 class ACTX[Y]:
@@ -96,8 +103,9 @@ def _sync_to_async_gen[**P, Y](
     lazy_ev = Event()  # used to preserve generator laziness
     lazy_ev.set()
     cancel_fut: cf.Future[None] = cf.Future()
+    c: ConsumerType[P, Y] = _consumer
 
-    bg_coro = asyncio.to_thread(_consumer, lazy_ev, q, cancel_fut, f, *args, **kwargs)
+    bg_coro = asyncio.to_thread(c, lazy_ev, q, cancel_fut, f, *args, **kwargs)
     bg_task = asyncio.create_task(bg_coro)
 
     async def gen() -> AsyncGenerator[Y]:
