@@ -64,7 +64,8 @@ breaking potential interaction with other library uses.
 
 This includes:
 
-- imports are namespaced, (inspect import is incurred only if you import task_cache).
+- imports are namespaced
+- inspect import is incurred only if you introspect the signature of a task cache object.
 - typing imports are resolvable at runtime.
 - typing imports are lazily evaluated (see _typings.py).
 - Some classes/functions with only minor variations are intentionally duplicated partially.
