@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures as cf
-import sys
 from collections.abc import Callable, Coroutine, Hashable
 from functools import partial, wraps
 
@@ -54,46 +53,48 @@ def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]):
         c_fut.set_result(a_fut.result())
 
 
-if sys.version_info[:2] >= (3, 14):
+class _WrappedSignature[**P, R]:
+    #: PYUPGRADE: Ensure inspect.signature still accepts this
+    # as func.__signature__
+    # Known working: py 3.12.0 - py3.14a5 range inclusive
+    def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
+        self._f = f
+        self._w = w
+        self._sig: t.Any | None = None
 
-    class _314WrappedSignature[**P, R]:
-        def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
-            self._f = f
-            self._w = w
-            self._sig: t.Any | None = None
-
-        def _asyncutils_wrapped_sig(self) -> t.Any:
-            if (sig := self._sig) is None:
-                import inspect
-
-                sig = inspect.signature(self._f)
-                if inspect.iscoroutinefunction(self._f):
-                    new_ret_ann = (
-                        asyncio.Task
-                        if sig.return_annotation is inspect.Signature.empty
-                        else asyncio.Task[sig.return_annotation]
-                    )
-                    sig = sig.replace(return_annotation=new_ret_ann)
-                self._w.__signature__ = sig  # pyright: ignore[reportFunctionMemberAccess]
-                self._sig = sig
-            return sig
-
-        def __getattr__(self, name: str) -> t.Any:
-            return getattr(self._asyncutils_wrapped_sig, name)
-
-        def __repr__(self) -> str:
-            if self._sig is not None:
-                import inspect
-
-                return inspect.Signature.__repr__(self._sig)
-            return super().__repr__()
-
-        @property
-        def __class__(self) -> type:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def _asyncutils_wrapped_sig(self) -> t.Any:
+        if (sig := self._sig) is None:
             import inspect
 
-            self._asyncutils_wrapped_sig()
-            return inspect.Signature
+            sig = inspect.signature(self._f)
+            if inspect.iscoroutinefunction(self._f):
+                new_ret_ann = (
+                    asyncio.Task
+                    if sig.return_annotation is inspect.Signature.empty
+                    else asyncio.Task[sig.return_annotation]
+                )
+                sig = sig.replace(return_annotation=new_ret_ann)
+            self._w.__signature__ = sig  # pyright: ignore[reportFunctionMemberAccess]
+            self._sig = sig
+        return sig
+
+    def __getattr__(self, name: str) -> t.Any:
+        return getattr(self._asyncutils_wrapped_sig, name)
+
+    def __repr__(self) -> str:
+        if self._sig is not None:
+            import inspect
+
+            return inspect.Signature.__repr__(self._sig)
+        return super().__repr__()
+
+    @property
+    def __class__(self) -> type:  # pyright: ignore[reportIncompatibleMethodOverride]
+        # This is for the isinstance check inspect.signature does.
+        import inspect
+
+        self._asyncutils_wrapped_sig()
+        return inspect.Signature
 
 
 async def _await[R](fut: asyncio.Future[R]) -> R:
@@ -170,27 +171,8 @@ def taskcache[**P, R](
 
             return a_fut
 
-        def deferred_sig():
-            import inspect
-
-            sig = inspect.signature(coro)
-            if inspect.iscoroutinefunction(coro):
-                new_ret_ann = (
-                    asyncio.Task
-                    if sig.return_annotation is inspect.Signature.empty
-                    else asyncio.Task[sig.return_annotation]
-                )
-
-                return sig.replace(return_annotation=new_ret_ann)
-            return sig
-
-        # PYUPGRADE: this does not work as a callable in py 3.14
-        # see: https://github.com/python/cpython/pull/116234
-        # Needs continued checking per-version.
-        if sys.version_info[:2] >= (3, 14):
-            wrapped.__signature__ = _314WrappedSignature(coro, wrapped)  # pyright: ignore[reportAttributeAccessIssue]
-        else:
-            wrapped.__signature__ = deferred_sig  # pyright: ignore[reportAttributeAccessIssue]
+        # PYUPGRADE: 3.14.0 recheck, 3.15+
+        wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # pyright: ignore[reportAttributeAccessIssue]
 
         return wrapped
 
@@ -275,27 +257,8 @@ def lrutaskcache[**P, R](
 
             return a_fut
 
-        def deferred_sig():
-            import inspect
-
-            sig = inspect.signature(coro)
-            if inspect.iscoroutinefunction(coro):
-                new_ret_ann = (
-                    asyncio.Task
-                    if sig.return_annotation is inspect.Signature.empty
-                    else asyncio.Task[sig.return_annotation]
-                )
-
-                return sig.replace(return_annotation=new_ret_ann)
-            return sig
-
-        # PYUPGRADE: this does not work as a callable in py 3.14
-        # see: https://github.com/python/cpython/pull/116234
-        # Needs continued checking per-version.
-        if sys.version_info[:2] >= (3, 14):
-            wrapped.__signature__ = _314WrappedSignature(coro, wrapped)  # pyright: ignore[reportAttributeAccessIssue]
-        else:
-            wrapped.__signature__ = deferred_sig  # pyright: ignore[reportAttributeAccessIssue]
+        # PYUPGRADE: 3.14.0 recheck, 3.15+
+        wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # pyright: ignore[reportAttributeAccessIssue]
 
         return wrapped
 
