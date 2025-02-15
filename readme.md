@@ -41,7 +41,7 @@ pip install mikeshardmind-async-utils
 ```
 or
 ```
-pip install async-utils @ git+https://github.com/mikeshardmind/async-utils
+pip install mikeshardmind-async-utils @ git+https://github.com/mikeshardmind/async-utils
 ```
 
 swap pip commands for pdm, uv, or other tool as desired.
