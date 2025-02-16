@@ -14,13 +14,13 @@ __version__ = "2025.02.15b"
 import os
 import sys
 
-vi = sys.version_info
+_vi = sys.version_info
 
 # - Check use of concurrent.futures.Future before extending this version.
 # - update `_misc._ensure_annotations.py` before extending this version.
 # - ensure `task_cache.__WrappedSignature` still works
-if (vi.major, vi.minor) > (3, 13):
-    msg = """This library is not tested for use on python versions above 3.13
+if (_vi.major, _vi.minor) > (3, 13):
+    msg: str = """This library is not tested for use on python versions above 3.13
     This library relies on a few internal details that are not safe to rely upon
     without checking this consistently.
     """

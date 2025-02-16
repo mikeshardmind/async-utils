@@ -35,8 +35,8 @@ class PriorityWaiter:
     __slots__ = ("future", "ord")
 
     def __init__(self, priority: int, ts: float, future: asyncio.Future[None], /) -> None:
-        self.ord = (priority, ts)
-        self.future = future
+        self.future: asyncio.Future[None] = future
+        self.ord: tuple[int, float] = (priority, ts)
 
     def cancelled(self) -> bool:
         return self.future.cancelled()

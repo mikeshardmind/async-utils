@@ -1,5 +1,5 @@
 [tool.pyright]
-include = ["async_utils"]
+include = ["src"]
 exclude = [
     "**/__pycache__",
     "build",

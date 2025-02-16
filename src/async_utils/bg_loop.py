@@ -37,7 +37,7 @@ class LoopWrapper:
     __final__ = True
 
     def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
-        self._loop = loop
+        self._loop: asyncio.AbstractEventLoop = loop
         self._futures: set[cf.Future[t.Any]] = set()
 
     def schedule[T](self, coro: CoroReturning[T], /) -> cf.Future[T]:

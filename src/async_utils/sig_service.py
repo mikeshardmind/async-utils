@@ -19,7 +19,7 @@ import select
 import signal
 import socket
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from types import FrameType
 
 from . import _typings as t
@@ -32,9 +32,9 @@ type _HTC = Callable[[int, FrameType | None], t.Any]
 type _HANDLER = _HTC | int | signal.Handlers | None
 
 type HandleableSignals = t.Literal["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]
-type SignalTuple = tuple[HandleableSignals, ...]
+type SignalSequence = Sequence[HandleableSignals]
 
-default_handled: SignalTuple = "SIGINT", "SIGTERM", "SIGBREAK"
+default_handled: SignalSequence = "SIGINT", "SIGTERM", "SIGBREAK"
 
 
 class SpecialExit(enum.IntEnum):
@@ -57,11 +57,13 @@ class SignalService:
 
     __final__ = True
 
-    def __init__(self, signals: SignalTuple = default_handled, /) -> None:
+    def __init__(self, signals: SignalSequence = default_handled, /) -> None:
         self._startup: list[StartStopCall] = []
         self._cbs: list[SignalCallback] = []
         self._joins: list[StartStopCall] = []
-        self.ss, self.cs = socket.socketpair()
+        ss, cs = socket.socketpair()
+        self.ss: socket.socket = ss
+        self.cs: socket.socket = cs
         self.ss.setblocking(False)
         self.cs.setblocking(False)
         sig_members = signal.Signals.__members__.items()
