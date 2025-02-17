@@ -1,58 +1,62 @@
-name: lint
+name: Type Coverage and Linting
 
 on:
   push:
+    branches:
+      - main
   pull_request:
-    types: [ opened, synchronize ]
+    branches:
+      - main
+    types: [opened, reopened, synchronize]
 
 jobs:
-  ruff:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@31a518504640beb4897d0b9f9e50a2a9196e75ba
-        with:
-          args: 'format --check'
-      - uses: astral-sh/ruff-action@31a518504640beb4897d0b9f9e50a2a9196e75ba
-        with:
-          args: 'check'
-
   check:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ '3.12' ]
+        python-version: [ '3.12', '3.13', '3.14-dev' ]
 
-    name: check ${{ matrix.python-version }}
+    name: "Type Coverage and Linting @ ${{ matrix.python-version }}"
     steps:
-      - uses: actions/checkout@v4
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: Setup PDM @ ${{ matrix.python-version }}
+        uses: pdm-project/setup-pdm@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: true
+          allow-python-prereleases: true
 
-      - name: Setup node.js
-        uses: actions/setup-node@v2
+      - name: Install deps @ ${{ matrix.python-version }}
+        run: |
+          pdm install --check --no-editable
+
+      - name: Activate venv @ ${{ matrix.python-version }}
+        run: |
+          echo "$(pdm info --where)/.venv/bin" >> $GITHUB_PATH
+
+      - name: "Run Pyright @ ${{ matrix.python-version }}"
+        uses: jakebailey/pyright-action@v2
         with:
-          node-version: '16'
+          warnings: false
 
-      - name: Install pyright
-        run: |
-          npm install -g pyright
+      - name: Lint check
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: check .
 
-      - name: Run pyright
-        run: |
-          pyright
+      - name: Formatting check
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: format --check
 
       - name: Verify No CLRF line endings.
         run: >
           ! $(find . ! -path "./.git/*" -not -type d -exec file "{}" ";" |& grep -q " CRLF ")
 
       - name: Ensure runtime validity of annotations
-        run: |
-          python -m pip install .
-          python _misc/_ensure_annotations.py
+        run: python _misc/_ensure_annotations.py
