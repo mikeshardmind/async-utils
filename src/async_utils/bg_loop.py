@@ -30,6 +30,11 @@ __all__ = ("threaded_loop",)
 
 
 class LoopWrapper:
+    """Provides managed access to an event loop created with ``threaded_loop``.
+
+    This is not meant to be constructed manually
+    """
+
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"
         raise RuntimeError(msg)
@@ -97,7 +102,7 @@ class LoopWrapper:
         return not pending
 
 
-def run_forever(
+def _run_forever(
     loop: asyncio.AbstractEventLoop,
     /,
     *,
@@ -157,7 +162,7 @@ def threaded_loop(
     wrapper = None
     try:
         args, kwargs = (loop,), {"eager": use_eager_task_factory}
-        thread = threading.Thread(target=run_forever, args=args, kwargs=kwargs)
+        thread = threading.Thread(target=_run_forever, args=args, kwargs=kwargs)
         thread.start()
         wrapper = LoopWrapper(loop)
         yield wrapper

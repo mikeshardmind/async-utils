@@ -20,12 +20,17 @@ from time import time
 
 from . import _typings as t
 
-__all__ = ("Scheduler",)
+__all__ = ("CancellationToken", "Scheduler")
 
 MISSING: t.Any = object()
 
 
 class CancellationToken:
+    """An object to use for cancelation of a task.
+
+    Not meant for public construction.
+    """
+
     __slots__ = ()
 
 

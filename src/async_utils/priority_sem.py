@@ -31,7 +31,7 @@ _global_lock = threading.Lock()
 _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
 
 
-class PriorityWaiter:
+class _PriorityWaiter:
     __slots__ = ("future", "ord")
 
     def __init__(self, priority: int, ts: float, future: asyncio.Future[None], /) -> None:
@@ -53,7 +53,7 @@ class PriorityWaiter:
         return (yield from self.future.__await__())
 
     def __lt__(self: t.Self, other: object) -> bool:
-        if not isinstance(other, PriorityWaiter):
+        if not isinstance(other, _PriorityWaiter):
             return NotImplemented
         return self.ord < other.ord
 
@@ -119,7 +119,7 @@ class PrioritySemaphore:
         if value < 0:
             msg = "Semaphore initial value must be >= 0"
             raise ValueError(msg)
-        self._waiters: list[PriorityWaiter] | None = None
+        self._waiters: list[_PriorityWaiter] | None = None
         self._value: int = value
 
     def _get_loop(self) -> asyncio.AbstractEventLoop:
@@ -168,7 +168,7 @@ class PrioritySemaphore:
 
         fut = loop.create_future()
         now = loop.time()
-        waiter = PriorityWaiter(priority, now, fut)
+        waiter = _PriorityWaiter(priority, now, fut)
 
         heapq.heappush(self._waiters, waiter)
 

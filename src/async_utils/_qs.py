@@ -28,11 +28,11 @@ __all__ = ("LIFOQueue", "PriorityQueue", "Queue", "QueueEmpty", "QueueFull")
 
 
 class QueueEmpty(Exception):
-    pass
+    """Raised when a queue is empty and attempting to get without waiting."""
 
 
 class QueueFull(Exception):
-    pass
+    """Raised when a queue is full and attempting to put without waiting."""
 
 
 class AsyncEvent:
@@ -190,7 +190,15 @@ class ThreadingEvent:
         return success
 
 
-class _BaseQueue[T]:
+class BaseQueue[T]:
+    """Base queue implementation.
+
+    Not meant for direct public use. You probably should use
+    one of the provided subclasses.
+
+    May make sense as a type annotation.
+    """
+
     __slots__ = ("__get_ws", "__put_ws", "__unlocked", "__unlocked", "__ws", "maxsize")
 
     def __init__(self, /, maxsize: int | None = None) -> None:
@@ -302,6 +310,7 @@ class _BaseQueue[T]:
             break
 
     async def async_put(self, item: T, /) -> None:
+        """Put an item into the queue."""
         waiters = self.__ws
         put_waiters = self.__put_ws
         success = self._acquire_nowait_put()
@@ -339,6 +348,15 @@ class _BaseQueue[T]:
     def sync_put(
         self, item: T, /, *, blocking: bool = True, timeout: float | None = None
     ) -> None:
+        """Put an item into the queue.
+
+        Parameters
+        ----------
+        blocking: bool
+            Whether or not to block until space in the queue is available.
+        timeout: float | None
+            The maximum time to wait if waiting on room in the queue.
+        """
         waiters = self.__ws
         put_waiters = self.__put_ws
         success = self._acquire_nowait_put()
@@ -377,6 +395,7 @@ class _BaseQueue[T]:
                 self._release()
 
     async def async_get(self, /) -> T:
+        """Get an item from the queue."""
         waiters = self.__ws
         get_waiters = self.__get_ws
         success = self._acquire_nowait_get()
@@ -414,6 +433,15 @@ class _BaseQueue[T]:
         return item
 
     def sync_get(self, /, *, blocking: bool = True, timeout: float | None = None) -> T:
+        """Get an item from the queue.
+
+        Parameters
+        ----------
+        blocking: bool
+            Whether or not to block until an item is available.
+        timeout: float | None
+            The maximum time to wait if waiting on an item.
+        """
         waiters = self.__ws
         get_waiters = self.__get_ws
 
@@ -479,7 +507,7 @@ class _BaseQueue[T]:
         return len(self.__get_ws)
 
 
-class Queue[T](_BaseQueue[T]):
+class Queue[T](BaseQueue[T]):
     """A thread-safe queue with both sync and async access methods."""
 
     __slots__ = ("_data",)
@@ -507,7 +535,7 @@ class Queue[T](_BaseQueue[T]):
         return self._data.popleft()
 
 
-class LIFOQueue[T](_BaseQueue[T]):
+class LIFOQueue[T](BaseQueue[T]):
     """A thread-safe queue with both sync and async access methods."""
 
     __slots__ = ("_data",)
@@ -535,7 +563,7 @@ class LIFOQueue[T](_BaseQueue[T]):
         return self._data.pop()
 
 
-class PriorityQueue[T](_BaseQueue[T]):
+class PriorityQueue[T](BaseQueue[T]):
     """A thread-safe queue with both sync and async access methods."""
 
     __slots__ = ("_data",)

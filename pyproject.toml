@@ -39,6 +39,8 @@ select = [
 typing-modules = ["async_utils._typings"]
 
 ignore = [
+    "DOC201", # Not docing generic return types
+    "DOC501", # Not explicitly documenting raised exception types
     "ANN202", # implied return fine sometimes
     "ANN401",  # Any is the correct type in some cases
     "ASYNC116", # Long sleeps are fine
