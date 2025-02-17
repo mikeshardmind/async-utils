@@ -1,6 +1,9 @@
 name: Type Coverage and Linting
 
 on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
   push:
     branches:
       - main
@@ -48,11 +51,13 @@ jobs:
         uses: astral-sh/ruff-action@v3
         with:
           args: check .
+          version: latest
 
       - name: Formatting check
         uses: astral-sh/ruff-action@v3
         with:
           args: format --check
+          version: latest
 
       - name: Verify No CLRF line endings.
         run: >
