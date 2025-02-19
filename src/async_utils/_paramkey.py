@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
+from collections.abc import Callable, Hashable
 
 from . import _typings as t
 
@@ -44,12 +44,17 @@ class _HK:
 _marker: tuple[object] = (object(),)
 
 
-def make_key(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any]) -> Hashable:
+def make_key(
+    args: tuple[t.Any, ...],
+    kwds: dict[t.Any, t.Any],
+    _typ: Callable[[object], type] = type,
+    _fast_types: set[type] = {int, str},  # noqa: B006
+) -> Hashable:
     key: tuple[t.Any, ...] = args
     if kwds:
         key += _marker
         for item in kwds.items():
             key += item
-    elif len(key) == 1 and type(key[0]) in {int, str}:
+    elif len(key) == 1 and _typ(key[0]) in _fast_types:
         return key[0]
     return _HK(key)
