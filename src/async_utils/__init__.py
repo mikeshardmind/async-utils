@@ -9,7 +9,7 @@ __title__ = "async_utils"
 __author__ = "Michael Hall"
 __license__ = "Apache-2.0"
 __copyright__ = "Copyright 2020-Present Michael Hall"
-__version__ = "2025.02.15b"
+__version__ = "2025.02.18b"
 
 import os
 import sys
@@ -37,7 +37,8 @@ if (_vi.major, _vi.minor) > (3, 13):
     elif sys.version_info.releaselevel in {"alpha", "beta", "candidate"}:
         import logging
 
-        msg += """\nThanks for testing this prior to release!.\n"""
+        msg += """\nThanks for testing this (and a development version of python)
+        prior to release!.\n"""
         logging.getLogger(__name__).warning(msg)
     else:
         msg += """\nYou can change this error to a warning if you are sure it is

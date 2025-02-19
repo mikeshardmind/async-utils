@@ -45,6 +45,7 @@ ignore = [
     "ANN401",  # Any is the correct type in some cases
     "ASYNC116", # Long sleeps are fine
     "B901", # I'm aware of how generators as coroutines work
+    "B903", # nope, handwritten types are fine actually.
     "C90",  # mccabe complexity memes
     "COM812", # ruff format suggested
     "D100", # no, module level docs aren't always neededd
