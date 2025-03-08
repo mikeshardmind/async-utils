@@ -16,10 +16,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from collections.abc import Callable, Coroutine, Sequence
+from functools import partial
 
 from . import _typings as t
+
+log = logging.getLogger(__name__)
 
 __all__ = ("Waterfall",)
 
@@ -111,11 +115,22 @@ class Waterfall[T]:
             raise RuntimeError(msg)
         self.queue.put_nowait(item)
 
+    def _user_done_callback(self, num: int, future: asyncio.Future[t.Any]):
+        if future.cancelled():
+            log.warning("Callback cancelled due to timeout")
+        elif exc := future.exception():
+            log.error("Exception in user callback", exc_info=exc)
+
+        for _ in range(num):
+            self.queue.task_done()
+
     async def _dispatch_loop(self) -> None:
         if (loop := self._event_loop) is None:
             loop = self._event_loop = asyncio.get_running_loop()
+
+        tasks: set[asyncio.Task[object]] = set()
         try:
-            tasks: set[asyncio.Task[object]] = set()
+            tasks = set()
             while self._alive:
                 queue_items: list[T] = []
                 iter_start = time.monotonic()
@@ -127,20 +142,22 @@ class Waterfall[T]:
                         continue
                     else:
                         queue_items.append(n)
-                    if len(queue_items) >= self.max_quantity:
-                        break
 
-                    if not queue_items:
-                        continue
+                        if len(queue_items) >= self.max_quantity:
+                            break
 
+                if not queue_items:
+                    continue
+
+                # get len before callback may mutate list
                 num_items = len(queue_items)
-
                 t = loop.create_task(self.callback(queue_items))
+                del queue_items
+
                 tasks.add(t)
                 t.add_done_callback(tasks.discard)
-
-                for _ in range(num_items):
-                    self.queue.task_done()
+                cb = partial(self._user_done_callback, num_items)
+                t.add_done_callback(cb)
 
         finally:
             f = loop.create_task(self._finalize())
@@ -151,7 +168,15 @@ class Waterfall[T]:
                 # PYUPDATE: remove this block at python 3.13 minimum
             else:
                 set_name("waterfall.finalizer")
-            await asyncio.wait_for(f, timeout=self.max_wait_finalize)
+            g = asyncio.gather(f, *tasks, return_exceptions=True)
+            try:
+                await asyncio.wait_for(g, timeout=self.max_wait_finalize)
+            except TimeoutError:
+                # GatheringFuture.cancel doesnt work here
+                # due to return_exceptions=True
+                for t in (f, *tasks):
+                    if not t.done():
+                        t.cancel()
 
     async def _finalize(self) -> None:
         loop = self._event_loop
@@ -187,15 +212,15 @@ class Waterfall[T]:
             remaining_items[p : p + self.max_quantity]
             for p in range(0, num_remaining, self.max_quantity)
         ):
+            chunk_len = len(chunk)
             fut = loop.create_task(self.callback(chunk))
-            fut.add_done_callback(remaining_tasks.discard)
             remaining_tasks.add(fut)
+            fut.add_done_callback(remaining_tasks.discard)
+            cb = partial(self._user_done_callback, chunk_len)
+            fut.add_done_callback(cb)
 
         timeout = self.max_wait_finalize
         _done, pending = await asyncio.wait(remaining_tasks, timeout=timeout)
 
         for task in pending:
             task.cancel()
-
-        for _ in range(num_remaining):
-            self.queue.task_done()
