@@ -182,7 +182,7 @@ class TTLLRU[K, V]:
         now = time.monotonic()
         tr = max((len(self._expirations) - self._maxsize) >> self._smooth, 2)
 
-        while tr > 0:
+        while self._expirations and tr > 0:
             ts, k = heapq.heappop(self._expirations)
             if ts < now:
                 tr -= 1
