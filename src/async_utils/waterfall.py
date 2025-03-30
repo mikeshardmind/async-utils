@@ -168,7 +168,14 @@ class Waterfall[T]:
                 # PYUPDATE: remove this block at python 3.13 minimum
             else:
                 set_name("waterfall.finalizer")
-            g = asyncio.gather(f, *tasks, return_exceptions=True)
+            # TYPESHED:
+            # Gather doesnt return a Future, it returns a GatheringFuture
+            # We only use the Future compatible api
+            # the result of that future is also not accurate in the typeshed.
+            # as we dont rely on the type of the result, the below is annotated
+            # to avoid spurious errors much as possible from inaccuracies.
+            # See: https://github.com/mikeshardmind/async-utils/actions/runs/14119338111
+            g: asyncio.Future[t.Any] = asyncio.gather(f, *tasks, return_exceptions=True)
             try:
                 await asyncio.wait_for(g, timeout=self.max_wait_finalize)
             except TimeoutError:
