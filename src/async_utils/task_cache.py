@@ -28,7 +28,7 @@ __all__ = ("lrutaskcache", "taskcache")
 
 # Use below doesn't accept non-task Futures, so can't accept general awaitables
 type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
-type TaskFunc[**P, R] = CoroFunc[P, R] | Callable[P, asyncio.Task[R]]
+type TaskFunc[**P, R] = Callable[P, asyncio.Task[R]]
 type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
 
 type _CT_RET = tuple[tuple[t.Any, ...], dict[str, t.Any]]
