@@ -25,7 +25,7 @@ async def echo(x: int) -> None:
     print(x)  # noqa: T201
 
 
-async def runner(v: int):
+async def runner(v: int) -> None:
     [await echo(i) for i in range(v)]
 
 

@@ -54,7 +54,7 @@ def ensure_annotations[T: type | FunctionType](f: T) -> T:
     return env[f.__name__]
 
 
-def version_specific_annotation_interactions(obj: Any):
+def version_specific_annotation_interactions(obj: Any) -> None:
     if sys.version_info[:2] >= (3, 14):
         import annotationlib  # pyright: ignore[reportMissingImports]
 

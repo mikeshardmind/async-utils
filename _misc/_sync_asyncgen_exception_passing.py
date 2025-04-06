@@ -32,7 +32,7 @@ def bg_work() -> Generator[int]:
         raise RuntimeError
 
 
-async def test():
+async def test() -> None:
     try:
         async with sync_to_async_gen(bg_work) as g:
             async for _val in g:
