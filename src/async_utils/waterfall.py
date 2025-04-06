@@ -115,7 +115,7 @@ class Waterfall[T]:
             raise RuntimeError(msg)
         self.queue.put_nowait(item)
 
-    def _user_done_callback(self, num: int, future: asyncio.Future[t.Any]):
+    def _user_done_callback(self, num: int, future: asyncio.Future[t.Any]) -> None:
         if future.cancelled():
             log.warning("Callback cancelled due to timeout")
         elif exc := future.exception():
@@ -151,13 +151,13 @@ class Waterfall[T]:
 
                 # get len before callback may mutate list
                 num_items = len(queue_items)
-                t = loop.create_task(self.callback(queue_items))
+                task = loop.create_task(self.callback(queue_items))
                 del queue_items
 
-                tasks.add(t)
-                t.add_done_callback(tasks.discard)
+                tasks.add(task)
+                task.add_done_callback(tasks.discard)
                 cb = partial(self._user_done_callback, num_items)
-                t.add_done_callback(cb)
+                task.add_done_callback(cb)
 
         finally:
             f = loop.create_task(self._finalize())
@@ -181,9 +181,9 @@ class Waterfall[T]:
             except TimeoutError:
                 # GatheringFuture.cancel doesnt work here
                 # due to return_exceptions=True
-                for t in (f, *tasks):
-                    if not t.done():
-                        t.cancel()
+                for task in (f, *tasks):
+                    if not task.done():
+                        task.cancel()
 
     async def _finalize(self) -> None:
         loop = self._event_loop

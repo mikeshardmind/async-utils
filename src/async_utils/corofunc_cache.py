@@ -82,7 +82,7 @@ def corocache[**P, R](
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any]) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper(coro: CoroLike[P, R]) -> CoroFunc[P, R]:
@@ -161,7 +161,7 @@ def lrucorocache[**P, R](
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any]) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper(coro: CoroLike[P, R]) -> CoroFunc[P, R]:

@@ -44,9 +44,11 @@ class _HK:
 _marker: tuple[object] = (object(),)
 
 
-def make_key(
+def _make_key(
     args: tuple[t.Any, ...],
     kwds: dict[t.Any, t.Any],
+    /,
+    *,
     _typ: Callable[[object], type] = type,
     _fast_types: set[type] = {int, str},  # noqa: B006
 ) -> Hashable:
@@ -58,3 +60,6 @@ def make_key(
     elif len(key) == 1 and _typ(key[0]) in _fast_types:
         return key[0]
     return _HK(key)
+
+
+make_key: Callable[[tuple[t.Any, ...], dict[t.Any, t.Any]], Hashable] = _make_key
