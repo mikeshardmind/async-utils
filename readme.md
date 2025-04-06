@@ -93,6 +93,9 @@ The project currently uses pyright for development, and both pyright and mypy
 when ensuring the public api surface is well-typed and compatible with strict
 use of typechecking. The configurations used are in pyproject.toml.
 
+Mypy use is known to be broken currently, as mypy
+[discards type information in Callable aliases](https://github.com/python/mypy/issues/18842)
+
 Use of Any in a few places is *intentional* for internals.
 
 ### 5. Threading and multiple event loops
