@@ -82,7 +82,7 @@ class BGTasks:
         t = self._loop.create_task(coro, name=name, context=context)
         if name is not None:
             # See: python/cpython#113050
-            # PYUPDATE: remove this block at python 3.13 minimum
+            # PYUPGRADE: remove this block at python 3.13 minimum
             try:
                 set_name = t.set_name
             except AttributeError:

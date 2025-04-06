@@ -165,7 +165,7 @@ class Waterfall[T]:
                 set_name = f.set_name
             except AttributeError:
                 pass  # See: python/cpython#113050
-                # PYUPDATE: remove this block at python 3.13 minimum
+                # PYUPGRADE: remove this block at python 3.13 minimum
             else:
                 set_name("waterfall.finalizer")
             # TYPESHED:
