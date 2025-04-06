@@ -27,20 +27,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup PDM @ ${{ matrix.python-version }}
-        uses: pdm-project/setup-pdm@v4
+      - name: Setup python @ ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: true
-          allow-python-prereleases: true
 
-      - name: Install deps @ ${{ matrix.python-version }}
+      - name: Install project @ ${{ matrix.python-version }}
         run: |
-          pdm install --check --no-editable
-
-      - name: Activate venv @ ${{ matrix.python-version }}
-        run: |
-          echo "$(pdm info --where)/.venv/bin" >> $GITHUB_PATH
+          python -m pip install .
 
       - name: "Run Pyright @ ${{ matrix.python-version }}"
         uses: jakebailey/pyright-action@v2
