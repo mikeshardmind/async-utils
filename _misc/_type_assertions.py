@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""Type assertions for the more involed type transformations in the library."""
+"""Type assertions for the more involved type transformations in the library."""
 
 from __future__ import annotations
 
