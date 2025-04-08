@@ -1,5 +1,5 @@
 [tool.pyright]
-include = ["src"]
+include = ["src", "_misc/_type_assertions.py"]
 exclude = [
     "**/__pycache__",
     "build",
