@@ -80,9 +80,6 @@ def priority_context(priority: int, /) -> Generator[None, None, None]:
         _priority.reset(token)
 
 
-_default: t.Any = object()
-
-
 class PrioritySemaphore:
     """A Semaphore with priority-based aquisition ordering.
 
@@ -154,9 +151,7 @@ class PrioritySemaphore:
     async def __aexit__(self, *dont_care: object) -> None:
         self.__release()
 
-    async def __acquire(self, priority: int = _default) -> bool:
-        if priority is _default:
-            priority = _priority.get()
+    async def __acquire(self, priority: int, /) -> bool:
         if not self.__locked():
             self._value -= 1
             return True

@@ -22,8 +22,6 @@ from . import _typings as t
 
 __all__ = ("CancellationToken", "Scheduler")
 
-MISSING: t.Any = object()
-
 
 class CancellationToken:
     """An object to use for cancelation of a task.
@@ -72,34 +70,17 @@ class Scheduler[T]:
 
     __final__ = True
 
-    __tasks: dict[CancellationToken, _Task[T]]
-    __tqueue: asyncio.PriorityQueue[_Task[T]]
-    __closed: bool
-    __l: asyncio.Lock
-    __granularity: float
-
     __slots__ = ("__closed", "__granularity", "__l", "__tasks", "__tqueue")
 
     def __init__(self, granularity: float, /) -> None:
-        self.__granularity = granularity
-        self.__closed = MISSING
-        self.__tasks = MISSING
-        self.__tqueue = MISSING
-        self.__l = MISSING
+        self.__granularity: float = granularity
+        self.__closed: bool = False
+        self.__tasks: dict[CancellationToken, _Task[T]] = {}
+        # PYUPGRADE: check: 3.15; relies on asyncio.Lock & Queues not eagerly binding to an event loop.
+        self.__l = asyncio.Lock()
+        self.__tqueue: asyncio.PriorityQueue[_Task[T]] = asyncio.PriorityQueue()
 
     async def __aenter__(self) -> t.Self:
-        self.__closed = False
-        asyncio.get_running_loop()
-
-        # lock is only needeed on modifying or removing tasks
-        # insertion is not guarded and only racy in the order of emitted events
-        # when inserting a task that is scheduled in the past
-        # or within 1 full iteration of pending tasks on the event loop
-        # (generally, ms range (subsecond), depending on application)
-        self.__l = asyncio.Lock()
-        self.__tasks = {}
-        self.__tqueue = asyncio.PriorityQueue()
-
         return self
 
     async def __aexit__(self, *_dont_care: object) -> None:
