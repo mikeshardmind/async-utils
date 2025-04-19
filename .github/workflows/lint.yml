@@ -3,7 +3,7 @@ name: Type Coverage and Linting
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 0 * * 6"
   push:
     branches:
       - main
