@@ -38,11 +38,15 @@ async def t2(a: int, b: str, *, x: bytes) -> str:
     return ""
 
 
-_t2_type: Coroutine[Any, Any, str] = assert_type(t2(1, "a", x=b""), Coroutine[Any, Any, str])
+_t2_type: Coroutine[Any, Any, str] = assert_type(
+    t2(1, "a", x=b""), Coroutine[Any, Any, str]
+)
 
 
 def gen() -> Generator[int]:
     yield from range(10)
 
 
-_gen_assert_type: AsyncGenerator[int] = assert_type(sync_to_async_gen_noctx(gen), AsyncGenerator[int])
+_gen_assert_type: AsyncGenerator[int] = assert_type(
+    sync_to_async_gen_noctx(gen), AsyncGenerator[int]
+)

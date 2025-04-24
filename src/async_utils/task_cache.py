@@ -44,8 +44,10 @@ type CacheTransformer = Callable[[tuple[t.Any, ...], dict[str, t.Any]], _CT_RET]
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import Protocol
+
     class Deco(Protocol):
-        def __call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]:  ...
+        def __call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...
+
 else:
     # This branch is here for something reasonable to exist at runtime
     # Not importing typing at runtime
