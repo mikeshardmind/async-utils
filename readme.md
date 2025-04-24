@@ -106,7 +106,7 @@ Examples: caching decorators and ratelimiter
 At the current moment, the following are non-goals
 
 - compatability with gevent or other libraries which patch threading and async behavior.
-- compatability with non-asyncio event loops
+- compatability with non-asyncio event loops (event loops like uvloop that are asyncio event loops are included in compatability, event loops such as those provided by trio are not)
 - compatability with non CPython python implementations
 
 # Documentation
