@@ -39,12 +39,11 @@ _proto_cache: t.Any = {}
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Protocol
 
-    class CoroCacheDeco(Protocol):
+    class CoroCacheDeco(t.Protocol):
         def __call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...
 
-    class TaskCacheDeco(Protocol):
+    class TaskCacheDeco(t.Protocol):
         def __call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...
 
 
@@ -56,9 +55,8 @@ else:
                 return p
 
             if name == "CoroCacheDeco":
-                from typing import Protocol
 
-                class CoroCacheDeco(Protocol):
+                class CoroCacheDeco(t.Protocol):
                     def __call__[**P, R](
                         self, c: CoroLike[P, R], /
                     ) -> CoroFunc[P, R]: ...
@@ -67,9 +65,8 @@ else:
                 return CoroCacheDeco
 
             if name == "TaskCacheDeco":
-                from typing import Protocol
 
-                class TaskCacheDeco(Protocol):
+                class TaskCacheDeco(t.Protocol):
                     def __call__[**P, R](
                         self, c: TaskCoroFunc[P, R], /
                     ) -> TaskFunc[P, R]: ...
