@@ -16,42 +16,16 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures as cf
-from collections.abc import Callable, Coroutine, Hashable
+from collections.abc import Callable, Hashable
 from functools import partial, wraps
 
+from . import _internal_types as i_types
 from . import _typings as t
 from ._paramkey import make_key
 from .lru import LRU
 
 __all__ = ("lrutaskcache", "taskcache")
 
-
-# Use below doesn't accept non-task Futures, so can't accept general awaitables
-type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
-type TaskFunc[**P, R] = Callable[P, asyncio.Task[R]]
-type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
-
-type _CT_RET = tuple[tuple[t.Any, ...], dict[str, t.Any]]
-
-#: Note CacheTransformers recieve a tuple (args) and dict(kwargs)
-#: rather than a ParamSpec of the decorated function.
-#: Warning: Mutations will impact callsite, return new objects as needed.
-type CacheTransformer = Callable[[tuple[t.Any, ...], dict[str, t.Any]], _CT_RET]
-
-# This is the only way to return a generic function not dependent on
-# type-checker specific behavior where the generic is deferred until application
-# of the function.
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    from typing import Protocol
-
-    class Deco(Protocol):
-        def __call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...
-
-else:
-    # This branch is here for something reasonable to exist at runtime
-    # Not importing typing at runtime
-    type Deco[**P, R] = Callable[[TaskCoroFunc[P, R]], TaskFunc[P, R]]
 
 # Non-annotation assignments for transformed functions
 _WRAP_ASSIGN = ("__module__", "__name__", "__qualname__", "__doc__")
@@ -70,7 +44,7 @@ class _WrappedSignature[**P, R]:
     #: PYUPGRADE: Ensure inspect.signature still accepts this
     # as func.__signature__
     # Known working: py 3.12.0 - py3.14a6 range inclusive
-    def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
+    def __init__(self, f: i_types.TaskCoroFunc[P, R], w: i_types.TaskFunc[P, R]) -> None:
         self._f: Callable[..., t.Any] = f  # anotation needed for inspect use below....
         self._w = w
         self._sig: t.Any | None = None
@@ -118,8 +92,8 @@ async def _await[R](fut: asyncio.Future[R]) -> R:
 def taskcache(
     ttl: float | None = None,
     *,
-    cache_transform: CacheTransformer | None = None,
-) -> Deco:
+    cache_transform: i_types.CacheTransformer | None = None,
+) -> i_types.TaskCacheDeco:
     """Cache the results of the decorated coroutine.
 
     Decorator to modify coroutine functions to instead act as functions
@@ -158,7 +132,7 @@ def taskcache(
         def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
-    def wrapper[**P, R](coro: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]:
+    def wrapper[**P, R](coro: i_types.TaskCoroFunc[P, R], /) -> i_types.TaskFunc[P, R]:
         internal_cache: dict[Hashable, cf.Future[R]] = {}
 
         def _internal_cache_evict(key: Hashable, _ignored_task: object) -> None:
@@ -197,8 +171,8 @@ def lrutaskcache(
     ttl: float | None = None,
     maxsize: int = 1024,
     *,
-    cache_transform: CacheTransformer | None = None,
-) -> Deco:
+    cache_transform: i_types.CacheTransformer | None = None,
+) -> i_types.TaskCacheDeco:
     """Cache the results of the decorated coroutine.
 
     Decorator to modify coroutine functions to instead act as functions
@@ -244,7 +218,7 @@ def lrutaskcache(
         def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
-    def wrapper[**P, R](coro: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]:
+    def wrapper[**P, R](coro: i_types.TaskCoroFunc[P, R], /) -> i_types.TaskFunc[P, R]:
         internal_cache: LRU[Hashable, cf.Future[R]] = LRU(maxsize)
 
         def _internal_cache_evict(key: Hashable, _ignored_task: object) -> None:
