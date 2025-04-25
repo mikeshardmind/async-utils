@@ -17,6 +17,7 @@
 import ast
 import inspect
 import sys
+import textwrap
 from functools import partial
 from types import FunctionType
 from typing import Any
@@ -39,7 +40,7 @@ def ensure_annotations[T: type | FunctionType](f: T) -> T:
     if _cycle_blocked:
         return f
 
-    new_ast = rec(ast.parse(inspect.getsource(f)), optimize=1)
+    new_ast = rec(ast.parse(textwrap.dedent(inspect.getsource(f))), optimize=1)
 
     env = sys.modules[f.__module__].__dict__
 
