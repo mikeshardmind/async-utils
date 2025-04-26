@@ -16,15 +16,28 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures as cf
-from collections.abc import Hashable
+from collections.abc import Awaitable, Callable, Coroutine, Hashable
 from functools import partial, wraps
 
-from . import _internal_types as i_types
 from . import _typings as t
 from ._paramkey import make_key
 from .lru import LRU
 
 __all__ = ("corocache", "lrucorocache")
+
+type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
+type CoroLike[**P, R] = Callable[P, Awaitable[R]]
+
+#: Note CacheTransformers recieve a tuple (args) and dict(kwargs)
+#: rather than a ParamSpec of the decorated function.
+#: Warning: Mutations will impact callsite, return new objects as needed.
+type CacheTransformer = Callable[
+    [tuple[t.Any, ...], dict[str, t.Any]], tuple[tuple[t.Any, ...], dict[str, t.Any]]
+]
+
+
+class CoroCacheDeco(t.Protocol):
+    def __call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...
 
 
 def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
@@ -39,8 +52,8 @@ def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
 def corocache(
     ttl: float | None = None,
     *,
-    cache_transform: i_types.CacheTransformer | None = None,
-) -> i_types.CoroCacheDeco:
+    cache_transform: CacheTransformer | None = None,
+) -> CoroCacheDeco:
     """Cache the results of the decorated coroutine.
 
     This is less powerful than the version in task_cache.py but may work better
@@ -73,7 +86,7 @@ def corocache(
         def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
-    def wrapper[**P, R](coro: i_types.CoroLike[P, R], /) -> i_types.CoroFunc[P, R]:
+    def wrapper[**P, R](coro: CoroLike[P, R], /) -> CoroFunc[P, R]:
         internal_cache: dict[Hashable, cf.Future[R]] = {}
         internal_taskset: set[asyncio.Task[R]] = set()
 
@@ -112,8 +125,8 @@ def lrucorocache(
     ttl: float | None = None,
     maxsize: int = 1024,
     *,
-    cache_transform: i_types.CacheTransformer | None = None,
-) -> i_types.CoroCacheDeco:
+    cache_transform: CacheTransformer | None = None,
+) -> CoroCacheDeco:
     """Cache the results of the decorated coroutine.
 
     This is less powerful than the version in task_cache.py but may work better
@@ -152,7 +165,7 @@ def lrucorocache(
         def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
-    def wrapper[**P, R](coro: i_types.CoroLike[P, R], /) -> i_types.CoroFunc[P, R]:
+    def wrapper[**P, R](coro: CoroLike[P, R], /) -> CoroFunc[P, R]:
         internal_cache: LRU[Hashable, cf.Future[R]] = LRU(maxsize)
         internal_taskset: set[asyncio.Task[R]] = set()
 

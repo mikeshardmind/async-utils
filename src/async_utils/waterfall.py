@@ -23,7 +23,7 @@ from functools import partial
 
 from . import _typings as t
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 __all__ = ("Waterfall",)
 
@@ -117,9 +117,9 @@ class Waterfall[T]:
 
     def _user_done_callback(self, num: int, future: asyncio.Future[t.Any]) -> None:
         if future.cancelled():
-            log.warning("Callback cancelled due to timeout")
+            _log.warning("Callback cancelled due to timeout")
         elif exc := future.exception():
-            log.error("Exception in user callback", exc_info=exc)
+            _log.error("Exception in user callback", exc_info=exc)
 
         for _ in range(num):
             self.queue.task_done()

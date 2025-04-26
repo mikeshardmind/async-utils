@@ -30,9 +30,10 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import Any, Concatenate, Literal, Never, Protocol, Self
 else:
+    Protocol = object
 
     def __getattr__(name: str):
-        if name in {"Any", "Concatenate", "Literal", "Never", "Protocol", "Self"}:
+        if name in {"Any", "Concatenate", "Literal", "Never", "Self"}:
             import typing
 
             return getattr(typing, name)
