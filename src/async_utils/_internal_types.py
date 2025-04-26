@@ -11,10 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-# This used to include CPython code, some minor performance losses have been
-# taken to not tightly include upstream code
-
+"""Module containing protocol definitions that should only be evaluated if introspected."""
 
 from __future__ import annotations
 
