@@ -50,7 +50,7 @@ def _make_key(
     /,
     *,
     _typ: Callable[[object], type] = type,
-    _fast_types: set[type] = {int, str},  # noqa: B006
+    _fast_types: set[type] = {int, str},  # noqa: B006  # pyright: ignore[reportCallInDefaultInitializer]
 ) -> Hashable:
     key: tuple[t.Any, ...] = args
     if kwds:
