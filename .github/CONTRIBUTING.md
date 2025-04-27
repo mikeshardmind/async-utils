@@ -5,3 +5,4 @@
 2. All code contributions from non-members should be discussed in advance. Please do not open a pull request without having done this.
 3. Pull requests should have a limited scope to what they intend to accomplish.
 4. Commit messages should be meaningful.
+5. No AI generated code.
