@@ -93,7 +93,14 @@ The project currently uses pyright for development, and both pyright and mypy
 when ensuring the public api surface is well-typed and compatible with strict
 use of typechecking. The configurations used are in pyproject.toml.
 
-Use of Any in a few places is *intentional* for internals.
+While compatible with strict interpretations of python's type system,
+both pyright and mypy enable checks that are not type errors in their
+strict modes. See the configurations mentioned for more detail.
+
+In particular, `pyright --verifytypes async_utils --ignoreexternal`
+should report zero ambiguous or unknown public types.
+
+The use of Any in a few places is *intentional* for internals.
 
 ### 5. Threading and multiple event loops
 
