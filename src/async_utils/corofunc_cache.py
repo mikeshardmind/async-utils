@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 
     class CoroCacheDeco(typing.Protocol):
         def __call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...
+
 else:
 
     def f__call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...  # noqa: ANN001

@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 
     class TaskCacheDeco(typing.Protocol):
         def __call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...
+
 else:
 
     def f__call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...  # noqa: ANN001
