@@ -35,9 +35,19 @@ type CacheTransformer = Callable[
     [tuple[t.Any, ...], dict[str, t.Any]], tuple[tuple[t.Any, ...], dict[str, t.Any]]
 ]
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    import typing
 
-class CoroCacheDeco(t.Protocol):
-    def __call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...
+    class CoroCacheDeco(typing.Protocol):
+        def __call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...
+else:
+
+    def f__call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...  # noqa: ANN001
+
+    type CoroCacheDeco = type(
+        "CoroCacheDeco", (__import__("typing").Protocol,), {"__call__": f__call__}
+    )
 
 
 def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:

@@ -36,9 +36,19 @@ type CacheTransformer = Callable[
     [tuple[t.Any, ...], dict[str, t.Any]], tuple[tuple[t.Any, ...], dict[str, t.Any]]
 ]
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    import typing
 
-class TaskCacheDeco(t.Protocol):
-    def __call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...
+    class TaskCacheDeco(typing.Protocol):
+        def __call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...
+else:
+
+    def f__call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...  # noqa: ANN001
+
+    type TaskCacheDeco = type(
+        "TaskCacheDeco", (__import__("typing").Protocol,), {"__call__": f__call__}
+    )
 
 
 # Non-annotation assignments for transformed functions
