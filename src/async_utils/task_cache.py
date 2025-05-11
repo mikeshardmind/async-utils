@@ -68,7 +68,7 @@ def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
 class _WrappedSignature[**P, R]:
     #: PYUPGRADE: Ensure inspect.signature still accepts this
     # as func.__signature__
-    # Known working: py 3.12.0 - py3.14a6 range inclusive
+    # Known working: py 3.12.0 - py3.14b1 range inclusive
     def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
         self._f: Callable[..., t.Any] = f  # anotation needed for inspect use below....
         self._w = w
@@ -184,7 +184,7 @@ def taskcache(
 
             return a_fut
 
-        # PYUPGRADE: 3.14.0 recheck (last checked 3.14a6), 3.15+
+        # PYUPGRADE: 3.14.0 recheck (last checked 3.14b1), 3.15+
         wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # type: ignore[attr-defined]
 
         return wrapped

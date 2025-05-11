@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures as cf  #: PYUPDATE: py3.14, check cf.Future use
+import concurrent.futures as cf  #: PYUPDATE: py3.15, check cf.Future use
 from asyncio import FIRST_COMPLETED as FC
 from collections.abc import AsyncGenerator, Callable, Generator
 from threading import Event
