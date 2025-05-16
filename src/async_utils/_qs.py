@@ -450,7 +450,7 @@ class BaseQueue[T]:
         try:
             if not success:
                 if not blocking:
-                    raise QueueFull
+                    raise QueueEmpty
 
                 event = ThreadingEvent()
                 waiters.append(event)
