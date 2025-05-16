@@ -10,21 +10,48 @@ While my intent is that all of this is already suitably ready for use
 not require breaking changes, you may want to Subscribe to this issue for
 breaking change notices https://github.com/mikeshardmind/async-utils/issues/10
 
-### Breaking policy
+### Breaking policy (Future)
 
-Until I publish a version *Without* labeling it either alpha or beta, I intend
-to keep the option of breaking usage if it improves performance, behavior,
-or ergonomics to do so.
+The breaking policy only applies to symbols exported in ``__all__`` for a
+given public module. Public modules are those not prefixed with `_`.
 
-Until that time, git history may be re-written as well. an artificial history
-explaining how certain things came to be will more useful in the long term than
-the reality of how some of this was extracted from other
-projects of mine for reuse, as well as the amount I have been willing to make
-small changes for things as small as aesthetics during the early development
-lifecycle.
+Only documented public attributes and methods are guaranteed for exported classes.
 
-A more detailed policy will be provided when I'm more sure of the ergonomics of the
-provided APIs
+Things that will **not** be considered breaking:
+
+1. Type annotations changing is not a breaking change.
+   Types are descriptive of the API, not perscriptive. An attempt will be made
+   to keep these stable, but may change if a more useful description of the types
+   is found or later made possible.
+
+2. Docstring values, logging message values, xception message values,
+   and/or warning messages changing are not breaking changes.
+   These will not be frivolously changed, but should not be considered as unchanging.
+   If you have a specific need of detecting something which cannot be accomplished
+   without relying on these, please open an issue,
+   it may be possible to accomodate your use in another manner.
+
+3. The calling convention of decorated functions and user provided callbacks is a
+   non-guaranteed implementation detail.
+   If you need a guarantee here, please open an issue explaining why.
+
+Things that will be considered a breaking change:
+
+1. Removal of a symbol from ``__all__``.
+2. Removal of a documented public attribute or method of a publicly exported class.
+3. Removal of a public module.
+4. Removal of a parameter's default value making an optional argument required.
+5. Changing the semantic meaning of a parameter's default value.
+6. Changing the allowed runtime type of a parameter in a way that makes a previously supported call invalid.
+7. Changing the runtime return type of a documented function to no longer match prior documentation.
+
+When something isn't covered explicitly one way or the other above,
+it will be considered a breaking change if an intended supported usage
+no longer has the same semantic meaning or no longer works at all.
+
+Breaking changes will be announced
+[here](https://github.com/mikeshardmind/async-utils/issues/10)
+as well as in the release notes for stable releases.
 
 ### Subclassing
 
