@@ -85,7 +85,10 @@ class LRU[K, V]:
     def __setitem__(self, key: K, value: V, /) -> None:
         self._cache[key] = value
         if len(self._cache) > self._maxsize:
-            self._cache.pop(next(iter(self._cache)))
+            try:
+                self._cache.pop(next(iter(self._cache)))
+            except (KeyError, StopIteration):
+                pass
 
     def setdefault(self, key: K, value: V, /) -> V:
         """Set a value if not already set, returning the actual value.
@@ -103,7 +106,10 @@ class LRU[K, V]:
         """
         value = self._cache.setdefault(key, value)
         if len(self._cache) > self._maxsize:
-            self._cache.pop(next(iter(self._cache)))
+            try:
+                self._cache.pop(next(iter(self._cache)))
+            except (KeyError, StopIteration):
+                pass
         return value
 
     def remove(self, key: K, /) -> None:
@@ -183,7 +189,11 @@ class TTLLRU[K, V]:
         tr = max((len(self._expirations) - self._maxsize) >> self._smooth, 2)
 
         while self._expirations and tr > 0:
-            ts, k = heapq.heappop(self._expirations)
+            try:
+                ts, k = heapq.heappop(self._expirations)
+            except IndexError:
+                continue
+
             if ts < now:
                 tr -= 1
                 try:
@@ -211,7 +221,10 @@ class TTLLRU[K, V]:
         self._cache[key] = (ts, value)
         self._remove_some_expired()
         if len(self._cache) > self._maxsize:
-            self._cache.pop(next(iter(self._cache)))
+            try:
+                self._cache.pop(next(iter(self._cache)))
+            except (KeyError, StopIteration):
+                pass
 
     def get[T](self, key: K, default: T, /) -> V | T:
         """Get a value by key or default value.
