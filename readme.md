@@ -24,7 +24,7 @@ Things that will **not** be considered breaking:
    to keep these stable, but may change if a more useful description of the types
    is found or later made possible.
 
-2. Docstring values, logging message values, xception message values,
+2. Docstring values, logging message values, exception message values,
    and/or warning messages changing are not breaking changes.
    These will not be frivolously changed, but should not be considered as unchanging.
    If you have a specific need of detecting something which cannot be accomplished
