@@ -12,13 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# This used to include CPython code, some minor performance losses have been
-# taken to not tightly include upstream code
-
-
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 
 from . import _typings as t
 
@@ -28,14 +24,14 @@ __all__ = ("make_key",)
 class _HK:
     __slots__ = ("_hashvalue", "_tup")
 
-    def __init__(self, tup: Hashable) -> None:
+    def __init__(self, tup: Hashable, /) -> None:
         self._tup = tup
         self._hashvalue = hash(tup)
 
-    def __hash__(self) -> int:
+    def __hash__(self, /) -> int:
         return self._hashvalue
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: object, /) -> bool:
         if not isinstance(other, _HK):
             return False
         return self._tup == other._tup
@@ -44,22 +40,12 @@ class _HK:
 _marker: tuple[object] = (object(),)
 
 
-def _make_key(
-    args: tuple[t.Any, ...],
-    kwds: dict[t.Any, t.Any],
-    /,
-    *,
-    _typ: Callable[[object], type] = type,
-    _fast_types: set[type] = {int, str},  # noqa: B006  # pyright: ignore[reportCallInDefaultInitializer]
-) -> Hashable:
+def make_key(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
     key: tuple[t.Any, ...] = args
     if kwds:
         key += _marker
         for item in kwds.items():
             key += item
-    elif len(key) == 1 and _typ(key[0]) in _fast_types:
-        return key[0]
+    elif len(key) == 1 and type(a := key[0]) in {int, str}:
+        return a
     return _HK(key)
-
-
-make_key: Callable[[tuple[t.Any, ...], dict[t.Any, t.Any]], Hashable] = _make_key
