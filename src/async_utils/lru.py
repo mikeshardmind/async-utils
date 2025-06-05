@@ -25,6 +25,18 @@ from . import _typings as t
 __all__ = ("LRU", "TTLLRU")
 
 
+class ProbableTOCTOUError(Exception):
+    """Raised for operations that should not be done to avoid a Time of check-time of use bug."""
+
+
+class ContainsMisuse(ProbableTOCTOUError):
+    """Checking containment rather than just getting, setting, or using setdefault."""
+
+
+class IterationMisuse(ProbableTOCTOUError):
+    """Iterating over a mutable container that can change simply because of time or other access."""
+
+
 class LRU[K, V]:
     """An LRU implementation.
 
@@ -77,6 +89,17 @@ class LRU[K, V]:
             return self[key]
         except KeyError:
             return default
+
+    # needed because in the absence of __iter__ or __contains__ python will
+    # attempt iteration/containment checks via __getitem__
+
+    def __contains__(self, *_dont_care: t.Any) -> t.Never:
+        msg = "Do not check for existence prior to operation in an lru cache"
+        raise ContainsMisuse(msg)
+
+    def __iter__(self) -> t.Never:
+        msg = "Do not attempt to iterate over an lru cache"
+        raise IterationMisuse(msg)
 
     def __getitem__(self, key: K, /) -> V:
         val = self._cache[key] = self._cache.pop(key)
@@ -205,6 +228,17 @@ class TTLLRU[K, V]:
             else:
                 heapq.heappush(self._expirations, (ts, k))
                 break
+
+    # needed because in the absence of __iter__ or __contains__ python will
+    # attempt iteration/containment checks via __getitem__
+
+    def __contains__(self, *_dont_care: t.Any) -> t.Never:
+        msg = "Do not check for existence prior to operation in an lru cache"
+        raise ContainsMisuse(msg)
+
+    def __iter__(self) -> t.Never:
+        msg = "Do not attempt to iterate over an lru cache"
+        raise IterationMisuse(msg)
 
     def __getitem__(self, key: K, /) -> V:
         self._remove_some_expired()
