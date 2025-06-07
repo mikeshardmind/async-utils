@@ -15,13 +15,26 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures as cf
 import heapq
 import time
 from collections import deque
+from functools import partial
 
 from . import _typings as t
 
 __all__ = ("FIFOLockout", "Lockout")
+
+
+def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
+    if c_fut.done():
+        return
+    if a_fut.cancelled():
+        c_fut.cancel()
+    elif exc := a_fut.exception():
+        c_fut.set_exception(exc)
+    else:
+        c_fut.set_result(a_fut.result())
 
 
 class Lockout:
@@ -116,9 +129,8 @@ class FIFOLockout:
     __final__ = True
 
     def __init__(self) -> None:
-        self._lockouts: set[asyncio.Task[None]] = set()
-        self._waiters: deque[asyncio.Future[None]] = deque()
-        self._loop: asyncio.AbstractEventLoop | None = None
+        self._lockouts: set[cf.Future[None]] = set()
+        self._waiters: deque[cf.Future[None]] = deque()
 
     def __repr__(self) -> str:
         res = super().__repr__()
@@ -127,29 +139,31 @@ class FIFOLockout:
 
     def lockout_for(self, seconds: float, /) -> None:
         """Lock a resource for an amount of time."""
-        if (loop := self._loop) is None:
-            loop = self._loop = asyncio.get_running_loop()
+        loop = asyncio.get_running_loop()
         task = loop.create_task(asyncio.sleep(seconds, None))
-        self._lockouts.add(task)
-        task.add_done_callback(self._lockouts.discard)
+        c_fut: cf.Future[None] = cf.Future()
+        self._lockouts.add(c_fut)
+        c_fut.add_done_callback(self._lockouts.discard)
+        task.add_done_callback(lambda f: c_fut.set_result(None))
 
     async def __aenter__(self) -> None:
-        if (loop := self._loop) is None:
-            loop = self._loop = asyncio.get_running_loop()
         if not self._lockouts and all(f.cancelled() for f in self._waiters):
             return
 
-        fut: asyncio.Future[None] = loop.create_future()
-        self._waiters.append(fut)
+        c_fut: cf.Future[None] = cf.Future()
+        a_fut: asyncio.Future[None] = asyncio.wrap_future(c_fut)
+        a_fut.add_done_callback(partial(_chain_fut, c_fut))
+        self._waiters.append(c_fut)
 
         while self._lockouts:
-            await asyncio.gather(*self._lockouts)
+            a_futs = (asyncio.wrap_future(c_fut) for c_fut in self._lockouts)
+            await asyncio.gather(*a_futs)
 
         try:
             try:
-                await fut
+                await a_fut
             finally:
-                self._waiters.remove(fut)
+                self._waiters.remove(c_fut)
         except asyncio.CancelledError:
             if not self._lockouts:
                 maybe_f = next(iter(self._waiters), None)
