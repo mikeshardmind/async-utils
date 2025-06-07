@@ -85,7 +85,8 @@ class Lockout:
 
     def lockout_for(self, seconds: float, /) -> None:
         """Lock a resource for an amount of time."""
-        heapq.heappush(self._lockouts, time.monotonic() + seconds)
+        with self._internal_lock:
+            heapq.heappush(self._lockouts, time.monotonic() + seconds)
 
     async def __aenter__(self) -> None:
         while self._lockouts:
