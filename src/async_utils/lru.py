@@ -16,8 +16,12 @@
 
 from __future__ import annotations
 
+# PYUPDATE: 3.14 release + 3.14 minimum: reaudit
+# heapq methods are not threadsafe pre 3.14
+# see: GH: cpython 135036
 import heapq
 import math
+import threading
 import time
 
 from . import _typings as t
@@ -191,7 +195,14 @@ class TTLLRU[K, V]:
         Getting items does not refresh their ttl.
     """
 
-    __slots__ = ("_cache", "_expirations", "_maxsize", "_smooth", "_ttl")
+    __slots__ = (
+        "_cache",
+        "_expirations",
+        "_internal_lock",
+        "_maxsize",
+        "_smooth",
+        "_ttl",
+    )
 
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"
@@ -205,6 +216,7 @@ class TTLLRU[K, V]:
         self._ttl: float = ttl
         self._expirations: list[tuple[float, K]] = []
         self._smooth: int = max(int(math.log2(maxsize // 2)), 1)
+        self._internal_lock: threading.RLock = threading.RLock()
 
     def _remove_some_expired(self) -> None:
         """Remove some number of expired entries."""
@@ -212,22 +224,23 @@ class TTLLRU[K, V]:
         tr = max((len(self._expirations) - self._maxsize) >> self._smooth, 2)
 
         while self._expirations and tr > 0:
-            try:
-                ts, k = heapq.heappop(self._expirations)
-            except IndexError:
-                continue
-
-            if ts < now:
-                tr -= 1
+            with self._internal_lock:
                 try:
-                    ts, _v = self._cache[k]
-                except KeyError:
+                    ts, k = heapq.heappop(self._expirations)
+                except IndexError:
                     continue
+
                 if ts < now:
-                    self._cache.pop(k, None)
-            else:
-                heapq.heappush(self._expirations, (ts, k))
-                break
+                    tr -= 1
+                    try:
+                        ts, _v = self._cache[k]
+                    except KeyError:
+                        continue
+                    if ts < now:
+                        self._cache.pop(k, None)
+                else:
+                    heapq.heappush(self._expirations, (ts, k))
+                    break
 
     # needed because in the absence of __iter__ or __contains__ python will
     # attempt iteration/containment checks via __getitem__
@@ -251,7 +264,8 @@ class TTLLRU[K, V]:
 
     def __setitem__(self, key: K, value: V, /) -> None:
         ts = time.monotonic() + self._ttl
-        heapq.heappush(self._expirations, (ts, key))
+        with self._internal_lock:
+            heapq.heappush(self._expirations, (ts, key))
         self._cache[key] = (ts, value)
         self._remove_some_expired()
         if len(self._cache) > self._maxsize:

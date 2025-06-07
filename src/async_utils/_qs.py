@@ -20,6 +20,10 @@ import asyncio
 import threading
 from collections import deque
 from collections.abc import Generator
+
+# PYUPDATE: 3.14 release + 3.14 minimum: reaudit
+# heapq methods are not threadsafe pre 3.14
+# see: GH: cpython 135036
 from heapq import heappop, heappush
 
 from . import _typings as t
@@ -566,7 +570,7 @@ class LIFOQueue[T](BaseQueue[T]):
 class PriorityQueue[T](BaseQueue[T]):
     """A thread-safe queue with both sync and async access methods."""
 
-    __slots__ = ("_data",)
+    __slots__ = ("_data", "_lock")
 
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"
@@ -577,6 +581,8 @@ class PriorityQueue[T](BaseQueue[T]):
     def __init__(self, /, maxsize: int | None = None) -> None:
         super().__init__(maxsize)
         self._data: list[T] = []
+        # heapq not threadsafe till 3.14
+        self._lock = threading.RLock()
 
     def _qsize(self, /) -> int:
         return len(self._data)
@@ -585,7 +591,9 @@ class PriorityQueue[T](BaseQueue[T]):
         return self._data.copy()
 
     def _put(self, item: T, /) -> None:
-        heappush(self._data, item)
+        with self._lock:
+            heappush(self._data, item)
 
     def _get(self, /) -> T:
-        return heappop(self._data)
+        with self._lock:
+            return heappop(self._data)

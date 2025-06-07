@@ -17,6 +17,11 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+
+# PYUPDATE: 3.14 release + 3.14 minimum: reaudit
+# heapq methods are not threadsafe pre 3.14
+# see: GH: cpython 135036
+# not currently affected, needs audit when making these loop-agnostic
 import heapq
 import threading
 from collections.abc import Generator
@@ -110,6 +115,7 @@ class PrioritySemaphore:
 
     __final__ = True
 
+    # When making this loop-agnostic later, heapq isn't threadsafe
     _loop: asyncio.AbstractEventLoop | None = None
 
     def __init__(self, value: int = 1) -> None:

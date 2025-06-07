@@ -16,7 +16,12 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures as cf
+
+# PYUPDATE: 3.14 release + 3.14 minimum: reaudit
+# heapq methods are not threadsafe pre 3.14
+# see: GH: cpython 135036
 import heapq
+import threading
 import time
 from collections import deque
 from functools import partial
@@ -76,6 +81,7 @@ class Lockout:
 
     def __init__(self) -> None:
         self._lockouts: list[float] = []
+        self._internal_lock: threading.RLock = threading.RLock()
 
     def lockout_for(self, seconds: float, /) -> None:
         """Lock a resource for an amount of time."""
@@ -86,9 +92,13 @@ class Lockout:
             now = time.monotonic()
             # There must not be an async context switch between here
             # and replacing the lockout when lockout is in the future
-            ts = heapq.heappop(self._lockouts)
-            if (sleep_for := ts - now) > 0:
-                heapq.heappush(self._lockouts, ts)
+            # PYUPDATE: The lock here can be removed at 3.14 minimum
+            with self._internal_lock:
+                ts = heapq.heappop(self._lockouts)
+                if (sleep_for := ts - now) > 0:
+                    heapq.heappush(self._lockouts, ts)
+
+            if sleep_for > 0:
                 await asyncio.sleep(sleep_for)
 
     async def __aexit__(self, *_dont_care: object) -> None:
