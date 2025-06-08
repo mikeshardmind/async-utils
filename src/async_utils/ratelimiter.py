@@ -32,7 +32,7 @@ class RateLimiter:
     account for various networking effects / responses and
     should only be used for internal limiting.
 
-    This is thread-safe and re-entrant.
+    This is thread-safe and safe to re-enter in the same scope.
 
     Parameters
     ----------
