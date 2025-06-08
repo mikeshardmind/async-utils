@@ -133,7 +133,9 @@ class PrioritySemaphore:
         # in the case of existing waiters
         # not guaranteed to be immediately available
         with self._internal_lock:
-            return self._value == 0 or (any(not w.cancelled() for w in (self._waiters or ())))
+            return self._value == 0 or (
+                any(not w.cancelled() for w in (self._waiters or ()))
+            )
 
     async def __aenter__(self) -> None:
         prio = _priority.get()
