@@ -27,6 +27,7 @@ from typing import Any
 
 from async_utils.bg_loop import threaded_loop
 from async_utils.dual_color import Queue
+from async_utils.priority_sem import PrioritySemaphore, priority_context
 
 log = logging.getLogger()
 
@@ -84,10 +85,12 @@ def _with_logging() -> Generator[None]:
         q_listener.stop()
 
 
-async def _aget(q: Queue[int | None]) -> None:
+async def _aget(q: Queue[int | None], sem: PrioritySemaphore) -> None:
     while (v := await q.async_get()) is not None:
-        await asyncio.sleep(v / 10000)
-        log.info("get %d", v)
+        with priority_context(v):
+            async with sem:
+                await asyncio.sleep(v / 10000)
+                log.info("get %d", v)
 
 
 async def _aput(q: Queue[int | None]) -> None:
@@ -118,10 +121,11 @@ def _main() -> None:
     ):
         loops = [loop1, loop2]
 
+        sem: PrioritySemaphore = PrioritySemaphore()
         q: Queue[int | None] = Queue(maxsize=5)
         gs: set[cf.Future[None]] = set()
         for lo in loops:
-            gs.update(lo.schedule(_aget(q)) for _ in range(100))
+            gs.update(lo.schedule(_aget(q, sem)) for _ in range(100))
         gs.add(loop3.schedule(_sget(q)))
         futures = {lo.schedule(_aput(q)) for lo in loops}
         futures.add(loop4.schedule(_sput(q)))

@@ -16,14 +16,15 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures as cf
 import contextvars
 
 # PYUPDATE: 3.14 release + 3.14 minimum: reaudit
 # heapq methods are not threadsafe pre 3.14
 # see: GH: cpython 135036
-# not currently affected, needs audit when making these loop-agnostic
 import heapq
 import threading
+import time
 from collections.abc import Generator
 from contextlib import contextmanager
 
@@ -31,7 +32,6 @@ from . import _typings as t
 
 __all__ = ("PrioritySemaphore", "priority_context")
 
-_global_lock = threading.Lock()
 
 _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
 
@@ -39,8 +39,8 @@ _priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", def
 class _PriorityWaiter:
     __slots__ = ("future", "ord")
 
-    def __init__(self, priority: int, ts: float, future: asyncio.Future[None], /) -> None:
-        self.future: asyncio.Future[None] = future
+    def __init__(self, priority: int, ts: float, future: cf.Future[None], /) -> None:
+        self.future: cf.Future[None] = future
         self.ord: tuple[int, float] = (priority, ts)
 
     def cancelled(self) -> bool:
@@ -55,7 +55,8 @@ class _PriorityWaiter:
     def __await__(self) -> Generator[t.Any, t.Any, None]:
         # see: https://discuss.python.org/t/compatability-of-descriptor-objects-in-protocols/77998/2
         # for why this isn't using property delegation.
-        return (yield from self.future.__await__())
+        f = asyncio.wrap_future(self.future)
+        return (yield from f.__await__())
 
     def __lt__(self: t.Self, other: object) -> bool:
         if not isinstance(other, _PriorityWaiter):
@@ -92,6 +93,9 @@ class PrioritySemaphore:
     but using an underlying priority. Priority is shared within a context
     manager's logical scope, but the context is safely reentrant.
 
+    This can be safely shared across multiple asyncio event loops in
+    multiple threads.
+
     Lower priority values are a higher logical priority
 
     Parameters
@@ -115,40 +119,21 @@ class PrioritySemaphore:
 
     __final__ = True
 
-    # When making this loop-agnostic later, heapq isn't threadsafe
-    _loop: asyncio.AbstractEventLoop | None = None
-
     def __init__(self, value: int = 1) -> None:
         if value < 0:
             msg = "Semaphore initial value must be >= 0"
             raise ValueError(msg)
         self._waiters: list[_PriorityWaiter] | None = None
         self._value: int = value
-
-    def _get_loop(self) -> asyncio.AbstractEventLoop:
-        loop = asyncio.get_running_loop()
-
-        if self._loop is None:
-            with _global_lock:
-                if self._loop is None:
-                    self._loop = loop
-        if loop is not self._loop:
-            msg = f"{self!r} is bound to a different event loop"
-            raise RuntimeError(msg)
-        return loop
-
-    def __repr__(self) -> str:
-        res = super().__repr__()
-        extra = "locked" if self.__locked() else f"unlocked, value:{self._value}"
-        if self._waiters:
-            extra = f"{extra}, waiters:{len(self._waiters)}"
-        return f"<{res[1:-1]} [{extra}]>"
+        # PYUPDATE: 3.14 minimum heapq safety
+        self._internal_lock: threading.RLock = threading.RLock()
 
     def __locked(self) -> bool:
         # Must do a comparison based on priority then FIFO
         # in the case of existing waiters
         # not guaranteed to be immediately available
-        return self._value == 0 or (any(not w.cancelled() for w in (self._waiters or ())))
+        with self._internal_lock:
+            return self._value == 0 or (any(not w.cancelled() for w in (self._waiters or ())))
 
     async def __aenter__(self) -> None:
         prio = _priority.get()
@@ -165,13 +150,12 @@ class PrioritySemaphore:
         if self._waiters is None:
             self._waiters = []
 
-        loop = self._get_loop()
-
-        fut = loop.create_future()
-        now = loop.time()
+        fut: cf.Future[None] = cf.Future()
+        now = time.monotonic()
         waiter = _PriorityWaiter(priority, now, fut)
 
-        heapq.heappush(self._waiters, waiter)
+        with self._internal_lock:
+            heapq.heappush(self._waiters, waiter)
 
         try:
             await waiter
@@ -187,22 +171,23 @@ class PrioritySemaphore:
         return True
 
     def _maybe_wake(self) -> None:
-        while self._value > 0 and self._waiters:
-            next_waiter = heapq.heappop(self._waiters)
+        with self._internal_lock:
+            while self._value > 0 and self._waiters:
+                next_waiter = heapq.heappop(self._waiters)
 
-            if not (next_waiter.done() or next_waiter.cancelled()):
-                self._value -= 1
-                next_waiter.set_result(None)
+                if not (next_waiter.done() or next_waiter.cancelled()):
+                    self._value -= 1
+                    next_waiter.set_result(None)
 
-        while self._waiters:
-            # cleanup maintaining heap invariant
-            # This will only fully empty the heap when
-            # all things remaining in the heap after waking tasks in
-            # above section are all done.
-            next_waiter = heapq.heappop(self._waiters)
-            if not (next_waiter.done() or next_waiter.cancelled()):
-                heapq.heappush(self._waiters, next_waiter)
-                break
+            while self._waiters:
+                # cleanup maintaining heap invariant
+                # This will only fully empty the heap when
+                # all things remaining in the heap after waking tasks in
+                # above section are all done.
+                next_waiter = heapq.heappop(self._waiters)
+                if not (next_waiter.done() or next_waiter.cancelled()):
+                    heapq.heappush(self._waiters, next_waiter)
+                    break
 
     def __release(self) -> None:
         self._value += 1
