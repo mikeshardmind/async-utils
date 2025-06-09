@@ -53,8 +53,6 @@ class _PriorityWaiter:
         self.future.set_result(val)
 
     def __await__(self) -> Generator[t.Any, t.Any, None]:
-        # see: https://discuss.python.org/t/compatability-of-descriptor-objects-in-protocols/77998/2
-        # for why this isn't using property delegation.
         f = asyncio.wrap_future(self.future)
         return (yield from f.__await__())
 
