@@ -19,7 +19,7 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures as cf
 import threading
-from collections.abc import Coroutine, Generator
+from collections.abc import Callable, Coroutine, Generator
 from contextlib import contextmanager
 
 from . import _typings as t
@@ -139,7 +139,10 @@ def _run_forever(
 
 @contextmanager
 def threaded_loop(
-    *, use_eager_task_factory: bool = True, wait_on_exit: bool = True
+    *,
+    use_eager_task_factory: bool = True,
+    wait_on_exit: bool = True,
+    loop_factory: Callable[[], asyncio.AbstractEventLoop] | None = None,
 ) -> Generator[LoopWrapper, None, None]:
     """Create and use a managed event loop in a backround thread.
 
@@ -157,7 +160,7 @@ def threaded_loop(
     LoopWrapper
         A wrapper with methods for interacting with the background loop.
     """
-    loop = asyncio.new_event_loop()
+    loop = (loop_factory or asyncio.new_event_loop)()
     thread = None
     wrapper = None
     try:
