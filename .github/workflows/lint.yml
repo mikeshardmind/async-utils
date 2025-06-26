@@ -37,6 +37,7 @@ jobs:
           python -m pip install .
 
       - name: "Run Pyright @ ${{ matrix.python-version }}"
+        if: ${{ matrix.python-version != '3.14-dev' }}
         uses: jakebailey/pyright-action@v2
         with:
           warnings: false
