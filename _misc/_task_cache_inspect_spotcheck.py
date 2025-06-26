@@ -30,8 +30,8 @@ async def runner(v: int) -> None:
 
 
 if __name__ == "__main__":
-    print(echo.__signature__)  # pyright: ignore[reportFunctionMemberAccess] # noqa: T201
+    print(getattr(echo, "__signature__"))  # noqa: T201, B009
     print(inspect.signature(echo))  # noqa: T201
-    print(echo.__signature__)  # pyright: ignore[reportFunctionMemberAccess] # noqa: T201
+    print(getattr(echo, "__signature__"))  # noqa: T201, B009
     asyncio.run(runner(10))
     asyncio.run(runner(20))
