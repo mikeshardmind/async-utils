@@ -46,9 +46,17 @@ else:
 
     def f__call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...  # noqa: ANN001
 
-    type CoroCacheDeco = type(
-        "CoroCacheDeco", (__import__("typing").Protocol,), {"__call__": f__call__}
-    )
+    class ExprWrapper:
+        """Future proof against runtime change preventing call expr in type statement."""
+
+        def __class_getitem__(cls, key: None) -> t.Any:
+            return type(
+                "CoroCacheDeco",
+                (__import__("typing").Protocol,),
+                {"__call__": f__call__},
+            )
+
+    type CoroCacheDeco = ExprWrapper[None]
 
 
 def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:

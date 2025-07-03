@@ -47,9 +47,17 @@ else:
 
     def f__call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...  # noqa: ANN001
 
-    type TaskCacheDeco = type(
-        "TaskCacheDeco", (__import__("typing").Protocol,), {"__call__": f__call__}
-    )
+    class ExprWrapper:
+        """Future proof against runtime change preventing call expr in type statement."""
+
+        def __class_getitem__(cls, key: None) -> t.Any:
+            return type(
+                "TaskCacheDeco",
+                (__import__("typing").Protocol,),
+                {"__call__": f__call__},
+            )
+
+    type TaskCacheDeco = ExprWrapper[None]
 
 
 # Non-annotation assignments for transformed functions

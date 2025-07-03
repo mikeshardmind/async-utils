@@ -76,7 +76,11 @@ if __name__ == "__main__":
 
     print("Checking annotations for runtime validity", flush=True)  # noqa: T201
 
-    for mod_info in pkgutil.iter_modules(async_utils.__spec__.submodule_search_locations):
+    spec = async_utils.__spec__
+    assert spec is not None
+    locations = spec.submodule_search_locations
+
+    for mod_info in pkgutil.iter_modules(locations):
         mod = importlib.import_module(f"async_utils.{mod_info.name}")
         for name in getattr(mod, "__all__", ()):
             obj = getattr(mod, name)
