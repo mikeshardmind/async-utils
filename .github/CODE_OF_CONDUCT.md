@@ -5,7 +5,7 @@ The document applies in all “collaborative spaces” in which the code is bein
 
 The guidelines here reflect the values which are to be protected here.
 
-1. Good ideas can come from anywhere.
+1. Good ideas can come from anywhere. [^1]
 2. Code should work for communities, not the other way around.
 3. Code should not adversely impact the goodwill of the services it relies on.
 4. If there is something wrong, don't ignore the issue.
@@ -13,7 +13,7 @@ The guidelines here reflect the values which are to be protected here.
 
 With those values in mind, the guidelines which contributors should follow:
 
-1. Participants should be tolerant of others.
+1. Participants should be tolerant of others. [^1]
 2. Personal views and beliefs are not to be used to excuse harassment or any other behavior which is harmful to others collaborating.
 3. Behaviour which a reasonable individual could consider to be harassment will not be tolerated.
 4. When code is criticized, the criticism should be founded in the code alone. It should never be used to single out a contributor.
@@ -25,3 +25,6 @@ Those who violate the guidelines as written, as well as those who intentionally 
 The curent point of contact for any issues arising with this is code-contributions@michaelhall.tech
 This address will be monitored for so long as it is included as the point of contact.
 Should it change at a later date, the new address will be reflected in this document.
+
+
+[^1]: No facists. Facism is incompatible with the social contracts of tolerance and acceptance.
