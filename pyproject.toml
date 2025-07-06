@@ -171,7 +171,6 @@ ignore = [
     "D107", # __init__ is the wrong place to doc this.
     "E501", # ruff format suggested
     "FBT003", # Wrong end to enforce this on.
-    "G002",  # erroneous issue with %-logging when logging can be confiured for % logging
     "ISC001", # ruff format suggested
     "PLC0105",  # no, I don't like co naming style for typevars
     "PLC0415", # ruff gets this wrong, import needs to be not at top of file in some cases
@@ -226,6 +225,9 @@ allow-dict-calls-with-keyword-arguments = true
 "typing_extensions.Final".msg = "see https://github.com/microsoft/pyright/issues/9664#issuecomment-2574042580"
 "typing.final".msg = "see https://github.com/microsoft/pyright/issues/9664#issuecomment-2574042580"
 "typing_extensions.final".msg = "see https://github.com/microsoft/pyright/issues/9664#issuecomment-2574042580"
+
+# Arguably, much of the collections.abc APIs should be banned as well, but the use in this library is
+# aware of the problems.
 
 [project]
 name = "mikeshardmind-async-utils"
