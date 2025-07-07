@@ -203,7 +203,7 @@ class BaseQueue[T]:
     May make sense as a type annotation.
     """
 
-    __slots__ = ("__get_ws", "__put_ws", "__unlocked", "__unlocked", "__ws", "maxsize")
+    __slots__ = ("__get_ws", "__put_ws", "__unlocked", "__ws", "maxsize")
 
     def __init__(self, /, maxsize: int | None = None) -> None:
         self.__ws: deque[AsyncEvent | ThreadingEvent] = deque()
