@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures as cf
-from collections.abc import Awaitable, Callable, Coroutine, Hashable
+from collections.abc import Awaitable, Callable, Coroutine, Hashable, Mapping
 from functools import partial, wraps
 
 from . import _typings as t
@@ -32,7 +32,7 @@ type CoroLike[**P, R] = Callable[P, Awaitable[R]]
 #: rather than a ParamSpec of the decorated function.
 #: Warning: Mutations will impact callsite, return new objects as needed.
 type CacheTransformer = Callable[
-    [tuple[t.Any, ...], dict[str, t.Any]], tuple[tuple[t.Any, ...], dict[str, t.Any]]
+    [tuple[t.Any, ...], Mapping[str, t.Any]], tuple[tuple[t.Any, ...], Mapping[str, t.Any]]
 ]
 
 TYPE_CHECKING = False

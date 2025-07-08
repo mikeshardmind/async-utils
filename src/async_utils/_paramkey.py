@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
+from collections.abc import Hashable, Mapping
 
 from . import _typings as t
 
@@ -40,7 +40,7 @@ class _HK:
 _marker: tuple[object] = (object(),)
 
 
-def make_key(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
+def make_key(args: tuple[t.Any, ...], kwds: Mapping[t.Any, object], /) -> Hashable:
     key: tuple[t.Any, ...] = args
     if kwds:
         key += _marker

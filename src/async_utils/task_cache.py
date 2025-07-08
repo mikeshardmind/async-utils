@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures as cf
-from collections.abc import Callable, Coroutine, Hashable
+from collections.abc import Callable, Coroutine, Hashable, Mapping
 from functools import partial, wraps
 
 from . import _typings as t
@@ -29,11 +29,11 @@ type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
 type TaskFunc[**P, R] = Callable[P, asyncio.Task[R]]
 type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
 
-#: Note CacheTransformers recieve a tuple (args) and dict(kwargs)
+#: Note CacheTransformers recieve a tuple (args) and dict (kwargs)
 #: rather than a ParamSpec of the decorated function.
 #: Warning: Mutations will impact callsite, return new objects as needed.
 type CacheTransformer = Callable[
-    [tuple[t.Any, ...], dict[str, t.Any]], tuple[tuple[t.Any, ...], dict[str, t.Any]]
+    [tuple[t.Any, ...], Mapping[str, t.Any]], tuple[tuple[t.Any, ...], Mapping[str, t.Any]]
 ]
 
 TYPE_CHECKING = False
