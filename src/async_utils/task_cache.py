@@ -33,7 +33,8 @@ type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
 #: rather than a ParamSpec of the decorated function.
 #: Warning: Mutations will impact callsite, return new objects as needed.
 type CacheTransformer = Callable[
-    [tuple[t.Any, ...], Mapping[str, t.Any]], tuple[tuple[t.Any, ...], Mapping[str, t.Any]]
+    [tuple[t.Any, ...], Mapping[str, t.Any]],
+    tuple[tuple[t.Any, ...], Mapping[str, t.Any]],
 ]
 
 TYPE_CHECKING = False
