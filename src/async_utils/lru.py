@@ -51,7 +51,8 @@ class LRU[K, V]:
     Use a threading lock to synchronize access if needed.
 
     This is not locked automatically to avoid paying the cost
-    in applications that do not share this across threads.
+    in applications that do not share this across threads or share
+    across threads in a way that would not require a lock.
 
     Parameters
     ----------
