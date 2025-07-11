@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import Coroutine
 from contextvars import Context
 
@@ -48,7 +49,10 @@ class BGTasks:
     Parameters
     ----------
     exit_timeout: int | None
-        Optionally, the number of seconds to wait before timing out tasks.
+        Optionally, the number of seconds to wait before sending a
+        cancellation to pending tasks. This does not guarantee that after
+        the timeout the context manager will exit immediately,
+        as tasks may catch cancellation.
 
         In applications that care about graceful shutdown, this should
         usually not be set. When not provided, the context manager
@@ -99,8 +103,20 @@ class BGTasks:
         return self
 
     async def __aexit__(self, *_dont_care: object) -> None:
+        start = time.monotonic()
+        pending: set[asyncio.Task[t.Any]] = set()
         while tsks := self._tasks.copy():
+            if self._etime:
+                max_sleep = start - time.monotonic() + self._etime
+                if max_sleep <= 0:
+                    break
+
             _done, pending = await asyncio.wait(tsks, timeout=self._etime)
+            await asyncio.sleep(0)
+
+        if pending:
             for task in pending:
                 task.cancel()
-            await asyncio.sleep(0)
+            # This wait is required in case tasks catch cancelation and
+            # do further cleanup
+            await asyncio.wait(pending)

@@ -9,7 +9,7 @@ __title__ = "async_utils"
 __author__ = "Michael Hall"
 __license__ = "Apache-2.0"
 __copyright__ = "Copyright 2020-Present Michael Hall"
-__version__ = "2025.07.08b"
+__version__ = "2025.07.11b"
 
 import os
 import sys
