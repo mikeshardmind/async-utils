@@ -35,6 +35,15 @@ Things that will **not** be considered breaking:
    non-guaranteed implementation detail.
    If you need a guarantee here, please open an issue explaining why.
 
+4. Base class layouts, metaclasses
+   The non-public base classes are considered an implementation detail.
+   They may be removed, changed, etc. The library does not support subclassing
+   of types provided, and only the public types should need be relied upon.
+
+5. Non-explicit compatability with `weakref`
+   Any compatability with weakref should be considered accidental **unless** a
+   type has declared slots and includes `__weakref__` in those slots.
+
 Things that will be considered a breaking change:
 
 1. Removal of a symbol from ``__all__``.
