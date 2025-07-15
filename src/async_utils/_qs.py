@@ -35,12 +35,10 @@ if TYPE_CHECKING:
     _contraT = typing.TypeVar("_contraT", contravariant=True)
 
     class LT(typing.Protocol[_contraT]):
-        def __lt__(self, other: _contraT) -> bool:
-            ...
+        def __lt__(self, other: _contraT) -> bool: ...
 
     class GT(typing.Protocol[_contraT]):
-        def __gt__(self, other: _contraT) -> bool:
-            ...
+        def __gt__(self, other: _contraT) -> bool: ...
 
     type HeapqOrderable = LT[t.Any] | GT[t.Any]
 
@@ -55,12 +53,10 @@ else:
             _contraT = typing.TypeVar("_contraT", contravariant=True)  # noqa: RUF052
 
             class LT(typing.Protocol[_contraT]):
-                def __lt__(self, other: _contraT) -> bool:
-                    ...
+                def __lt__(self, other: _contraT) -> bool: ...
 
             class GT(typing.Protocol[_contraT]):
-                def __gt__(self, other: _contraT) -> bool:
-                    ...
+                def __gt__(self, other: _contraT) -> bool: ...
 
             return LT[t.Any] | GT[t.Any]
 
