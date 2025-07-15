@@ -28,6 +28,44 @@ from heapq import heappop, heappush
 
 from . import _typings as t
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    import typing
+
+    _contraT = typing.TypeVar("_contraT", contravariant=True)
+
+    class LT(typing.Protocol[_contraT]):
+        def __lt__(self, other: _contraT) -> bool:
+            ...
+
+    class GT(typing.Protocol[_contraT]):
+        def __gt__(self, other: _contraT) -> bool:
+            ...
+
+    type HeapqOrderable = LT[t.Any] | GT[t.Any]
+
+else:
+
+    class ExprWrapper:
+        """Future proof against runtime change preventing call expr in type statement."""
+
+        def __class_getitem__(cls, key: None) -> t.Any:
+            import typing
+
+            _contraT = typing.TypeVar("_contraT", contravariant=True)  # noqa: RUF052
+
+            class LT(typing.Protocol[_contraT]):
+                def __lt__(self, other: _contraT) -> bool:
+                    ...
+
+            class GT(typing.Protocol[_contraT]):
+                def __gt__(self, other: _contraT) -> bool:
+                    ...
+
+            return LT[t.Any] | GT[t.Any]
+
+    type HeapqOrderable = ExprWrapper[None]
+
 __all__ = ("LIFOQueue", "PriorityQueue", "Queue", "QueueEmpty", "QueueFull")
 
 
@@ -567,7 +605,7 @@ class LIFOQueue[T](BaseQueue[T]):
         return self._data.pop()
 
 
-class PriorityQueue[T](BaseQueue[T]):
+class PriorityQueue[T: HeapqOrderable](BaseQueue[T]):
     """A thread-safe queue with both sync and async access methods."""
 
     __slots__ = ("_data", "_lock")
