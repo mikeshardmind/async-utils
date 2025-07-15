@@ -139,8 +139,9 @@ class PrioritySemaphore:
         prio = _priority.get()
         await self.__acquire(prio)
 
-    async def __aexit__(self, *dont_care: object) -> None:
+    async def __aexit__(self, *dont_care: object) -> t.Literal[False]:
         self.__release()
+        return False
 
     async def __acquire(self, priority: int, /) -> bool:
         if not self.__locked():
