@@ -71,5 +71,5 @@ class AsyncLock:
                     fut = next(iter(self._waiters))
                 except StopIteration:
                     return
-                if not fut.done:
+                if not fut.done():
                     fut.set_result(None)
