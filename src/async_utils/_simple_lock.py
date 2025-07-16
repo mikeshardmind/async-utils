@@ -33,13 +33,19 @@ class AsyncLock:
 
     def __init__(self) -> None:
         self._waiters: deque[cf.Future[None]] = deque()
+        self._lockv: bool = False
         self._internal_lock: threading.RLock = threading.RLock()
-        self._locked: bool = False
 
-    async def __aenter__(self, /) -> None:
+    def __locked(self) -> bool:
         with self._internal_lock:
-            if not self._locked and (all(w.cancelled() for w in self._waiters)):
-                self._locked = True
+            return self._lockv or (any(not w.cancelled() for w in (self._waiters)))
+
+    async def __aenter__(self) -> None:
+        await asyncio.sleep(0)  # This yield is non-optional.
+
+        with self._internal_lock:
+            if not self.__locked():
+                self._lockv = True
                 return
 
         fut: cf.Future[None] = cf.Future()
@@ -49,27 +55,33 @@ class AsyncLock:
 
         try:
             await asyncio.wrap_future(fut)
-        except (asyncio.CancelledError, cf.CancelledError):
-            with self._internal_lock:
-                if self._locked:
-                    self._maybe_wake()
+        except asyncio.CancelledError:
+            if fut.done() and not fut.cancelled():
+                self._lockv = False
+            raise
+
         finally:
-            self._waiters.remove(fut)
-
-    async def __aexit__(self, *_dont_care: object) -> t.Literal[False]:
-        with self._internal_lock:
-            if self._locked:
-                self._locked = False
-                self._maybe_wake()
-
-        return False
+            self._maybe_wake()
+        return
 
     def _maybe_wake(self) -> None:
         with self._internal_lock:
-            if self._waiters:
-                try:
-                    fut = next(iter(self._waiters))
-                except StopIteration:
-                    return
-                if not fut.done():
-                    fut.set_result(None)
+            while (not self._lockv) and self._waiters:
+                next_waiter = self._waiters.popleft()
+
+                if not (next_waiter.done() or next_waiter.cancelled()):
+                    self._lockv = True
+                    next_waiter.set_result(None)
+
+            while self._waiters:
+                next_waiter = self._waiters.popleft()
+                if not (next_waiter.done() or next_waiter.cancelled()):
+                    self._waiters.appendleft(next_waiter)
+                    break
+
+    async def __aexit__(self, *dont_care: object) -> t.Literal[False]:
+        await asyncio.sleep(0)  # this yield is not optional
+        with self._internal_lock:
+            self._lockv = False
+            self._maybe_wake()
+        return False
