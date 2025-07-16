@@ -43,6 +43,11 @@ Things that will **not** be considered breaking:
 5. Non-explicit compatability with `weakref`
    Any compatability with weakref should be considered accidental **unless** a
    type has declared slots and includes `__weakref__` in those slots.
+   (open an issue if you want `__weakref__` with a reason why)
+
+6. Going from *inable* to *able* share a resource across threads.
+7. Adding or removing internal locking that does not introduce deadlocks,
+   races, or remove the threadsafety of an object's documented use.
 
 Things that will be considered a breaking change:
 
@@ -53,6 +58,7 @@ Things that will be considered a breaking change:
 5. Changing the semantic meaning of a parameter's default value.
 6. Changing the allowed runtime type of a parameter in a way that makes a previously supported call invalid.
 7. Changing the runtime return type of a documented function to no longer match prior documentation.
+8. Changing an object to no longer be shareable across threads.
 
 When something isn't covered explicitly one way or the other above,
 it will be considered a breaking change if an intended supported usage
