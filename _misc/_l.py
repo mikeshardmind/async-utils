@@ -17,7 +17,10 @@ async def check(lock: AsyncLock):
 
 async def amain():
     lock = AsyncLock()
-    with threaded_loop() as tl1, threaded_loop() as tl2:
+    with (
+        threaded_loop(use_eager_task_factory=False) as tl1,
+        threaded_loop(use_eager_task_factory=False) as tl2,
+    ):
         tsks = {loop.run(check(lock)) for loop in (tl1, tl2) for _ in range(10)}
         await asyncio.gather(*tsks)
 

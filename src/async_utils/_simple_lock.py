@@ -41,8 +41,11 @@ class AsyncLock:
             return self._lockv or (any(not w.cancelled() for w in (self._waiters)))
 
     async def __aenter__(self) -> None:
-        await asyncio.sleep(0)  # This yield is non-optional.
+        # placing the body of acquire here
+        # causes problems with eager tasks factories.
+        await self.__acquire()
 
+    async def __acquire(self) -> None:
         with self._internal_lock:
             if not self.__locked():
                 self._lockv = True
@@ -80,7 +83,6 @@ class AsyncLock:
                     break
 
     async def __aexit__(self, *dont_care: object) -> t.Literal[False]:
-        await asyncio.sleep(0)  # this yield is not optional
         with self._internal_lock:
             self._lockv = False
             self._maybe_wake()
