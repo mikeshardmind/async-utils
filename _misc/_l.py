@@ -15,29 +15,35 @@
 import asyncio
 import random
 import time
+from contextlib import ExitStack
 
 from async_utils._simple_lock import AsyncLock  # noqa: PLC2701
 from async_utils.bg_loop import threaded_loop
 
+min_res = time.get_clock_info("monotonic").resolution
+
+start = time.monotonic_ns()
+
 
 async def check(lock: AsyncLock):
     async with lock:
-        v = random.random()
-        s = time.monotonic()
+        v = max(random.random() / 1000, min_res)
+        s = time.monotonic_ns()
         await asyncio.sleep(v)
-        e = time.monotonic()
-        print(s, v, e, flush=True)  # noqa: T201
+        e = time.monotonic_ns()
+        print(s - start, e - start, flush=True)  # noqa: T201
+        await asyncio.sleep(min_res)
 
 
 async def amain():
     lock = AsyncLock()
-    with (
-        threaded_loop(use_eager_task_factory=False) as tl1,
-        threaded_loop(use_eager_task_factory=False) as tl2,
-        threaded_loop() as tl3,
-        threaded_loop() as tl4,
-    ):
-        tsks = {loop.run(check(lock)) for loop in (tl1, tl2, tl3, tl4) for _ in range(10)}
+    with ExitStack() as ex:
+        loops = [
+            ex.enter_context(threaded_loop(use_eager_task_factory=x))
+            for _ in range(10)
+            for x in (True, False)
+        ]
+        tsks = {loop.run(check(lock)) for loop in loops for _ in range(10)}
         await asyncio.gather(*tsks)
 
 
