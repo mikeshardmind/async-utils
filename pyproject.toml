@@ -208,6 +208,9 @@ allow-dict-calls-with-keyword-arguments = true
 "concurrent.futures" = "cf"
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
+
+# typing apis first
+
 # https://discuss.python.org/t/problems-with-typeis/55410/6
 # https://discuss.python.org/t/problems-with-typeis/55410/46
 # Until what can go into a TypeIs/TypeGuard changes, these are just dangerous.
@@ -228,6 +231,12 @@ allow-dict-calls-with-keyword-arguments = true
 
 # Arguably, much of the collections.abc APIs should be banned as well, but the use in this library is
 # aware of the problems.
+
+# These are some asyncio APIs that are problematic
+
+"asyncio.shield".msg = "This doesn't do what almost anyone thinks. Just don't use it."
+"asyncio.TaskGroup".msg = "see pep 789"
+"asyncio.Timeout".msg = "see pep 789"
 
 [project]
 name = "mikeshardmind-async-utils"
