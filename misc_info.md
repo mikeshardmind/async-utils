@@ -41,3 +41,10 @@ all of, but may need to revisit in the future related to it.
   This divergent behavior has to be kept track of, however, relying on task names
   being reliably set prior to python 3.13 as a library or application
   minimum is unsafe.
+
+
+## Deferred typing-only imports
+
+There's a bunch of imports that are deferred, but not elided.
+This allows annotation inspection at runtime to continue working, while minimizing
+(but unfortunately, not fully removing) the costs for anyone not introspecting.
