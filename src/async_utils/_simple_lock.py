@@ -21,6 +21,18 @@ from . import _typings as t
 
 # TODO: pick what public namespace to re-export this from.
 
+# This is one of the few things that should unreservedly be reimplemented natively.
+# Atomic ops allow the design here to be lockfree.
+# Actually using a futex here might improve performance further, though I doubt it.
+
+# We can also do a little bit better prior to making it native by only locking
+# if we observe multiple threads. The gain for this is minor, but not insignificant.
+
+# This particular lock implementation optimizes for the uncontested lock case.
+# This is the most important optimization for well-designed parallel code
+# with fine-grained lock use. It's also barging, which is known to be better
+# than FIFO in the case of highly contested locks.
+
 
 class AsyncLock:
     """An async lock that doesn't bind to an event loop."""
@@ -36,36 +48,26 @@ class AsyncLock:
         self._lockv: bool = False
         self._internal_lock: threading.RLock = threading.RLock()
 
-    def __locked(self) -> bool:
-        with self._internal_lock:
-            return self._lockv or (any(not w.cancelled() for w in (self._waiters)))
-
     async def __aenter__(self) -> None:
-        # placing the body of acquire here
-        # causes problems with eager tasks factories.
-        await self.__acquire()
-
-    async def __acquire(self) -> None:
         with self._internal_lock:
-            if not self.__locked():
+            if not self._lockv:
                 self._lockv = True
                 return
 
         fut: cf.Future[None] = cf.Future()
 
-        with self._internal_lock:
-            self._waiters.append(fut)
+        self._waiters.append(fut)
 
         try:
             await asyncio.wrap_future(fut)
         except asyncio.CancelledError:
-            if fut.done() and not fut.cancelled():
-                self._lockv = False
+            with self._internal_lock:
+                if not self._lockv:
+                    self._maybe_wake()
             raise
 
-        finally:
-            self._maybe_wake()
-        return
+        with self._internal_lock:
+            self._lockv = True
 
     def _maybe_wake(self) -> None:
         with self._internal_lock:

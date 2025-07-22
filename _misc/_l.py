@@ -22,17 +22,15 @@ from async_utils.bg_loop import threaded_loop
 
 min_res = time.get_clock_info("monotonic").resolution
 
-start = time.monotonic_ns()
 
-
-async def check(lock: AsyncLock):
+async def check(lock: AsyncLock, start: int) -> tuple[int, int]:
     async with lock:
-        v = max(random.random() / 1000, min_res)
+        v = max(random.random() / 1e10, min_res)
         s = time.monotonic_ns()
         await asyncio.sleep(v)
         e = time.monotonic_ns()
-        print(s - start, e - start, flush=True)  # noqa: T201
         await asyncio.sleep(min_res)
+        return (s - start, e - start)
 
 
 async def amain():
@@ -43,8 +41,11 @@ async def amain():
             for _ in range(10)
             for x in (True, False)
         ]
-        tsks = {loop.run(check(lock)) for loop in loops for _ in range(10)}
-        await asyncio.gather(*tsks)
+        start = time.monotonic_ns()
+        tsks = {loop.run(check(lock, start)) for loop in loops for _ in range(10)}
+        results = await asyncio.gather(*tsks)
+        results.sort()
+        print(*(f"{s} {e}" for s, e in results), sep="\n", flush=True)  # noqa: T201
 
 
 if __name__ == "__main__":
