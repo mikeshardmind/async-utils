@@ -22,8 +22,7 @@ from . import _typings as t
 # TODO: pick what public namespace to re-export this from.
 
 # This is one of the few things that should unreservedly be reimplemented natively.
-# Atomic ops allow the design here to be lockfree.
-# Actually using a futex here might improve performance further, though I doubt it.
+# Atomic ops allow the removal of the internal locking.
 
 # We can also do a little bit better prior to making it native by only locking
 # if we observe multiple threads. The gain for this is minor, but not insignificant.
