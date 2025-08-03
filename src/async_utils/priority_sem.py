@@ -18,10 +18,6 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures as cf
 import contextvars
-
-# PYUPDATE: 3.14 release + 3.14 minimum: reaudit
-# heapq methods are not threadsafe pre 3.14
-# see: GH: cpython 135036
 import heapq
 import threading
 import time
@@ -123,13 +119,9 @@ class PrioritySemaphore:
             raise ValueError(msg)
         self._waiters: list[_PriorityWaiter] | None = None
         self._value: int = value
-        # PYUPDATE: 3.14 minimum heapq safety
         self._internal_lock: threading.RLock = threading.RLock()
 
     def __locked(self) -> bool:
-        # Must do a comparison based on priority then FIFO
-        # in the case of existing waiters
-        # not guaranteed to be immediately available
         with self._internal_lock:
             return self._value == 0 or (
                 any(not w.cancelled() for w in (self._waiters or ()))

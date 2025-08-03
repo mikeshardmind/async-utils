@@ -21,10 +21,13 @@ from __future__ import annotations
 # see: GH: cpython 135036
 import heapq
 import math
+import sys
 import threading
 import time
 
 from . import _typings as t
+
+THREAD_SAFE_HEAPQ = sys.version_info[:2] >= (3, 14)
 
 __all__ = ("LRU", "TTLLRU")
 
@@ -260,20 +263,19 @@ class TTLLRU[K, V]:
         now = time.monotonic()
         if now > ts:
             raise KeyError
-        self._cache[key] = ts, val
         return val
 
     def __setitem__(self, key: K, value: V, /) -> None:
         ts = time.monotonic() + self._ttl
         with self._internal_lock:
             heapq.heappush(self._expirations, (ts, key))
-        self._cache[key] = (ts, value)
-        self._remove_some_expired()
-        if len(self._cache) > self._maxsize:
-            try:
-                self._cache.pop(next(iter(self._cache)))
-            except (KeyError, StopIteration):
-                pass
+            self._cache[key] = (ts, value)
+            self._remove_some_expired()
+            if len(self._cache) > self._maxsize:
+                try:
+                    self._cache.pop(next(iter(self._cache)))
+                except (KeyError, StopIteration):
+                    pass
 
     def get[T](self, key: K, default: T, /) -> V | T:
         """Get a value by key or default value.
@@ -309,5 +311,6 @@ class TTLLRU[K, V]:
         key:
             The key to remove.
         """
-        self._remove_some_expired()
-        self._cache.pop(key, None)
+        with self._internal_lock:
+            self._remove_some_expired()
+            self._cache.pop(key, None)

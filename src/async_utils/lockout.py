@@ -16,10 +16,6 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures as cf
-
-# PYUPDATE: 3.14 release + 3.14 minimum: reaudit
-# heapq methods are not threadsafe pre 3.14
-# see: GH: cpython 135036
 import heapq
 import threading
 import time
@@ -93,7 +89,6 @@ class Lockout:
             now = time.monotonic()
             # There must not be an async context switch between here
             # and replacing the lockout when lockout is in the future
-            # PYUPDATE: The lock here can be removed at 3.14 minimum
             with self._internal_lock:
                 ts = heapq.heappop(self._lockouts)
                 if (sleep_for := ts - now) > 0:

@@ -12,21 +12,18 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# With thanks to everyone I've ever discussed concurrency or datastructures with
-
 from __future__ import annotations
 
 import asyncio
+import sys
 import threading
 from collections import deque
 from collections.abc import Generator
-
-# PYUPDATE: 3.14 release + 3.14 minimum: reaudit
-# heapq methods are not threadsafe pre 3.14
-# see: GH: cpython 135036
 from heapq import heappop, heappush
 
 from . import _typings as t
+
+THREAD_SAFE_HEAPQ = sys.version_info[:2] >= (3, 14)
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -604,7 +601,7 @@ class LIFOQueue[T](BaseQueue[T]):
 class PriorityQueue[T: HeapqOrderable](BaseQueue[T]):
     """A thread-safe queue with both sync and async access methods."""
 
-    __slots__ = ("_data", "_lock")
+    __slots__ = ("_data",) if THREAD_SAFE_HEAPQ else ("_data", "_lock")
 
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"
@@ -612,22 +609,35 @@ class PriorityQueue[T: HeapqOrderable](BaseQueue[T]):
 
     __final__ = True
 
-    def __init__(self, /, maxsize: int | None = None) -> None:
-        super().__init__(maxsize)
-        self._data: list[T] = []
-        # heapq not threadsafe till 3.14
-        self._lock = threading.RLock()
+    if THREAD_SAFE_HEAPQ:
+
+        def __init__(self, /, maxsize: int | None = None) -> None:
+            super().__init__(maxsize)
+            self._data: list[T] = []
+
+        def _put(self, item: T, /) -> None:
+            heappush(self._data, item)
+
+        def _get(self, /) -> T:
+            return heappop(self._data)
+
+    else:
+
+        def __init__(self, /, maxsize: int | None = None) -> None:
+            super().__init__(maxsize)
+            self._data: list[T] = []
+            self._lock = threading.RLock()
+
+        def _put(self, item: T, /) -> None:
+            with self._lock:
+                heappush(self._data, item)
+
+        def _get(self, /) -> T:
+            with self._lock:
+                return heappop(self._data)
 
     def _qsize(self, /) -> int:
         return len(self._data)
 
     def _items(self, /) -> list[T]:
         return self._data.copy()
-
-    def _put(self, item: T, /) -> None:
-        with self._lock:
-            heappush(self._data, item)
-
-    def _get(self, /) -> T:
-        with self._lock:
-            return heappop(self._data)
