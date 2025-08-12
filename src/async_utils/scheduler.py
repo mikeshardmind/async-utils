@@ -46,7 +46,7 @@ class _Task[T]:
 class Scheduler[T]:
     """A scheduler.
 
-    The scheduler is implemented as an async context manager that it an
+    The scheduler is implemented as an async context manager that is an
     async iterator.
 
     Payloads can be scheduled to the context manager, and will be yielded
