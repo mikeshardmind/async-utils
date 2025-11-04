@@ -40,7 +40,9 @@ class _HK:
 _marker: tuple[object] = (object(),)
 
 
-def make_key(args: tuple[t.Any, ...], kwds: Mapping[t.Any, object], /) -> Hashable:
+def make_key(
+    args: tuple[t.Any, ...], kwds: Mapping[t.Any, object], /
+) -> Hashable:
     key: tuple[t.Any, ...] = args
     if kwds:
         key += _marker

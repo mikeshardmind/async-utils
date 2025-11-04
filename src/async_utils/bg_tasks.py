@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = ["asyncio"]
+
 import asyncio
 import time
 from collections.abc import Coroutine

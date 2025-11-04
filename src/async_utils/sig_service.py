@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = ["asyncio", "select", "signal", "socket"]
+
 import enum
 import select
 import signal

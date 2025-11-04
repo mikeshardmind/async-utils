@@ -24,7 +24,9 @@ from typing import Any
 
 _cycle_blocked = False
 
-rec = partial(compile, filename="<string>", mode="exec", flags=0, dont_inherit=True)
+rec = partial(
+    compile, filename="<string>", mode="exec", flags=0, dont_inherit=True
+)
 
 
 def ensure_annotations[T: type | FunctionType](f: T) -> T:
@@ -55,7 +57,7 @@ def ensure_annotations[T: type | FunctionType](f: T) -> T:
 
 def version_specific_annotation_interactions(obj: Any) -> None:
     if sys.version_info[:2] >= (3, 14):
-        import annotationlib  # pyright: ignore[reportMissingImports]
+        import annotationlib  # pyright: ignore[reportMissingTypeStubs]
 
         if isinstance(obj, type):
             for t in inspect.getmro(obj):

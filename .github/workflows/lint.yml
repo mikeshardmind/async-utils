@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ '3.12', '3.13', '3.14-dev' ]
+        python-version: [ '3.12', '3.13', '3.14' ]
 
     name: "Type Coverage and Linting @ ${{ matrix.python-version }}"
     steps:
@@ -37,10 +37,10 @@ jobs:
           python -m pip install .
 
       - name: "Run Pyright @ ${{ matrix.python-version }}"
-        if: ${{ matrix.python-version != '3.14-dev' }}
         uses: jakebailey/pyright-action@v2
         with:
           warnings: false
+          verify-types: "async_utils"
 
       - name: Lint check
         uses: astral-sh/ruff-action@v3

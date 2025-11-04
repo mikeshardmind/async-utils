@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = ["asyncio"]
+
 import asyncio
 from functools import total_ordering
 from time import time
@@ -110,7 +112,9 @@ class Scheduler[T]:
                 self.__tqueue.task_done()
         raise StopAsyncIteration
 
-    async def create_task(self, timestamp: float, payload: T, /) -> CancellationToken:
+    async def create_task(
+        self, timestamp: float, payload: T, /
+    ) -> CancellationToken:
         """Create a task.
 
         Parameters

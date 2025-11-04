@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = ["asyncio"]
+
 import asyncio
 import concurrent.futures as cf
 from collections.abc import Callable, Coroutine, Hashable, Mapping
@@ -42,7 +44,9 @@ if TYPE_CHECKING:
     import typing
 
     class TaskCacheDeco(typing.Protocol):
-        def __call__[**P, R](self, c: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]: ...
+        def __call__[**P, R](
+            self, c: TaskCoroFunc[P, R], /
+        ) -> TaskFunc[P, R]: ...
 
 else:
 
@@ -79,7 +83,9 @@ class _WrappedSignature[**P, R]:
     # as func.__signature__
     # Known working: py 3.12.0 - py3.14rc1 range inclusive
     def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
-        self._f: Callable[..., t.Any] = f  # anotation needed for inspect use below....
+        self._f: Callable[..., t.Any] = (
+            f  # anotation needed for inspect use below....
+        )
         self._w = w
         self._sig: t.Any | None = None
 
@@ -90,7 +96,11 @@ class _WrappedSignature[**P, R]:
             sig = inspect.signature(self._f)
             if inspect.iscoroutinefunction(self._f):
                 rn: t.Any = sig.return_annotation
-                ra = asyncio.Task if rn is inspect.Signature.empty else asyncio.Task[rn]
+                ra = (
+                    asyncio.Task
+                    if rn is inspect.Signature.empty
+                    else asyncio.Task[rn]
+                )
                 sig = sig.replace(return_annotation=ra)
             setattr(self._w, "__signature__", sig)  # noqa: B010
             self._sig = sig
@@ -163,7 +173,9 @@ def taskcache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
+        def key_func(
+            args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /
+        ) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]:
@@ -249,7 +261,9 @@ def lrutaskcache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
+        def key_func(
+            args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /
+        ) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]:

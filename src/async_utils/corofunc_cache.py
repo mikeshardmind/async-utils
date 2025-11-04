@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = ["asyncio"]
+
 import asyncio
 import concurrent.futures as cf
 from collections.abc import Awaitable, Callable, Coroutine, Hashable, Mapping
@@ -103,7 +105,9 @@ def corocache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
+        def key_func(
+            args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /
+        ) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: CoroLike[P, R], /) -> CoroFunc[P, R]:
@@ -182,7 +186,9 @@ def lrucorocache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
+        def key_func(
+            args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /
+        ) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: CoroLike[P, R], /) -> CoroFunc[P, R]:

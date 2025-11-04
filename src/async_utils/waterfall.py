@@ -15,6 +15,8 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = ["asyncio"]
+
 import asyncio
 import logging
 import time
@@ -115,7 +117,9 @@ class Waterfall[T]:
             raise RuntimeError(msg)
         self.queue.put_nowait(item)
 
-    def _user_done_callback(self, num: int, future: asyncio.Future[t.Any]) -> None:
+    def _user_done_callback(
+        self, num: int, future: asyncio.Future[t.Any]
+    ) -> None:
         if future.cancelled():
             _log.warning("Callback cancelled due to timeout")
         elif exc := future.exception():
@@ -135,9 +139,13 @@ class Waterfall[T]:
                 queue_items: list[T] = []
                 iter_start = time.monotonic()
 
-                while (this_max_wait := (time.monotonic() - iter_start)) < self.max_wait:
+                while (
+                    this_max_wait := (time.monotonic() - iter_start)
+                ) < self.max_wait:
                     try:
-                        n = await asyncio.wait_for(self.queue.get(), this_max_wait)
+                        n = await asyncio.wait_for(
+                            self.queue.get(), this_max_wait
+                        )
                     except TimeoutError:
                         continue
                     else:
@@ -175,7 +183,9 @@ class Waterfall[T]:
             # as we dont rely on the type of the result, the below is annotated
             # to avoid spurious errors much as possible from inaccuracies.
             # See: https://github.com/mikeshardmind/async-utils/actions/runs/14119338111
-            g: asyncio.Future[t.Any] = asyncio.gather(f, *tasks, return_exceptions=True)
+            g: asyncio.Future[t.Any] = asyncio.gather(
+                f, *tasks, return_exceptions=True
+            )
             try:
                 await asyncio.wait_for(g, timeout=self.max_wait_finalize)
             except TimeoutError:

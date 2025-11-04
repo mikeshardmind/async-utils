@@ -16,9 +16,8 @@
 
 from __future__ import annotations
 
-# PYUPDATE: 3.14 release + 3.14 minimum: reaudit
-# heapq methods are not threadsafe pre 3.14
-# see: GH: cpython 135036
+__lazy_modules__ = ["asyncio"]
+
 import heapq
 import math
 import sys

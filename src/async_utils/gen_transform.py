@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = ["asyncio"]
+
 import asyncio
 import concurrent.futures as cf  #: PYUPDATE: py3.15, check cf.Future use
 from asyncio import FIRST_COMPLETED as FC
@@ -114,7 +116,9 @@ def _sync_to_async_gen[**P, Y](
             while not bg_task.done():
                 try:
                     q_get = asyncio.ensure_future(q.async_get())
-                    done, _ = await asyncio.wait((bg_task, q_get), return_when=FC)
+                    done, _ = await asyncio.wait(
+                        (bg_task, q_get), return_when=FC
+                    )
                     if q_get in done:
                         lazy_ev.clear()
                         yield (await q_get)

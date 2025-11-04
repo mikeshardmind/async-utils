@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = ["asyncio"]
+
 import asyncio
 import sys
 import threading
@@ -467,7 +469,9 @@ class BaseQueue[T]:
 
         return item
 
-    def sync_get(self, /, *, blocking: bool = True, timeout: float | None = None) -> T:
+    def sync_get(
+        self, /, *, blocking: bool = True, timeout: float | None = None
+    ) -> T:
         """Get an item from the queue.
 
         Parameters

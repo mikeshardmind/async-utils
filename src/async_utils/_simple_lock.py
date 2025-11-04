@@ -12,6 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+__lazy_modules__ = ["asyncio"]
+
 import asyncio
 import concurrent.futures as cf
 import threading

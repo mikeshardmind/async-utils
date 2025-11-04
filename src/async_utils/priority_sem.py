@@ -15,6 +15,8 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = ["asyncio"]
+
 import asyncio
 import concurrent.futures as cf
 import contextvars
@@ -29,13 +31,17 @@ from . import _typings as t
 __all__ = ("PrioritySemaphore", "priority_context")
 
 
-_priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
+_priority: contextvars.ContextVar[int] = contextvars.ContextVar(
+    "_priority", default=0
+)
 
 
 class _PriorityWaiter:
     __slots__ = ("future", "ord")
 
-    def __init__(self, priority: int, ts: float, future: cf.Future[None], /) -> None:
+    def __init__(
+        self, priority: int, ts: float, future: cf.Future[None], /
+    ) -> None:
         self.future: cf.Future[None] = future
         self.ord: tuple[int, float] = (priority, ts)
 

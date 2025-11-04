@@ -137,7 +137,7 @@ reportDuplicateImport = "none"  # handled by ruff
 
 [tool.ruff]
 
-line-length = 90
+line-length = 80
 target-version = "py312"
 preview = true
 
@@ -189,7 +189,6 @@ ignore = [
     "TC003", # I prefer to avoid if TYPE_CHECKING
     "UP007", # "Use | For Union" doesn't account for typevar tuple unpacking.
     "UP031", # No, I like % formatting more for some things...
-    "UP038", # isinstance on union types... perf + type construct symmetry issues.
     # As PYI058 modifies return values to be more narrow than they actually are
     "PYI058", # This opinionated "fix" causes incompatabilties with things expecting a generator.
 ]

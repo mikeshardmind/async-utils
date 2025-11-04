@@ -42,7 +42,9 @@ async def amain():
             for x in (True, False)
         ]
         start = time.monotonic_ns()
-        tsks = {loop.run(check(lock, start)) for loop in loops for _ in range(10)}
+        tsks = {
+            loop.run(check(lock, start)) for loop in loops for _ in range(10)
+        }
         results = await asyncio.gather(*tsks)
         results.sort()
         print(*(f"{s} {e}" for s, e in results), sep="\n", flush=True)  # noqa: T201

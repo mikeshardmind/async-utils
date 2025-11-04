@@ -32,7 +32,9 @@ from async_utils.priority_sem import PrioritySemaphore, priority_context
 log = logging.getLogger()
 
 dt_fmt = "%Y-%m-%d %H:%M:%S"
-FMT = logging.Formatter("[%(asctime)s] [%(levelname)-8s}] %(name)s: %(message)s", dt_fmt)
+FMT = logging.Formatter(
+    "[%(asctime)s] [%(levelname)-8s}] %(name)s: %(message)s", dt_fmt
+)
 
 
 _MSG_PREFIX = "\x1b[30;1m%(asctime)s\x1b[0m "
@@ -48,7 +50,9 @@ LC = (
 )
 
 FORMATS = {
-    level: logging.Formatter(_MSG_PREFIX + color + _MSG_POSTFIX, "%Y-%m-%d %H:%M:%S")
+    level: logging.Formatter(
+        _MSG_PREFIX + color + _MSG_POSTFIX, "%Y-%m-%d %H:%M:%S"
+    )
     for level, color in LC
 }
 
