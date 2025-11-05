@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-__lazy_modules__ = ["asyncio"]
+__lazy_modules__: list[str] = ["asyncio"]
 
 import asyncio
 import concurrent.futures as cf  #: PYUPDATE: py3.15, check cf.Future use

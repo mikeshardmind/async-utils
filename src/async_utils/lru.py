@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-__lazy_modules__ = ["asyncio"]
+__lazy_modules__: list[str] = ["asyncio"]
 
 import heapq
 import math

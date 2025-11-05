@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-__lazy_modules__ = ["asyncio", "select", "signal", "socket"]
+__lazy_modules__: list[str] = ["asyncio", "select", "signal", "socket"]
 
 import enum
 import select
