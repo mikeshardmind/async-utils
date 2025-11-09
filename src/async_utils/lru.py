@@ -32,15 +32,15 @@ __all__ = ("LRU", "TTLLRU")
 
 
 class ProbableTOCTOUError(Exception):
-    """Raised for operations that should not be done to avoid a Time of check-time of use bug."""
+    """Time of check-time of use bugs."""
 
 
 class ContainsMisuse(ProbableTOCTOUError):
-    """Checking containment rather than just getting, setting, or using setdefault."""
+    """Checking cache value exists rather than handling non-existence."""
 
 
 class IterationMisuse(ProbableTOCTOUError):
-    """Iterating over a mutable container that can change simply because of time or other access."""
+    """Iterating over a mutable cache."""
 
 
 class LRU[K, V]:

@@ -135,7 +135,7 @@ def _sync_to_async_gen[**P, Y](
             lazy_ev.set()
             while q:
                 yield (await q.async_get())
-            # ensure errors in the generator propogate *after* the last values yielded
+            # ensure errors propogate *after* the last values yielded
             await bg_task
 
     return gen(), cancel_fut
@@ -156,11 +156,11 @@ def sync_to_async_gen[**P, Y](
     are not appropriate for this function. similarly, generator return values
     are completely swallowed.
 
-    If your generator is actually a synchronous coroutine, that's super cool,
-    but rewrite is as a native coroutine or use it directly then, you don't need
-    what this function does.
+    .. note:: If your generator is actually a synchronous coroutine,
+    that's super cool, but rewrite is as a native coroutine or use it directly;
+    you don't need what this function does.
 
-    .. note::
+
 
     Parameters
     ----------
@@ -195,13 +195,11 @@ def sync_to_async_gen_noctx[**P, Y](
     are not appropriate for this function. similarly, generator return values
     are completely swallowed.
 
-    If your generator is actually a synchronous coroutine, that's super cool,
-    but rewrite is as a native coroutine or use it directly then, you don't need
-    what this function does.
+    .. note:: If your generator is actually a synchronous coroutine,
+    that's super cool, but rewrite is as a native coroutine or use it directly;
+    you don't need what this function does.
 
     This version does not forward exception context and is not a context manager.
-
-    .. note::
 
     Parameters
     ----------

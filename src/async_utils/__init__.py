@@ -20,30 +20,36 @@ _vi = sys.version_info
 # - update `_misc._ensure_annotations.py` before extending this version.
 # - ensure `task_cache.__WrappedSignature` still works
 if (_vi.major, _vi.minor) > (3, 14):
-    msg: str = """This library is not tested for use on python versions above 3.14
-    This library relies on a few internal details that are not safe to rely upon
-    without checking this consistently.
-    """
+    msg: str = (
+        "This library is not tested for use on python versions above 3.14."
+        "\nThis library relies on a few internal details that are not "
+        "safe to rely upon without checking for changes to internals "
+        "consistently."
+    )
     if os.getenv("ASYNC_UTILS_UNCHECKED_PY_VER", ""):
         import logging
 
-        msg += """\n\nThis is not neccessarily broken, but if you encounter an
-        issue with it, please be aware that the library has not actively
-        chosen to support the python version you have opted into using this on
-        *yet*. If you encounter an issue with it, please do still report it.
-        """
+        msg += (
+            "\n\nThis is not neccessarily broken, but if you encounter an "
+            "issue with it, please be aware that the library has not actively "
+            "chosen to support the python version you have opted into using "
+            "yet. If you encounter an issue with it, please still report it. "
+        )
 
         logging.getLogger(__name__).warning(msg)
     elif sys.version_info.releaselevel in {"alpha", "beta", "candidate"}:
         import logging
 
-        msg += """\nThanks for testing this (and a development version of python)
-        prior to release!.\n"""
+        msg += (
+            "\nThanks for testing this (and a development version of python) "
+            " prior to release!."
+        )
         logging.getLogger(__name__).warning(msg)
     else:
-        msg += """\nYou can change this error to a warning if you are sure it is
-        safe and are willing to take the risk on yourself before I have verified
-        it by setting the environment variable `ASYNC_UTILS_UNCHECKED_PY_VER`
-        to a non-empty value.
-        """
+        msg += (
+            "\nYou can change this error to a warning if you are sure it "
+            "safe and are willing to take the risk on yourself before I "
+            "have verified it by setting the environment variable "
+            "`ASYNC_UTILS_UNCHECKED_PY_VER` to a non-empty value."
+        )
         raise RuntimeError(msg)

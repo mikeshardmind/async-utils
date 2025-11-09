@@ -182,10 +182,8 @@ class Waterfall[T]:
             # the result of that future is also not accurate in the typeshed.
             # as we dont rely on the type of the result, the below is annotated
             # to avoid spurious errors much as possible from inaccuracies.
-            # See: https://github.com/mikeshardmind/async-utils/actions/runs/14119338111
-            g: asyncio.Future[t.Any] = asyncio.gather(
-                f, *tasks, return_exceptions=True
-            )
+            g: asyncio.Future[t.Any]
+            g = asyncio.gather(f, *tasks, return_exceptions=True)
             try:
                 await asyncio.wait_for(g, timeout=self.max_wait_finalize)
             except TimeoutError:
@@ -198,7 +196,8 @@ class Waterfall[T]:
     async def _finalize(self) -> None:
         loop = self._event_loop
         assert loop is not None
-        # WARNING: Do not allow an async context switch before the queue is drained
+        # WARNING:
+        # Do not allow an async context switch before the queue is drained
         # This can be changed to utilize queue.Shutdown in 3.13+
         # or when more of asyncio queues have been replaced here
         # as part of freethreading efforts.

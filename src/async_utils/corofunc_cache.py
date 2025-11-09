@@ -50,7 +50,7 @@ else:
     def f__call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...  # noqa: ANN001
 
     class ExprWrapper:
-        """Future proof against runtime change preventing call expr in type statement."""
+        """Wrapper since call expressions aren't allowed in type statements."""
 
         def __class_getitem__(cls, key: None) -> t.Any:
             return type(
@@ -83,7 +83,9 @@ def corocache(
     restrictive.
 
     Note: This by default uses the args and kwargs of the original coroutine
-    function as a cache key. This includes instances (self) when wrapping methods.
+    function as a cache key.
+    This includes instances (self) when wrapping methods.
+
     Consider not wrapping instance methods, but what those methods call when
     feasible in cases where this may matter, or using a cache transform.
 
@@ -92,7 +94,8 @@ def corocache(
     Parameters
     ----------
     ttl: float | None
-        The time to live in seconds for cached results. Defaults to None (forever)
+        The time to live in seconds for cached results.
+        Defaults to None (forever)
     cache_transform: CacheTransformer | None
         An optional callable that transforms args and kwargs used
         as a cache key.
@@ -158,7 +161,8 @@ def lrucorocache(
     restrictive.
 
     Note: This by default uses the args and kwargs of the original coroutine
-    function as a cache key. This includes instances (self) when wrapping methods.
+    function as a cache key.
+    This includes instances (self) when wrapping methods.
     Consider not wrapping instance methods, but what those methods call when
     feasible in cases where this may matter, or using a cache transform.
 
@@ -169,7 +173,8 @@ def lrucorocache(
     Parameters
     ----------
     ttl: float | None
-        The time to live in seconds for cached results. Defaults to None (forever)
+        The time to live in seconds for cached results.
+        Defaults to None (forever)
     maxsize: int
         The maximum number of items to retain no matter if they have reached
         expiration by ttl or not.

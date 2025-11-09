@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 else:
 
     class ExprWrapper:
-        """Future proof against runtime change preventing call expr in type statement."""
+        """Wrapper since call expressions aren't allowed in type statements."""
 
         def __class_getitem__(cls, key: None) -> t.Any:
             import typing

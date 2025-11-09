@@ -78,7 +78,8 @@ class Scheduler[T]:
         self.__granularity: float = granularity
         self.__closed: bool = False
         self.__tasks: dict[CancellationToken, _Task[T]] = {}
-        # PYUPGRADE: check: 3.15; relies on asyncio.Lock & Queues not eagerly binding to an event loop.
+        # PYUPGRADE: check: 3.15;
+        #   relies on asyncio.Lock & Queues not eagerly binding to an event loop.
         self.__l = asyncio.Lock()
         self.__tqueue: asyncio.PriorityQueue[_Task[T]] = asyncio.PriorityQueue()
 
