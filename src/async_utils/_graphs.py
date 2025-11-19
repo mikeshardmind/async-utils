@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import heapq
 from collections.abc import Generator, Iterator
 
 from . import _typings as t
@@ -25,12 +26,12 @@ if TYPE_CHECKING:
     class CanHashAndCompareLT(typing.Protocol):
         def __hash__(self) -> int: ...
 
-        def __lt__(self, other: typing.Self, /) -> bool: ...
+        def __lt__(self, other: typing.Any, /) -> bool: ...
 
     class CanHashAndCompareGT(typing.Protocol):
         def __hash__(self) -> int: ...
 
-        def __gt__(self, other: typing.Self, /) -> bool: ...
+        def __gt__(self, other: typing.Any, /) -> bool: ...
 
 else:
 
@@ -62,7 +63,7 @@ class CycleDetected[T: CanHashAndCompare](Exception):
         return self.args[0]
 
 
-class NodeData[T]:
+class NodeData[T: CanHashAndCompare]:
     __slots__ = ("dependants", "ndependencies", "node")
 
     def __init__(self, node: T) -> None:
@@ -73,6 +74,9 @@ class NodeData[T]:
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"
         raise RuntimeError(msg)
+
+    def __lt__(self, other: t.Self) -> bool:  # falback for tuple sorting
+        return True
 
     __final__ = True
 
@@ -174,14 +178,17 @@ class DepSorter[T: CanHashAndCompare]:
         return self.__iter()
 
     def __iter(self) -> Generator[T, None, None]:
-        while ready := [
-            i.node for i in self._nodemap.values() if not i.ndependencies
-        ]:
-            next_node = min(ready)
-            self._nodemap[next_node].ndependencies = -1
+        m = self._nodemap
+        ready = [(n, i) for n, i in m.items() if not i.ndependencies]
+        heapq.heapify(ready)
+        while ready:
+            next_node, info = heapq.heappop(ready)
+            info.ndependencies = -1
 
             yield next_node
 
-            for dep in self._nodemap[next_node].dependants:
+            for dep in info.dependants:
                 dep_info = self._nodemap[dep]
                 dep_info.ndependencies -= 1
+                if not dep_info.ndependencies:
+                    heapq.heappush(ready, (dep, dep_info))
