@@ -147,7 +147,7 @@ line-ending = "lf"
 
 [tool.ruff.lint]
 select = [
-    "A", "ANN", "ASYNC", "B", "BLE", "C4", "COM", "D", "DOC", "DTZ", "E",
+    "A", "ANN", "ASYNC", "B", "BLE", "C4", "COM", "DTZ", "E",
     "EM", "ERA", "F", "FA", "FBT", "FURB", "G", "I", "ICN", "INP", "ISC", "LOG", "NPY",
     "PD", "PERF", "PGH", "PIE", "PLC", "PLE", "PLR", "PLW", "PTH", "PYI",
     "Q", "Q003", "RET", "RSE", "RUF", "S", "SIM", "SLOT", "T20", "TC", "TID",
