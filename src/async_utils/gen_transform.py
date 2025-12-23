@@ -23,14 +23,14 @@ from collections.abc import AsyncGenerator, Callable, Generator
 from threading import Event
 
 from . import _typings as t
-from ._qs import Queue
 
 __all__ = ("ACTX", "sync_to_async_gen", "sync_to_async_gen_noctx")
 
 
 def _consumer[**P, Y](
     laziness_ev: Event,
-    queue: Queue[Y],
+    queue: asyncio.Queue[Y],
+    loop: asyncio.AbstractEventLoop,
     cancel_future: cf.Future[None],
     f: Callable[P, Generator[Y]],
     /,
@@ -42,7 +42,7 @@ def _consumer[**P, Y](
 
         for val in gen:
             laziness_ev.wait()
-            queue.sync_put(val)
+            loop.call_soon_threadsafe(queue.put_nowait, val)
             laziness_ev.clear()
 
             if cancel_future.cancelled():
@@ -59,7 +59,7 @@ def _consumer[**P, Y](
 
 type _ConGen[**P, Y] = Callable[P, Generator[Y]]
 type ConsumerType[**P, Y] = Callable[
-    t.Concatenate[Event, Queue[Y], cf.Future[None], _ConGen[P, Y], P], None
+    t.Concatenate[Event, asyncio.Queue[Y], asyncio.AbstractEventLoop, cf.Future[None], _ConGen[P, Y], P], None
 ]
 
 
@@ -99,15 +99,14 @@ def _sync_to_async_gen[**P, Y](
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> tuple[AsyncGenerator[Y], cf.Future[None]]:
-    # TODO: consider shutdownable queue rather than the double event use
-    # needs to be a seperate queue if so, shutdown requires explicit sync
-    q: Queue[Y] = Queue(maxsize=1)
-    lazy_ev = Event()  # used to preserve generator laziness
+    q: asyncio.Queue[Y] = asyncio.Queue(maxsize=1)
+    lazy_ev = Event()
     lazy_ev.set()
     cancel_fut: cf.Future[None] = cf.Future()
     c: ConsumerType[P, Y] = _consumer
+    loop = asyncio.get_running_loop()
 
-    bg_coro = asyncio.to_thread(c, lazy_ev, q, cancel_fut, f, *args, **kwargs)
+    bg_coro = asyncio.to_thread(c, lazy_ev, q, loop, cancel_fut, f, *args, **kwargs)
     bg_task = asyncio.create_task(bg_coro)
 
     async def gen() -> AsyncGenerator[Y]:
@@ -115,7 +114,7 @@ def _sync_to_async_gen[**P, Y](
         try:
             while not bg_task.done():
                 try:
-                    q_get = asyncio.ensure_future(q.async_get())
+                    q_get = asyncio.ensure_future(q.get())
                     done, _ = await asyncio.wait(
                         (bg_task, q_get), return_when=FC
                     )
@@ -133,8 +132,11 @@ def _sync_to_async_gen[**P, Y](
             except cf.InvalidStateError:
                 pass
             lazy_ev.set()
-            while q:
-                yield (await q.async_get())
+            while True:
+                try:
+                    yield (q.get_nowait())
+                except asyncio.QueueEmpty:
+                    break
             # ensure errors propogate *after* the last values yielded
             await bg_task
 
