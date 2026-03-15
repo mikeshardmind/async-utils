@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Iterable
+from collections.abc import Iterable
 
 from . import _typings as t
 
@@ -46,7 +46,7 @@ class AsCompletedIterator[T]:
         self._todo_left -= 1
         return await (await self._done.get())
 
-    def __next__(self) -> Awaitable[T]:
+    def __next__(self) -> asyncio.Future[T]:
         if not self._todo_left:
             raise StopIteration
         self._todo_left -= 1

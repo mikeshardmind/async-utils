@@ -28,7 +28,7 @@ type _CoroutineLike[T] = Coroutine[t.Any, t.Any, T]
 type _LoopLike = asyncio.AbstractEventLoop | _UnboundLoopSentinel
 
 
-__all__ = ("BGLoopExecutor", "BGTasks", "CurrentLoopExecutor")
+__all__ = ("BGTasks", "CurrentLoopExecutor")
 
 
 class _UnboundLoopSentinel:
@@ -145,8 +145,10 @@ class CurrentLoopExecutor:
     Parameters
     ----------
 
-    max_workers: int | None
-        An optional limit for the number of concurrent top-level tasks.
+    max_concurrent: int | None
+        An optional limit for the number of concurrent submitted function
+        calls.
+
     """
 
     def __init_subclass__(cls) -> t.Never:
@@ -155,8 +157,8 @@ class CurrentLoopExecutor:
 
     __final__ = True
 
-    def __init__(self, *, max_workers: int | None = None) -> None:
-        self._max_workers: int | None = max_workers
+    def __init__(self, *, max_concurrent: int | None = None) -> None:
+        self._max_concurrent: int | None = max_concurrent
         self._sem: asyncio.Semaphore | None = None
         self._is_closed: bool = False
         self._loop: _LoopLike = _UnboundLoopSentinel()
@@ -170,6 +172,12 @@ class CurrentLoopExecutor:
         self._is_closed = True
         f = self._futs.copy()
         await asyncio.gather(*f, return_exceptions=True)
+
+    def force_cancel_and_shutdown(self) -> None:
+        """Cancels pending tasks and prevents further tasks from being submitted."""
+        self._is_closed = True
+        for f in self._futs:
+            f.cancel()
 
     def submit[**P, R](
         self,
@@ -194,6 +202,11 @@ class CurrentLoopExecutor:
     def map[*Ts, R](
         self, fn: Callable[[*Ts], _CoroutineLike[R]], /, *iterables: tuple[*Ts]
     ) -> AsCompletedIterator[R]:
+        """Returns an iterator that can be iterated over synchronously or asynchronously.
+
+        When iterated over asynchronously, yields the results directly.
+        When iterated over synchronously, yields futures with the results.
+        """
         if self._is_closed:
             msg = "Can't submit to a closed or closing executor"
             raise RuntimeError(msg)
@@ -221,13 +234,3 @@ class CurrentLoopExecutor:
             f.add_done_callback(self._futs.discard)
 
         return AsCompletedIterator(futs)
-
-
-class BGLoopExecutor:
-    """Provides an API similar to that of concurrent.Futures.Executor
-
-    for running async functions in a background thread.
-    """
-
-    def __init__(self, *, max_workers: int | None = None) -> None:
-        self._max_workers: int | None = max_workers
