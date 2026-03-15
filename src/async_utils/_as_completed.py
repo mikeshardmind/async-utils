@@ -19,8 +19,19 @@ from collections.abc import Iterable
 
 from . import _typings as t
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    import typing
+    T = typing.TypeVar("T")
+    Gen = typing.Generic
+else:
+    T = object
+    class Gen:
+        def __class_getitem__(*args: object) -> t.Any:
+            return object
 
-class AsCompletedIterator[T]:
+
+class AsCompletedIterator(Gen[T]):
     """This is *similar to* the implementation in asyncio,
     but with some minor differences to suit specific use
     """

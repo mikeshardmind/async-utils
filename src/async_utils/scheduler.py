@@ -34,8 +34,20 @@ class CancellationToken:
     __slots__ = ()
 
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    import typing
+    T = typing.TypeVar("T")
+    Gen = typing.Generic
+else:
+    T = object
+    class Gen:
+        def __class_getitem__(*args: object) -> t.Any:
+            return object
+
+
 @total_ordering
-class _Task[T]:
+class _Task(Gen[T]):
     __slots__ = ("cancel_token", "canceled", "payload", "timestamp")
 
     def __init__(self, timestamp: float, payload: T, /) -> None:
@@ -48,7 +60,7 @@ class _Task[T]:
         return (self.timestamp, id(self)) < (other.timestamp, id(self))
 
 
-class Scheduler[T]:
+class Scheduler(Gen[T]):
     """A scheduler.
 
     The scheduler is implemented as an async context manager that is an

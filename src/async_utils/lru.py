@@ -43,7 +43,20 @@ class IterationMisuse(ProbableTOCTOUError):
     """Iterating over a mutable cache."""
 
 
-class LRU[K, V]:
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    import typing
+    K = typing.TypeVar("K")
+    V = typing.TypeVar("V")
+    Gen = typing.Generic
+else:
+    K = V = object
+    class Gen:
+        def __class_getitem__(*args: object) -> t.Any:
+            return object
+
+
+class LRU(Gen[K, V]):
     """An LRU implementation.
 
     Implements dict-like getitem/setitem access plus a couple methods.
@@ -155,7 +168,7 @@ class LRU[K, V]:
         self._cache.pop(key, None)
 
 
-class TTLLRU[K, V]:
+class TTLLRU(Gen[K, V]):
     """An LRU implementation with a ttl.
 
     While the internal structure is threadsafe,

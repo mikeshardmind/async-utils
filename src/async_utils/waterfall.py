@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from __future__ import annotations
 
 __lazy_modules__: list[str] = ["asyncio"]
@@ -33,7 +32,19 @@ type AnyCoro = Coroutine[t.Any, t.Any, t.Any]
 type CallbackType[T] = Callable[[Sequence[T]], AnyCoro]
 
 
-class Waterfall[T]:
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    import typing
+    T = typing.TypeVar("T")
+    Gen = typing.Generic
+else:
+    T = object
+    class Gen:
+        def __class_getitem__(*args: object) -> t.Any:
+            return object
+
+
+class Waterfall(Gen[T]):
     """Batch event scheduling based on recurring quantity-interval pairs.
 
     Initial intended was batching of simple db writes with an

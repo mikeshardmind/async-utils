@@ -5,6 +5,8 @@
 
 """
 
+from __future__ import annotations
+
 __title__ = "async_utils"
 __author__ = "Michael Hall"
 __license__ = "Apache-2.0"

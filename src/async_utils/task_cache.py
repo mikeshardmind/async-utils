@@ -72,7 +72,19 @@ def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
         c_fut.set_result(a_fut.result())
 
 
-class _WrappedSignature[**P, R]:
+if TYPE_CHECKING:
+    import typing
+    R = typing.TypeVar("R")
+    P = typing.ParamSpec("P")
+    Gen = typing.Generic
+else:
+    P = R = object
+    class Gen:
+        def __class_getitem__(*args: object) -> t.Any:
+            return object
+
+
+class _WrappedSignature(Gen[P, R]):
     #: PYUPGRADE: Ensure inspect.signature still accepts this
     # as func.__signature__
     # Known working: py 3.12.0 - py3.14rc1 range inclusive

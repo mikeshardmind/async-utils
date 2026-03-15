@@ -23,6 +23,8 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
 
+    Gen = typing.Generic
+
     class CanHashAndCompareLT(typing.Protocol):
         def __hash__(self) -> int: ...
 
@@ -33,7 +35,13 @@ if TYPE_CHECKING:
 
         def __gt__(self, other: typing.Any, /) -> bool: ...
 
+    HashAndCompareT = typing.TypeVar("HashAndCompareT", bound="CanHashAndCompare")
+
 else:
+
+    class Gen:
+        def __class_getitem__(*args: object) -> t.Any:
+            return object
 
     def f__hash__(self: t.Self) -> int: ...
     def f_binop_bool(self: t.Self, other: typing.Self, /) -> bool: ...
@@ -49,23 +57,25 @@ else:
     type CanHashAndCompareLT = ExprWrapper[1]
     type CanHashAndCompareGT = ExprWrapper[2]
 
+    HashAndCompareT = object
+
 
 type CanHashAndCompare = CanHashAndCompareLT | CanHashAndCompareGT
 
 
-class CycleDetected[T: CanHashAndCompare](Exception):
+class CycleDetected(Exception, Gen[HashAndCompareT]):
     @property
-    def cycle(self) -> list[T]:
+    def cycle(self) -> list[HashAndCompareT]:
         return self.args[0]
 
 
-class NodeData[T: CanHashAndCompare]:
+class NodeData(Gen[HashAndCompareT]):
     __slots__ = ("dependants", "ndependencies", "node")
 
-    def __init__(self, node: T) -> None:
-        self.node: T = node
+    def __init__(self, node: HashAndCompareT) -> None:
+        self.node: HashAndCompareT = node
         self.ndependencies: int = 0
-        self.dependants: list[T] = []
+        self.dependants: list[HashAndCompareT] = []
 
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"
@@ -78,7 +88,7 @@ class NodeData[T: CanHashAndCompare]:
 
 
 #: TODO: document the 3 uses I have for the below as examples
-class DepSorter[T: CanHashAndCompare]:
+class DepSorter(Gen[HashAndCompareT]):
     """Provides a topological sort that attempts to preserve logical priority
     (provided by comparison)
 
@@ -96,14 +106,14 @@ class DepSorter[T: CanHashAndCompare]:
 
     __final__ = True
 
-    def __init__(self, *edges: tuple[T, T]) -> None:
-        self._nodemap: dict[T, NodeData[T]] = {}
+    def __init__(self, *edges: tuple[HashAndCompareT, HashAndCompareT]) -> None:
+        self._nodemap: dict[HashAndCompareT, NodeData[HashAndCompareT]] = {}
         self.__iterating: bool = False
 
         for edge in edges:
             self.add_dependants(*edge)
 
-    def add_dependencies(self, node: T, *dependencies: T) -> None:
+    def add_dependencies(self, node: HashAndCompareT, *dependencies: HashAndCompareT) -> None:
         if self.__iterating:
             raise RuntimeError
 
@@ -114,7 +124,7 @@ class DepSorter[T: CanHashAndCompare]:
             node_data.ndependencies += 1
             dep_node_data.dependants.append(node)
 
-    def add_dependants(self, node: T, *dependants: T) -> None:
+    def add_dependants(self, node: HashAndCompareT, *dependants: HashAndCompareT) -> None:
         if self.__iterating:
             raise RuntimeError
 
@@ -125,14 +135,14 @@ class DepSorter[T: CanHashAndCompare]:
             dep_node_data.ndependencies += 1
             node_data.dependants.append(dep)
 
-    def _find_cycle(self) -> list[T] | None:
+    def _find_cycle(self) -> list[HashAndCompareT] | None:
         graph = self._nodemap
         # Cheaper than a queue since we need to iterate anyhow
-        queued: list[Iterator[T]] = []
-        seen: set[T] = set()
+        queued: list[Iterator[HashAndCompareT]] = []
+        seen: set[HashAndCompareT] = set()
         # Let's not recurse without TCO
-        stack: list[T] = []
-        node_depth: dict[T, int] = {}
+        stack: list[HashAndCompareT] = []
+        node_depth: dict[HashAndCompareT, int] = {}
 
         for node in graph:
             if node in seen:
@@ -158,7 +168,7 @@ class DepSorter[T: CanHashAndCompare]:
                     break
         return None
 
-    def __iter__(self) -> Generator[T, None, None]:
+    def __iter__(self) -> Generator[HashAndCompareT, None, None]:
         if self.__iterating:
             raise RuntimeError
 
@@ -169,7 +179,7 @@ class DepSorter[T: CanHashAndCompare]:
 
         return self.__iter()
 
-    def __iter(self) -> Generator[T, None, None]:
+    def __iter(self) -> Generator[HashAndCompareT, None, None]:
         m = self._nodemap
         ready = [(n, i) for n, i in m.items() if not i.ndependencies]
         heapq.heapify(ready)

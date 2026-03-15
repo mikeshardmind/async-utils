@@ -46,5 +46,11 @@ all of, but may need to revisit in the future related to it.
 ## Deferred typing-only imports
 
 There's a bunch of imports that are deferred, but not elided.
-This allows annotation inspection at runtime to continue working, while minimizing
+This allows some annotation inspection at runtime to continue working, while minimizing
 (but unfortunately, not fully removing) the costs for anyone not introspecting.
+
+Places that don't work for runtime are fewer than if I moved all annotations
+to stubs, and I retain the benefits for this project.
+
+Unfortunately, this also means no nice modern generic class syntax,
+because that implicitly imports typing, which was a terrible way to design that.

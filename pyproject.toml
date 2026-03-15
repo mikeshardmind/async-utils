@@ -231,6 +231,7 @@ allow-dict-calls-with-keyword-arguments = true
 "asyncio.shield".msg = "This doesn't do what almost anyone thinks. Just don't use it."
 "asyncio.TaskGroup".msg = "see pep 789"
 "asyncio.Timeout".msg = "see pep 789"
+"asyncio.timeout".msg = "see pep 789"
 
 [project]
 name = "mikeshardmind-async-utils"
@@ -253,6 +254,7 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 
 dynamic = ["version"]
@@ -301,3 +303,17 @@ disallow_untyped_globals = true
 extra_checks = true
 strict_bytes = true
 disable_error_code = ["func-returns-value"]
+
+# ty support is provided on an "as reasonable" basis.
+# currently, this is "ty doesn't support enough of the type system"
+# the configuration here is to track what ty doesn't understand here.
+
+[tool.ty.environment]
+python-platform = "all"
+python-version = "3.12"
+
+[[tool.ty.overrides]]
+include = [
+    "src",
+    "_misc/_type_assertions.py",
+]

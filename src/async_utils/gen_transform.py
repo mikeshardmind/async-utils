@@ -70,8 +70,19 @@ type ConsumerType[**P, Y] = Callable[
     None,
 ]
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    import typing
+    Y = typing.TypeVar("Y")
+    Gen = typing.Generic
+else:
+    Y = object
+    class Gen:
+        def __class_getitem__(*args: object) -> t.Any:
+            return object
 
-class ACTX[Y]:
+
+class ACTX(Gen[Y]):
     """Context manager to forward exception context to generator in thread.
 
     Not intended for public construction.
