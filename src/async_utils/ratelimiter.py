@@ -54,9 +54,7 @@ class RateLimiter:
 
     __final__ = True
 
-    def __init__(
-        self, rate_limit: int, period: float, granularity: float
-    ) -> None:
+    def __init__(self, rate_limit: int, period: float, granularity: float) -> None:
         self.rate_limit: int = rate_limit
         self.period: float = period
         self.granularity: float = granularity
@@ -74,9 +72,7 @@ class RateLimiter:
 
             now = time.monotonic()
             with self._lock:
-                while self._monotonics and (
-                    now - self._monotonics[0] > self.period
-                ):
+                while self._monotonics and (now - self._monotonics[0] > self.period):
                     self._monotonics.popleft()
 
         with self._lock:

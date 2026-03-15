@@ -25,28 +25,21 @@ from async_utils.gen_transform import sync_to_async_gen_noctx
 from async_utils.task_cache import lrutaskcache
 
 
-@lrutaskcache(ttl=60, maxsize=512)
-async def t1(a: int, b: str, *, x: bytes) -> str:
-    return ""
+async def no_run():
 
+    @lrutaskcache(ttl=60, maxsize=512)
+    async def t1(a: int, b: str, *, x: bytes) -> str:
+        return ""
 
-assert_type(t1(1, "a", x=b""), asyncio.Task[str])
+    assert_type(t1(1, "a", x=b""), asyncio.Task[str])
 
+    @lrucorocache(ttl=60, maxsize=512)
+    async def t2(a: int, b: str, *, x: bytes) -> str:
+        return ""
 
-@lrucorocache(ttl=60, maxsize=512)
-async def t2(a: int, b: str, *, x: bytes) -> str:
-    return ""
+    _t2_type: Coroutine[Any, Any, str] = assert_type(t2(1, "a", x=b""), Coroutine[Any, Any, str])
 
+    def gen() -> Generator[int]:
+        yield from range(10)
 
-_t2_type: Coroutine[Any, Any, str] = assert_type(
-    t2(1, "a", x=b""), Coroutine[Any, Any, str]
-)
-
-
-def gen() -> Generator[int]:
-    yield from range(10)
-
-
-_gen_assert_type: AsyncGenerator[int] = assert_type(
-    sync_to_async_gen_noctx(gen), AsyncGenerator[int]
-)
+    _gen_assert_type: AsyncGenerator[int] = assert_type(sync_to_async_gen_noctx(gen), AsyncGenerator[int])

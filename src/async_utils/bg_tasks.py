@@ -200,7 +200,10 @@ class CurrentLoopExecutor:
         return f
 
     def map[*Ts, R](
-        self, fn: Callable[[*Ts], _CoroutineLike[R]], /, *iterables: tuple[*Ts]
+        self,
+        fn: Callable[[*Ts], _CoroutineLike[R]],
+        /,
+        *iterables: tuple[*Ts],
     ) -> AsCompletedIterator[R]:
         """Returns an iterator that can be iterated over synchronously or asynchronously.
 
@@ -224,10 +227,7 @@ class CurrentLoopExecutor:
                 for it in iterables
             }
         else:
-            futs = {
-                asyncio.ensure_future(fn(*it), loop=self._loop)
-                for it in iterables
-            }
+            futs = {asyncio.ensure_future(fn(*it), loop=self._loop) for it in iterables}
 
         for f in futs:
             self._futs.add(f)

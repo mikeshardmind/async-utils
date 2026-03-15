@@ -31,17 +31,13 @@ from . import _typings as t
 __all__ = ("PrioritySemaphore", "priority_context")
 
 
-_priority: contextvars.ContextVar[int] = contextvars.ContextVar(
-    "_priority", default=0
-)
+_priority: contextvars.ContextVar[int] = contextvars.ContextVar("_priority", default=0)
 
 
 class _PriorityWaiter:
     __slots__ = ("future", "ord")
 
-    def __init__(
-        self, priority: int, ts: float, future: cf.Future[None], /
-    ) -> None:
+    def __init__(self, priority: int, ts: float, future: cf.Future[None], /) -> None:
         self.future: cf.Future[None] = future
         self.ord: tuple[int, float] = (priority, ts)
 
@@ -123,15 +119,13 @@ class PrioritySemaphore:
         if value < 0:
             msg = "Semaphore initial value must be >= 0"
             raise ValueError(msg)
-        self._waiters: list[_PriorityWaiter] | None = None
+        self._waiters: list[_PriorityWaiter] = []
         self._value: int = value
         self._internal_lock: threading.RLock = threading.RLock()
 
     def __locked(self) -> bool:
         with self._internal_lock:
-            return self._value == 0 or (
-                any(not w.cancelled() for w in (self._waiters or ()))
-            )
+            return self._value == 0 or any(not w.cancelled() for w in self._waiters)
 
     async def __aenter__(self) -> None:
         prio = _priority.get()
@@ -145,9 +139,6 @@ class PrioritySemaphore:
         if not self.__locked():
             self._value -= 1
             return True
-
-        if self._waiters is None:
-            self._waiters = []
 
         fut: cf.Future[None] = cf.Future()
         now = time.monotonic()

@@ -36,15 +36,9 @@ async def check(lock: AsyncLock, start: int) -> tuple[int, int]:
 async def amain():
     lock = AsyncLock()
     with ExitStack() as ex:
-        loops = [
-            ex.enter_context(threaded_loop(use_eager_task_factory=x))
-            for _ in range(10)
-            for x in (True, False)
-        ]
+        loops = [ex.enter_context(threaded_loop(use_eager_task_factory=x)) for _ in range(10) for x in (True, False)]
         start = time.monotonic_ns()
-        tsks = {
-            loop.run(check(lock, start)) for loop in loops for _ in range(10)
-        }
+        tsks = {loop.run(check(lock, start)) for loop in loops for _ in range(10)}
         results = await asyncio.gather(*tsks)
         results.sort()
         print(*(f"{s} {e}" for s, e in results), sep="\n", flush=True)  # noqa: T201

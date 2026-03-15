@@ -117,9 +117,7 @@ class Waterfall[T]:
             raise RuntimeError(msg)
         self.queue.put_nowait(item)
 
-    def _user_done_callback(
-        self, num: int, future: asyncio.Future[t.Any]
-    ) -> None:
+    def _usr_done_cb(self, num: int, future: asyncio.Future[t.Any]) -> None:
         if future.cancelled():
             _log.warning("Callback cancelled due to timeout")
         elif exc := future.exception():
@@ -133,19 +131,17 @@ class Waterfall[T]:
             loop = self._event_loop = asyncio.get_running_loop()
 
         tasks: set[asyncio.Task[object]] = set()
+        tonic = time.monotonic
+        wait_for = asyncio.wait_for
         try:
             tasks = set()
             while self._alive:
                 queue_items: list[T] = []
-                iter_start = time.monotonic()
+                iter_start = tonic()
 
-                while (
-                    this_max_wait := (time.monotonic() - iter_start)
-                ) < self.max_wait:
+                while (this_wait := (tonic() - iter_start)) < self.max_wait:
                     try:
-                        n = await asyncio.wait_for(
-                            self.queue.get(), this_max_wait
-                        )
+                        n = await wait_for(self.queue.get(), this_wait)
                     except TimeoutError:
                         continue
                     else:
@@ -164,7 +160,7 @@ class Waterfall[T]:
 
                 tasks.add(task)
                 task.add_done_callback(tasks.discard)
-                cb = partial(self._user_done_callback, num_items)
+                cb = partial(self._usr_done_cb, num_items)
                 task.add_done_callback(cb)
 
         finally:
@@ -224,15 +220,14 @@ class Waterfall[T]:
 
         remaining_tasks: set[asyncio.Task[object]] = set()
 
-        for chunk in (
-            remaining_items[p : p + self.max_quantity]
-            for p in range(0, num_remaining, self.max_quantity)
-        ):
+        rn = range(0, num_remaining, self.max_quantity)
+        it = (remaining_items[p : p + self.max_quantity] for p in rn)
+        for chunk in it:
             chunk_len = len(chunk)
             fut = loop.create_task(self.callback(chunk))
             remaining_tasks.add(fut)
             fut.add_done_callback(remaining_tasks.discard)
-            cb = partial(self._user_done_callback, chunk_len)
+            cb = partial(self._usr_done_cb, chunk_len)
             fut.add_done_callback(cb)
 
         timeout = self.max_wait_finalize

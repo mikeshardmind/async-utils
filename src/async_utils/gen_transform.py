@@ -114,9 +114,7 @@ def _sync_to_async_gen[**P, Y](
     c: ConsumerType[P, Y] = _consumer
     loop = asyncio.get_running_loop()
 
-    bg_coro = asyncio.to_thread(
-        c, lazy_ev, q, loop, cancel_fut, f, *args, **kwargs
-    )
+    bg_coro = asyncio.to_thread(c, lazy_ev, q, loop, cancel_fut, f, *args, **kwargs)
     bg_task = asyncio.create_task(bg_coro)
 
     async def gen() -> AsyncGenerator[Y]:
@@ -125,9 +123,7 @@ def _sync_to_async_gen[**P, Y](
             while not bg_task.done():
                 try:
                     q_get = asyncio.ensure_future(q.get())
-                    done, _ = await asyncio.wait(
-                        (bg_task, q_get), return_when=FC
-                    )
+                    done, _ = await asyncio.wait((bg_task, q_get), return_when=FC)
                     if q_get in done:
                         lazy_ev.clear()
                         yield (await q_get)

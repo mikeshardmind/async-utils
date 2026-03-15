@@ -40,10 +40,7 @@ if (_vi.major, _vi.minor) > (3, 14):
     elif sys.version_info.releaselevel in {"alpha", "beta", "candidate"}:
         import logging
 
-        msg += (
-            "\nThanks for testing this (and a development version of python) "
-            " prior to release!."
-        )
+        msg += "\nThanks for testing this (and a development version of python)  prior to release!."
         logging.getLogger(__name__).warning(msg)
     else:
         msg += (

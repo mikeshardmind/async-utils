@@ -53,11 +53,7 @@ else:
         """Wrapper since call expressions aren't allowed in type statements."""
 
         def __class_getitem__(cls, key: None) -> t.Any:
-            return type(
-                "CoroCacheDeco",
-                (__import__("typing").Protocol,),
-                {"__call__": f__call__},
-            )
+            return type("CoroCacheDeco", (__import__("typing").Protocol,), {"__call__": f__call__})
 
     type CoroCacheDeco = ExprWrapper[None]
 
@@ -108,9 +104,7 @@ def corocache(
         key_func = make_key
     else:
 
-        def key_func(
-            args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /
-        ) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: CoroLike[P, R], /) -> CoroFunc[P, R]:
@@ -191,9 +185,7 @@ def lrucorocache(
         key_func = make_key
     else:
 
-        def key_func(
-            args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /
-        ) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: CoroLike[P, R], /) -> CoroFunc[P, R]:

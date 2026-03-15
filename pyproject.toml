@@ -131,7 +131,7 @@ reportDuplicateImport = "none"  # handled by ruff
 
 [tool.ruff]
 
-line-length = 80
+line-length = 120
 target-version = "py312"
 preview = true
 

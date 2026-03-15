@@ -44,11 +44,7 @@ else:
         def __class_getitem__(cls, key: int) -> t.Any:
             n = "__lt__" if key == 1 else "__gt__"
             data = {"__hash__": f__hash__, n: f_binop_bool}
-            return type(
-                "CoroCacheDeco",
-                (__import__("typing").Protocol,),
-                data,
-            )
+            return type("CoroCacheDeco", (__import__("typing").Protocol,), data)
 
     type CanHashAndCompareLT = ExprWrapper[1]
     type CanHashAndCompareGT = ExprWrapper[2]
@@ -95,11 +91,7 @@ class DepSorter[T: CanHashAndCompare]:
     """
 
     def __init_subclass__(cls) -> t.Never:
-        msg = (
-            "Don't subclass this. "
-            "If you need anything more complex than this, "
-            "pull a dedicated graph library."
-        )
+        msg = "Don't subclass this."
         raise RuntimeError(msg)
 
     __final__ = True

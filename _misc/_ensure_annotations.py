@@ -24,9 +24,7 @@ from typing import Any
 
 _cycle_blocked = False
 
-rec = partial(
-    compile, filename="<string>", mode="exec", flags=0, dont_inherit=True
-)
+rec = partial(compile, filename="<string>", mode="exec", flags=0, dont_inherit=True)
 
 
 def ensure_annotations[T: type | FunctionType](f: T) -> T:
