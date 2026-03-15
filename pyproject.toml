@@ -1,11 +1,5 @@
 [tool.pyright]
 include = ["src", "_misc/_type_assertions.py"]
-exclude = [
-    "**/__pycache__",
-    "build",
-    "dist",
-    "docs",
-]
 
 pythonVersion = "3.12"
 pythonPlatform = "All"
@@ -191,6 +185,7 @@ ignore = [
     "UP031", # No, I like % formatting more for some things...
     # As PYI058 modifies return values to be more narrow than they actually are
     "PYI058", # This opinionated "fix" causes incompatabilties with things expecting a generator.
+    "RUF067", # opinionated, unhelpful, no clue who would even propose such.
 ]
 unfixable = [
     "E501",  # line length handled in other ways by ruff format

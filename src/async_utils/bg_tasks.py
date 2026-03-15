@@ -18,16 +18,17 @@ __lazy_modules__: list[str] = ["asyncio"]
 
 import asyncio
 import time
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from contextvars import Context
 
 from . import _typings as t
+from ._as_completed import AsCompletedIterator
 
 type _CoroutineLike[T] = Coroutine[t.Any, t.Any, T]
 type _LoopLike = asyncio.AbstractEventLoop | _UnboundLoopSentinel
 
 
-__all__ = ("BGTasks",)
+__all__ = ("BGLoopExecutor", "BGTasks", "CurrentLoopExecutor")
 
 
 class _UnboundLoopSentinel:
@@ -122,3 +123,111 @@ class BGTasks:
             # This wait is required in case tasks catch cancelation and
             # do further cleanup
             await asyncio.wait(pending)
+
+
+async def _sem_fut[**P, R](
+    sem: asyncio.Semaphore,
+    coro_func: Callable[P, _CoroutineLike[R]],
+    /,
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> R:
+    async with sem:
+        return await coro_func(*args, **kwargs)
+
+
+class CurrentLoopExecutor:
+    """Provides an API similar to that of concurrent.Futures.Executor
+
+    for running async functions on the current asyncio event loop in
+    the current thread.
+
+    Parameters
+    ----------
+
+    max_workers: int | None
+        An optional limit for the number of concurrent top-level tasks.
+    """
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
+    def __init__(self, *, max_workers: int | None = None) -> None:
+        self._max_workers: int | None = max_workers
+        self._sem: asyncio.Semaphore | None = None
+        self._is_closed: bool = False
+        self._loop: _LoopLike = _UnboundLoopSentinel()
+        self._futs: set[asyncio.Future[t.Any]] = set()
+
+    async def __aenter__(self) -> t.Self:
+        self._loop = asyncio.get_running_loop()
+        return self
+
+    async def __aexit__(self, *_dont_case: object) -> None:
+        self._is_closed = True
+        f = self._futs.copy()
+        await asyncio.gather(*f, return_exceptions=True)
+
+    def submit[**P, R](
+        self,
+        fn: Callable[P, _CoroutineLike[R]],
+        /,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> asyncio.Future[R]:
+        if self._is_closed:
+            msg = "Can't submit to a closed or closing executor"
+            raise RuntimeError(msg)
+
+        if self._sem:
+            f = self._loop.create_task(_sem_fut(self._sem, fn, *args, **kwargs))
+        else:
+            f = self._loop.create_task(fn(*args, **kwargs))
+
+        self._futs.add(f)
+        f.add_done_callback(self._futs.discard)
+        return f
+
+    def map[*Ts, R](
+        self, fn: Callable[[*Ts], _CoroutineLike[R]], /, *iterables: tuple[*Ts]
+    ) -> AsCompletedIterator[R]:
+        if self._is_closed:
+            msg = "Can't submit to a closed or closing executor"
+            raise RuntimeError(msg)
+
+        if isinstance(self._loop, _UnboundLoopSentinel):
+            msg = "Use this executor as an async context manager"
+            raise RuntimeError(msg)  # noqa: TRY004
+
+        if self._sem:
+            futs = {
+                asyncio.ensure_future(
+                    _sem_fut(self._sem, fn, *it),
+                    loop=self._loop,
+                )
+                for it in iterables
+            }
+        else:
+            futs = {
+                asyncio.ensure_future(fn(*it), loop=self._loop)
+                for it in iterables
+            }
+
+        for f in futs:
+            self._futs.add(f)
+            f.add_done_callback(self._futs.discard)
+
+        return AsCompletedIterator(futs)
+
+
+class BGLoopExecutor:
+    """Provides an API similar to that of concurrent.Futures.Executor
+
+    for running async functions in a background thread.
+    """
+
+    def __init__(self, *, max_workers: int | None = None) -> None:
+        self._max_workers: int | None = max_workers

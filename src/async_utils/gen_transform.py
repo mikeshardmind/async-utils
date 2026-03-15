@@ -59,7 +59,15 @@ def _consumer[**P, Y](
 
 type _ConGen[**P, Y] = Callable[P, Generator[Y]]
 type ConsumerType[**P, Y] = Callable[
-    t.Concatenate[Event, asyncio.Queue[Y], asyncio.AbstractEventLoop, cf.Future[None], _ConGen[P, Y], P], None
+    t.Concatenate[
+        Event,
+        asyncio.Queue[Y],
+        asyncio.AbstractEventLoop,
+        cf.Future[None],
+        _ConGen[P, Y],
+        P,
+    ],
+    None,
 ]
 
 
@@ -106,7 +114,9 @@ def _sync_to_async_gen[**P, Y](
     c: ConsumerType[P, Y] = _consumer
     loop = asyncio.get_running_loop()
 
-    bg_coro = asyncio.to_thread(c, lazy_ev, q, loop, cancel_fut, f, *args, **kwargs)
+    bg_coro = asyncio.to_thread(
+        c, lazy_ev, q, loop, cancel_fut, f, *args, **kwargs
+    )
     bg_task = asyncio.create_task(bg_coro)
 
     async def gen() -> AsyncGenerator[Y]:
