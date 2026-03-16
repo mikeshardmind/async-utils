@@ -47,13 +47,16 @@ if TYPE_CHECKING:
 
 else:
 
-    def f__call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...  # noqa: ANN001
-
     class ExprWrapper:
         """Wrapper since call expressions aren't allowed in type statements."""
 
         def __class_getitem__(cls, key: None) -> t.Any:
-            return type("CoroCacheDeco", (__import__("typing").Protocol,), {"__call__": f__call__})
+            import typing
+
+            class CoroCacheDeco(typing.Protocol):
+                def __call__[**P, R](self, c: CoroLike[P, R], /) -> CoroFunc[P, R]: ...
+
+            return CoroCacheDeco
 
     type CoroCacheDeco = ExprWrapper[None]
 

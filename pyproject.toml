@@ -312,7 +312,7 @@ disable_error_code = ["func-returns-value"]
 python-platform = "all"
 python-version = "3.12"
 
-[[tool.ty.overrides]]
+[tool.ty.src]
 include = [
     "src",
     "_misc/_type_assertions.py",

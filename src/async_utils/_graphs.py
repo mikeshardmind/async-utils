@@ -42,16 +42,27 @@ else:
         def __class_getitem__(*args: object) -> t.Any:
             return object
 
-    def f__hash__(self: t.Self) -> int: ...
-    def f_binop_bool(self: t.Self, other: typing.Self, /) -> bool: ...
-
     class ExprWrapper:
         """Wrapper since call expressions aren't allowed in type statements."""
 
         def __class_getitem__(cls, key: int) -> t.Any:
-            n = "__lt__" if key == 1 else "__gt__"
-            data = {"__hash__": f__hash__, n: f_binop_bool}
-            return type("CoroCacheDeco", (__import__("typing").Protocol,), data)
+            import typing
+
+            if key == 1:
+
+                class CanHashAndCompareLT(typing.Protocol):
+                    def __hash__(self) -> int: ...
+
+                    def __lt__(self, other: typing.Any, /) -> bool: ...
+
+                return CanHashAndCompareLT
+
+            class CanHashAndCompareGT(typing.Protocol):
+                def __hash__(self) -> int: ...
+
+                def __gt__(self, other: typing.Any, /) -> bool: ...
+
+            return CanHashAndCompareGT
 
     type CanHashAndCompareLT = ExprWrapper[1]
     type CanHashAndCompareGT = ExprWrapper[2]
