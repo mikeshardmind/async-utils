@@ -73,8 +73,8 @@ type ConsumerType[**P, Y] = Callable[
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
+    from typing import Generic as Gen
     Y = typing.TypeVar("Y")
-    Gen = typing.Generic
 else:
     Y = object
     class Gen:

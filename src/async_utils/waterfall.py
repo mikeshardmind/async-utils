@@ -35,8 +35,8 @@ type CallbackType[T] = Callable[[Sequence[T]], AnyCoro]
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
+    from typing import Generic as Gen
     T = typing.TypeVar("T")
-    Gen = typing.Generic
 else:
     T = object
     class Gen:

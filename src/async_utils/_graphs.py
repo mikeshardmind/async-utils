@@ -22,8 +22,7 @@ from . import _typings as t
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
-
-    Gen = typing.Generic
+    from typing import Generic as Gen
 
     class CanHashAndCompareLT(typing.Protocol):
         def __hash__(self) -> int: ...
@@ -143,6 +142,10 @@ class DepSorter(Gen[HashAndCompareT]):
         # Let's not recurse without TCO
         stack: list[HashAndCompareT] = []
         node_depth: dict[HashAndCompareT, int] = {}
+
+        # without this, mypy doesn't check total consistent use
+        # and instead binds to just HashAndCompareT due to iterating graph
+        node: HashAndCompareT | None
 
         for node in graph:
             if node in seen:

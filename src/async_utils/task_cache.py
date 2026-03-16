@@ -74,9 +74,9 @@ def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
 
 if TYPE_CHECKING:
     import typing
+    from typing import Generic as Gen
     R = typing.TypeVar("R")
     P = typing.ParamSpec("P")
-    Gen = typing.Generic
 else:
     P = R = object
     class Gen:
@@ -173,7 +173,7 @@ def taskcache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: Mapping[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]:
@@ -259,7 +259,7 @@ def lrutaskcache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: dict[t.Any, t.Any], /) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: Mapping[t.Any, t.Any], /) -> Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]:

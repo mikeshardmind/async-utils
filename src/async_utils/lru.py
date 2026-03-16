@@ -46,9 +46,9 @@ class IterationMisuse(ProbableTOCTOUError):
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
+    from typing import Generic as Gen
     K = typing.TypeVar("K")
     V = typing.TypeVar("V")
-    Gen = typing.Generic
 else:
     K = V = object
     class Gen:
