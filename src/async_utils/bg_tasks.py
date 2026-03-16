@@ -39,10 +39,7 @@ class _UnboundLoopSentinel:
     __final__ = True
 
     def create_task(*args: object, **kwargs: object) -> t.Never:
-        msg = """
-        BGTasks is intended for use as a context manager. Using create_task
-        prior to entering the context is not supported.
-        """
+        msg = "Using create_task prior to entering the context is not supported."
         raise RuntimeError(msg)
 
 
