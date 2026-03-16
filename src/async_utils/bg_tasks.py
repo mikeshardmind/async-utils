@@ -154,9 +154,10 @@ class CurrentLoopExecutor:
 
     __final__ = True
 
-    def __init__(self, *, max_concurrent: int | None = None) -> None:
-        self._max_concurrent: int | None = max_concurrent
+    def __init__(self, max_concurrent: int | None = None, /) -> None:
         self._sem: asyncio.Semaphore | None = None
+        if max_concurrent is not None:
+            self._sem = asyncio.Semaphore(max_concurrent)
         self._is_closed: bool = False
         self._loop: _LoopLike = _UnboundLoopSentinel()
         self._futs: set[asyncio.Future[t.Any]] = set()
