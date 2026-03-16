@@ -74,9 +74,11 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
     from typing import Generic as Gen
+
     Y = typing.TypeVar("Y")
 else:
     Y = object
+
     class Gen:
         def __class_getitem__(*args: object) -> t.Any:
             return object
@@ -87,6 +89,11 @@ class ACTX(Gen[Y]):
 
     Not intended for public construction.
     """
+
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
 
     __final__ = True
 

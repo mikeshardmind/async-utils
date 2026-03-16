@@ -36,9 +36,11 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
     from typing import Generic as Gen
+
     T = typing.TypeVar("T")
 else:
     T = object
+
     class Gen:
         def __class_getitem__(*args: object) -> t.Any:
             return object
@@ -63,6 +65,11 @@ class Waterfall(Gen[T]):
     max_wait_finalize: int | None
         Optionally, The number of seconds to wait for batches to complete
     """
+
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
 
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"

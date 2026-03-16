@@ -23,9 +23,11 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
     from typing import Generic as Gen
+
     T = typing.TypeVar("T")
 else:
     T = object
+
     class Gen:
         def __class_getitem__(*args: object) -> t.Any:
             return object
@@ -35,6 +37,11 @@ class AsCompletedIterator(Gen[T]):
     """This is *similar to* the implementation in asyncio,
     but with some minor differences to suit specific use
     """
+
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
 
     def __init__(self, futs: Iterable[asyncio.Future[T]]) -> None:
         self._done: asyncio.Queue[asyncio.Future[T]] = asyncio.Queue()

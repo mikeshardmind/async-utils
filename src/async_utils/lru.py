@@ -47,10 +47,12 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
     from typing import Generic as Gen
+
     K = typing.TypeVar("K")
     V = typing.TypeVar("V")
 else:
     K = V = object
+
     class Gen:
         def __class_getitem__(*args: object) -> t.Any:
             return object
@@ -74,6 +76,11 @@ class LRU(Gen[K, V]):
     maxsize: int
         The maximum number of items to retain
     """
+
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
 
     __slots__ = ("_cache", "_maxsize")
 
@@ -210,6 +217,11 @@ class TTLLRU(Gen[K, V]):
         Items are not eagerly evicted at expiration.
         Getting items does not refresh their ttl.
     """
+
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
 
     __slots__ = (
         "_cache",

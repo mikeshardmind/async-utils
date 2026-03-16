@@ -38,9 +38,11 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
     from typing import Generic as Gen
+
     T = typing.TypeVar("T")
 else:
     T = object
+
     class Gen:
         def __class_getitem__(*args: object) -> t.Any:
             return object
@@ -48,6 +50,11 @@ else:
 
 @total_ordering
 class _Task(Gen[T]):
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
+
     __slots__ = ("cancel_token", "canceled", "payload", "timestamp")
 
     def __init__(self, timestamp: float, payload: T, /) -> None:
@@ -77,6 +84,11 @@ class Scheduler(Gen[T]):
         on the host system, this is effectively the same as setting
         it to time.monotonic's precision.
     """
+
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
 
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"

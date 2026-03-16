@@ -75,10 +75,12 @@ def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
 if TYPE_CHECKING:
     import typing
     from typing import Generic as Gen
+
     R = typing.TypeVar("R")
     P = typing.ParamSpec("P")
 else:
     P = R = object
+
     class Gen:
         def __class_getitem__(*args: object) -> t.Any:
             return object
@@ -88,6 +90,12 @@ class _WrappedSignature(Gen[P, R]):
     #: PYUPGRADE: Ensure inspect.signature still accepts this
     # as func.__signature__
     # Known working: py 3.12.0 - py3.14rc1 range inclusive
+
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
+
     def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
         self._f: Callable[..., t.Any] = f  # anotation needed for inspect use below....
         self._w = w

@@ -63,12 +63,22 @@ type CanHashAndCompare = CanHashAndCompareLT | CanHashAndCompareGT
 
 
 class CycleDetected(Exception, Gen[HashAndCompareT]):
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
+
     @property
     def cycle(self) -> list[HashAndCompareT]:
         return self.args[0]
 
 
 class NodeData(Gen[HashAndCompareT]):
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
+
     __slots__ = ("dependants", "ndependencies", "node")
 
     def __init__(self, node: HashAndCompareT) -> None:
@@ -98,6 +108,11 @@ class DepSorter(Gen[HashAndCompareT]):
     Nodes may be added multiple times.
     Directed Edges are accumulated from all input information.
     """
+
+    if not TYPE_CHECKING:
+
+        def __class_getitem__(cls, *_dont_care: object) -> type:
+            return cls
 
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this."
