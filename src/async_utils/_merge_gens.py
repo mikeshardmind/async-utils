@@ -56,5 +56,4 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
         for f in futs:
             if not f.done():
                 f.cancel()
-        for g in gens:
-            await asyncio.gather(g.aclose(), return_exceptions=True)
+        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
