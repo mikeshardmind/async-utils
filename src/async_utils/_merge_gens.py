@@ -19,49 +19,37 @@ import asyncio
 from collections.abc import AsyncGenerator
 
 
-async def _consumer[T](queue: asyncio.Queue[T], gen: AsyncGenerator[T]):
-    async for value in gen:
-        await queue.put(value)
-
-
 async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
-
-    q: asyncio.Queue[T] = asyncio.Queue()
-
-    gen_futs = {asyncio.ensure_future(_consumer(q, gen)) for gen in gens}
-
-    exc_fut = asyncio.ensure_future(asyncio.wait(gen_futs, return_when=asyncio.FIRST_EXCEPTION))
-    done_fut = asyncio.ensure_future(asyncio.wait(gen_futs, return_when=asyncio.ALL_COMPLETED))
+    all_done: set[AsyncGenerator[T]] = set()
+    cancelled: bool = False
+    futs = {asyncio.ensure_future(anext(g, g)) for g in gens if g not in all_done}
 
     try:
-        while not done_fut.done():
-            q_fut = asyncio.ensure_future(q.get())
+        while futs:
+            done, pending = await asyncio.wait(futs, return_when=asyncio.FIRST_COMPLETED)
+            exceptions: list[Exception] = []
+            base_exceptions: list[BaseException] = []
 
-            done, _pending = await asyncio.wait((q_fut, exc_fut, done_fut), return_when=asyncio.FIRST_COMPLETED)
-            if exc_fut in done:
-                err, _pending = exc_fut.result()
-                msg = "While iterating merged async iterators: "
-                exceptions = [exc for e in err if (exc := e.exception())]
-                if exceptions:
-                    if len(exceptions) == 1:
-                        raise exceptions[0]
-                    if any(isinstance(exc, BaseException) for exc in exceptions):
-                        raise BaseExceptionGroup(msg, exceptions)
-                    raise ExceptionGroup(msg, exceptions)  # pyright: ignore[reportArgumentType]
-
-            if q_fut in done:
-                yield q_fut.result()
-
-        while True:
-            try:
-                y = q.get_nowait()
-            except asyncio.QueueEmpty:
-                break
-            else:
-                yield y
+            for f in done:
+                if (not cancelled) and f.cancelled():
+                    cancelled = True
+                    for p in pending:
+                        p.cancel()
+                elif exc := f.exception():
+                    if isinstance(exc, BaseException):
+                        base_exceptions.append(exc)
+                    else:
+                        exceptions.append(exc)
+                else:
+                    v = f.result()
+                    if v in gens:
+                        all_done.add(v)  # pyright: ignore[reportArgumentType]
+                    else:
+                        yield v  # pyright: ignore[reportReturnType]
+            futs = {asyncio.ensure_future(anext(g, g)) for g in gens if g not in all_done}
     finally:
-        all_futures: set[asyncio.Task[object]] = {*gen_futs, exc_fut, done_fut}
-        for fut in all_futures:
-            if not fut.done():
-                fut.cancel()
-        await asyncio.gather(*all_futures, return_exceptions=True)
+        for f in futs:
+            if not f.done():
+                f.cancel()
+        for g in gens:
+            await asyncio.gather(g.aclose(), return_exceptions=True)
