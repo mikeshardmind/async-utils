@@ -22,15 +22,21 @@ from . import _typings as t
 
 
 async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
+    """Creates an async generator which yields values as available from multiple.
+
+    This closes the async generators upon finishing, even if they aren't fully consumed
+    """
     all_done: set[AsyncGenerator[T]] = set()
     cancelled: bool = False
-    futs: set[asyncio.Future[t.Any]] = {asyncio.ensure_future(anext(g, g)) for g in gens if g not in all_done}
+    sentinel = object()
+    futs: dict[asyncio.Future[t.Any], AsyncGenerator[T]] = {asyncio.ensure_future(anext(g, sentinel)): g for g in gens}
 
     try:
         while futs:
             done, pending = await asyncio.wait(futs, return_when=asyncio.FIRST_COMPLETED)
             any_base_exception = False
             exceptions: list[t.Any] = []
+            done_gens: set[AsyncGenerator[T]] = set()
 
             for f in done:
                 if (not cancelled) and f.cancelled():
@@ -43,15 +49,18 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                     exceptions.append(exc)
                 else:
                     v = f.result()
-                    if v in gens:
-                        all_done.add(v)
+                    if v is sentinel:
+                        all_done.add(futs[f])
                     else:
                         yield v
+                        done_gens.add(futs[f])
                 if exceptions:
                     msg = "While iterating merged async generators: "
                     typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
                     raise typ(msg, exceptions)
-            futs = {asyncio.ensure_future(anext(g, g)) for g in gens if g not in all_done}
+            pending_map = {p: futs[p] for p in pending}
+            futs = {asyncio.ensure_future(anext(g, sentinel)): g for g in done_gens if g not in all_done}
+            futs.update(pending_map)
     finally:
         for f in futs:
             if not f.done():
