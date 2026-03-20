@@ -18,17 +18,19 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator
 
+from . import _typings as t
+
 
 async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     all_done: set[AsyncGenerator[T]] = set()
     cancelled: bool = False
-    futs = {asyncio.ensure_future(anext(g, g)) for g in gens if g not in all_done}
+    futs: set[asyncio.Future[t.Any]] = {asyncio.ensure_future(anext(g, g)) for g in gens if g not in all_done}
 
     try:
         while futs:
             done, pending = await asyncio.wait(futs, return_when=asyncio.FIRST_COMPLETED)
             any_base_exception = False
-            exceptions: list[BaseException | Exception] = []
+            exceptions: list[t.Any] = []
 
             for f in done:
                 if (not cancelled) and f.cancelled():
@@ -42,13 +44,13 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                 else:
                     v = f.result()
                     if v in gens:
-                        all_done.add(v)  # pyright: ignore[reportArgumentType]
+                        all_done.add(v)
                     else:
-                        yield v  # pyright: ignore[reportReturnType]
+                        yield v
                 if exceptions:
                     msg = "While iterating merged async generators: "
                     typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
-                    raise typ(msg, exceptions)  # pyright: ignore[reportArgumentType]
+                    raise typ(msg, exceptions)
             futs = {asyncio.ensure_future(anext(g, g)) for g in gens if g not in all_done}
     finally:
         for f in futs:
