@@ -27,8 +27,8 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     try:
         while futs:
             done, pending = await asyncio.wait(futs, return_when=asyncio.FIRST_COMPLETED)
-            exceptions: list[Exception] = []
-            base_exceptions: list[BaseException] = []
+            any_base_exception = False
+            exceptions: list[BaseException | Exception] = []
 
             for f in done:
                 if (not cancelled) and f.cancelled():
@@ -37,15 +37,18 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                         p.cancel()
                 elif exc := f.exception():
                     if isinstance(exc, BaseException):
-                        base_exceptions.append(exc)
-                    else:
-                        exceptions.append(exc)
+                        any_base_exception = True
+                    exceptions.append(exc)
                 else:
                     v = f.result()
                     if v in gens:
                         all_done.add(v)  # pyright: ignore[reportArgumentType]
                     else:
                         yield v  # pyright: ignore[reportReturnType]
+                if exceptions:
+                    msg = "While iterating merged async generators: "
+                    typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
+                    raise typ(msg, exceptions)  # pyright: ignore[reportArgumentType]
             futs = {asyncio.ensure_future(anext(g, g)) for g in gens if g not in all_done}
     finally:
         for f in futs:
