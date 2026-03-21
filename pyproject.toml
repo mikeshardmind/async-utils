@@ -6,6 +6,7 @@ pythonPlatform = "All"
 
 
 # strict doesn't allow turning off / downgrading severity of rules
+# strict also includes a few rules not based on type theory.
 typeCheckingMode = "standard"
 
 # type issues
@@ -92,7 +93,6 @@ reportUnnecessaryTypeIgnoreComment = "warning"
 
 reportUnsupportedDunderAll = "error"
 reportWildcardImportFromLibrary = "error"
-reportShadowedImports = "warning"
 
 reportUninitializedInstanceVariable = "warning"
 reportUnusedCoroutine = "warning"
@@ -305,8 +305,8 @@ strict_bytes = true
 disable_error_code = ["func-returns-value"]
 
 # ty support is provided on an "as reasonable" basis.
-# currently, this is "ty doesn't support enough of the type system"
-# the configuration here is to track what ty doesn't understand here.
+# like mypy, ty support is only intended to cover the public API
+# currently, though the whole project passes.
 
 [tool.ty.environment]
 python-platform = "all"

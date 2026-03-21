@@ -33,7 +33,7 @@ async def check(lock: AsyncLock, start: int) -> tuple[int, int]:
         return (s - start, e - start)
 
 
-async def amain():
+async def amain() -> None:
     lock = AsyncLock()
     with ExitStack() as ex:
         loops = [ex.enter_context(threaded_loop(use_eager_task_factory=x)) for _ in range(10) for x in (True, False)]

@@ -25,7 +25,7 @@ from async_utils.gen_transform import sync_to_async_gen_noctx
 from async_utils.task_cache import lrutaskcache
 
 
-async def no_run():
+async def no_run() -> None:
 
     @lrutaskcache(ttl=60, maxsize=512)
     async def t1(a: int, b: str, *, x: bytes) -> str:
