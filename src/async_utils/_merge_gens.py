@@ -20,11 +20,14 @@ from collections.abc import AsyncGenerator
 
 from . import _typings as t
 
+_gen_close_tasks: set[asyncio.Task[t.Any]] = set()
+
 
 async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     """Creates an async generator which yields values as available from multiple.
 
-    If any exceptions are raised, they are reraised interrupting further iteration.
+    If any exceptions are raised, they are reraised interrupting further iteration,
+    after yielding the values that are already available.
     This closes the async generators upon finishing, even if they aren't fully consumed.
     """
     all_done: set[AsyncGenerator[T]] = set()
@@ -66,4 +69,14 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
         for f in futs:
             if not f.done():
                 f.cancel()
-        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
+        # We just need to ensure these are closed for consistency in behavior
+        # between error cases. Namely, avoiding non-determinism on if generators
+        # are resumable based on when an error happened.
+        # This also ensures that users don't need to wrap passed generators with
+        # aclosing themselves.
+        # AsyncGenerator.aclose being a coroutine is unfortunate
+        # We shouldn't await a gather in finally
+        for g in gens:
+            task = asyncio.create_task(g.aclose())
+            _gen_close_tasks.add(task)
+            task.add_done_callback(_gen_close_tasks.discard)
