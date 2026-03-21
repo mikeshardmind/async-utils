@@ -3,14 +3,9 @@ This contains various async utility functions I've written
 
 ## Using it
 
-### Warning, this is not stable yet
+(More detailed documentation and examples soon)
 
-While my intent is that all of this is already suitably ready for use
-(and started by extracting private in-use code for public consumption) and will
-not require breaking changes, you may want to Subscribe to this issue for
-breaking change notices https://github.com/mikeshardmind/async-utils/issues/10
-
-### Breaking policy (Future)
+### Breaking policy
 
 The breaking policy only applies to symbols exported in ``__all__`` for a
 given public module. Public modules are those not prefixed with `_`.
@@ -139,6 +134,8 @@ While compatible with strict interpretations of python's type system,
 both pyright and mypy enable checks that are not type errors in their
 strict modes. See the configurations mentioned for more detail.
 
+The public API is compatible with mypy, pyright, and ty
+
 In particular, `pyright --verifytypes async_utils --ignoreexternal`
 should report zero ambiguous or unknown public types.
 
@@ -173,6 +170,7 @@ What's in each public export, below
 | [gen_transform.py](src/async_utils/gen_transform.py)   | Contains a function to wrap a synchronous generator in a thread use it asynchronously                            |                                                                                                                                                                          |
 | [lockout.py](src/async_utils/lockout.py)               | multi-timeout lockouts tags                                                                                      |                                                                                                                                                                          |
 | [lru.py](src/async_utils/lru.py)                       | A lightweight lru-cache mapping                                                                                  |                                                                                                                                                                          |
+| [merge_gens.py](src/async_utils/merge_gens.py)         | A function which merges the output of multiple async generators as one                                           |                                                                                                                                                                          |
 | [priority_sem.py](src/async_utils/priority_sem.py)     | A priority semaphore.                                                                                            |                                                                                                                                                                          |
 | [ratelimiter.py](src/async_utils/ratelimiter.py)       | A ratelimiting context manager.                                                                                  |                                                                                                                                                                          |
 | [scheduler.py](src/async_utils/scheduler.py)           | A simple in-memory asyncio job runner.                                                                           |                                                                                                                                                                          |

@@ -32,6 +32,8 @@ __all__ = ("BGTasks", "CurrentLoopExecutor")
 
 
 class _UnboundLoopSentinel:
+    """Sentinel for nicer error messages."""
+
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"
         raise RuntimeError(msg)
@@ -184,6 +186,7 @@ class CurrentLoopExecutor:
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> asyncio.Future[R]:
+        """Schedules a coroutine on the current event loop, returning a future."""
         if self._is_closed:
             msg = "Can't submit to a closed or closing executor"
             raise RuntimeError(msg)
