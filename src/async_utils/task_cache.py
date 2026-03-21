@@ -214,7 +214,7 @@ def taskcache(
 
             return a_fut
 
-        # PYUPGRADE: 3.14.0 recheck (last checked 3.14rc1), 3.15+
+        # PYUPGRADE: 3.15.0 recheck (last checked 3.14.3)
         wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # type: ignore[attr-defined]
 
         return wrapped
@@ -300,7 +300,7 @@ def lrutaskcache(
 
             return a_fut
 
-        # PYUPGRADE: 3.14.0 recheck, 3.15+
+        # PYUPGRADE: 3.15.0 recheck (last checked 3.14.3)
         wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # type: ignore[attr-defined]
 
         return wrapped
