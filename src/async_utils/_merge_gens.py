@@ -24,7 +24,8 @@ from . import _typings as t
 async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     """Creates an async generator which yields values as available from multiple.
 
-    This closes the async generators upon finishing, even if they aren't fully consumed
+    If any exceptions are raised, they are reraised interrupting further iteration.
+    This closes the async generators upon finishing, even if they aren't fully consumed.
     """
     all_done: set[AsyncGenerator[T]] = set()
     cancelled: bool = False
