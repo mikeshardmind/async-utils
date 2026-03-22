@@ -20,8 +20,6 @@ from collections.abc import AsyncGenerator
 
 from . import _typings as t
 
-_gen_close_tasks: set[asyncio.Task[t.Any]] = set()
-
 
 async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     """Creates an async generator which yields values as available from multiple.
@@ -76,9 +74,6 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
         # are resumable based on when an error happened.
         # This also ensures that users don't need to wrap passed generators with
         # aclosing themselves.
-        # AsyncGenerator.aclose being a coroutine is unfortunate
-        # We shouldn't await a gather in finally
-        for g in gens:
-            task = asyncio.create_task(g.aclose())
-            _gen_close_tasks.add(task)
-            task.add_done_callback(_gen_close_tasks.discard)
+        # AsyncGenerator.aclose being a coroutine is unfortunate,
+        # but this has to be awaited to ensure the consistency of behavior.
+        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
