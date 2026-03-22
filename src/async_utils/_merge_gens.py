@@ -58,10 +58,12 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                     else:
                         yield v
                         done_gens.add(futs[f])
-                if exceptions:
-                    msg = "While iterating merged async generators: "
-                    typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
-                    raise typ(msg, exceptions)
+
+            if exceptions:
+                msg = "While iterating merged async generators: "
+                typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
+                raise typ(msg, exceptions)
+
             pending_map = {p: futs[p] for p in pending}
             futs = {asyncio.ensure_future(anext(g, sentinel)): g for g in done_gens if g not in all_done}
             futs.update(pending_map)
