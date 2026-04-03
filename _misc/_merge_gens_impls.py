@@ -100,8 +100,10 @@ async def merge_gens2[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                     exceptions.append(exc)
                 else:
                     val, ev = q_fut.result()
-                    yield val
-                    ev.set()
+                    try:
+                        yield val
+                    finally:
+                        ev.set()
             if any_err in done:
                 errdone, _ = any_err.result()
                 for errtask in errdone:
