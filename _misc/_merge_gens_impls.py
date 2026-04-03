@@ -21,8 +21,6 @@ from collections.abc import AsyncGenerator
 
 from async_utils import _typings as t
 
-_gen_close_tasks: set[asyncio.Task[t.Any]] = set()
-
 
 async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     """Creates an async generator which yields values as available from multiple.
@@ -59,10 +57,12 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                     else:
                         yield v
                         done_gens.add(futs[f])
-                if exceptions:
-                    msg = "While iterating merged async generators: "
-                    typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
-                    raise typ(msg, exceptions)
+
+            if exceptions:
+                msg = "While iterating merged async generators: "
+                typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
+                raise typ(msg, exceptions)
+
             pending_map = {p: futs[p] for p in pending}
             futs = {asyncio.ensure_future(anext(g, sentinel)): g for g in done_gens if g not in all_done}
             futs.update(pending_map)
@@ -75,23 +75,23 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
         # are resumable based on when an error happened.
         # This also ensures that users don't need to wrap passed generators with
         # aclosing themselves.
-        # AsyncGenerator.aclose being a coroutine is unfortunate
-        # We shouldn't await a gather in finally
-        for g in gens:
-            task = asyncio.create_task(g.aclose())
-            _gen_close_tasks.add(task)
-            task.add_done_callback(_gen_close_tasks.discard)
+        # AsyncGenerator.aclose being a coroutine is unfortunate,
+        # but this has to be awaited to ensure the consistency of behavior.
+        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
 
 
-async def _consumer[T](queue: asyncio.Queue[T], gen: AsyncGenerator[T]) -> None:
+async def _consumer[T](queue: asyncio.Queue[tuple[T, asyncio.Event]], gen: AsyncGenerator[T]) -> None:
+    ev = asyncio.Event()
     async for value in gen:
-        queue.put_nowait(value)
+        ev.clear()
+        queue.put_nowait((value, ev))
+        await ev.wait()
 
 
-async def merge_gens2[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
+async def merge_gens2[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:  # noqa: PLR0914
     """Competing implementation with the above."""
 
-    queue: asyncio.Queue[T] = asyncio.Queue()
+    queue: asyncio.Queue[tuple[T, asyncio.Event]] = asyncio.Queue()
     tasks = {asyncio.create_task(_consumer(queue, gen)) for gen in gens}
     any_err = asyncio.create_task(asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION))
     all_done = asyncio.create_task(asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED))
@@ -110,7 +110,9 @@ async def merge_gens2[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                 elif exc := q_fut.exception():
                     exceptions.append(exc)
                 else:
-                    yield q_fut.result()
+                    val, ev = q_fut.result()
+                    yield val
+                    ev.set()
             if any_err in done:
                 errdone, _ = any_err.result()
                 for errtask in errdone:
@@ -124,11 +126,11 @@ async def merge_gens2[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
 
         while True:
             try:
-                v = queue.get_nowait()
+                val, ev = queue.get_nowait()
             except asyncio.QueueEmpty:
                 break
             else:
-                yield v
+                yield val
 
     finally:
         for task in tasks:
