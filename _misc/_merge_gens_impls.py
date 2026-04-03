@@ -34,16 +34,17 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     futs: list[asyncio.Future[t.Any] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
 
     try:
-        while any(futs):
+        while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
             any_base_exception = False
             exceptions: list[t.Any] = []
 
             for f in done:
-                if (not cancelled) and f.cancelled():
-                    cancelled = True
-                    for p in pending:
-                        p.cancel()
+                if f.cancelled():
+                    if not cancelled:
+                        cancelled = True
+                        for p in pending:
+                            p.cancel()
                 elif exc := f.exception():
                     if isinstance(exc, BaseException):
                         any_base_exception = True
@@ -149,17 +150,18 @@ async def merge_gens_batched[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list
     futs: list[asyncio.Future[t.Any] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
 
     try:
-        while any(futs):
+        while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
             any_base_exception = False
             exceptions: list[t.Any] = []
             results: list[t.Any] = []
 
             for f in done:
-                if (not cancelled) and f.cancelled():
-                    cancelled = True
-                    for p in pending:
-                        p.cancel()
+                if f.cancelled():
+                    if not cancelled:
+                        cancelled = True
+                        for p in pending:
+                            p.cancel()
                 elif exc := f.exception():
                     if isinstance(exc, BaseException):
                         any_base_exception = True
