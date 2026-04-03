@@ -186,6 +186,8 @@ ignore = [
     # As PYI058 modifies return values to be more narrow than they actually are
     "PYI058", # This opinionated "fix" causes incompatabilties with things expecting a generator.
     "RUF067", # opinionated, unhelpful, no clue who would even propose such.
+    "PLR1702", # opinionated complexity
+    "PLR0914", # opinionated, too many locals
 ]
 unfixable = [
     "E501",  # line length handled in other ways by ruff format

@@ -29,17 +29,15 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     after yielding the values that are already available.
     This closes the async generators upon finishing, even if they aren't fully consumed.
     """
-    all_done: set[AsyncGenerator[T]] = set()
     cancelled: bool = False
     sentinel = object()
-    futs: dict[asyncio.Future[t.Any], AsyncGenerator[T]] = {asyncio.ensure_future(anext(g, sentinel)): g for g in gens}
+    futs: list[asyncio.Future[t.Any] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
 
     try:
-        while futs:
-            done, pending = await asyncio.wait(futs, return_when=asyncio.FIRST_COMPLETED)
+        while any(futs):
+            done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
             any_base_exception = False
             exceptions: list[t.Any] = []
-            done_gens: set[AsyncGenerator[T]] = set()
 
             for f in done:
                 if (not cancelled) and f.cancelled():
@@ -51,24 +49,22 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                         any_base_exception = True
                     exceptions.append(exc)
                 else:
+                    idx = futs.index(f)
                     v = f.result()
                     if v is sentinel:
-                        all_done.add(futs[f])
+                        futs[idx] = None
                     else:
                         yield v
-                        done_gens.add(futs[f])
+                        futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
 
             if exceptions:
                 msg = "While iterating merged async generators: "
                 typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
                 raise typ(msg, exceptions)
 
-            pending_map = {p: futs[p] for p in pending}
-            futs = {asyncio.ensure_future(anext(g, sentinel)): g for g in done_gens if g not in all_done}
-            futs.update(pending_map)
     finally:
         for f in futs:
-            if not f.done():
+            if f and not f.done():
                 f.cancel()
         # We just need to ensure these are closed for consistency in behavior
         # between error cases. Namely, avoiding non-determinism on if generators
@@ -88,7 +84,7 @@ async def _consumer[T](queue: asyncio.Queue[tuple[T, asyncio.Event]], gen: Async
         await ev.wait()
 
 
-async def merge_gens2[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:  # noqa: PLR0914
+async def merge_gens2[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     """Competing implementation with the above."""
 
     queue: asyncio.Queue[tuple[T, asyncio.Event]] = asyncio.Queue()
