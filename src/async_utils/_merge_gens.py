@@ -47,7 +47,6 @@ async def merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGe
     cancelled: bool = False
     sentinel = object()
     futs: list[asyncio.Future[t.Any] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
-    any_base_exception = False
     exceptions: list[t.Any] = []
 
     try:
@@ -61,8 +60,6 @@ async def merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGe
                         for p in pending:
                             p.cancel()
                 elif exc := f.exception():
-                    if isinstance(exc, BaseException):
-                        any_base_exception = True
                     exceptions.append(exc)
                     idx = futs.index(f)
                     futs[idx] = None
@@ -77,8 +74,7 @@ async def merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGe
 
         if exceptions:
             msg = "While iterating merged async generators: "
-            typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
-            raise typ(msg, exceptions)
+            raise BaseExceptionGroup(msg, exceptions)
 
     finally:
         for f in futs:
@@ -142,7 +138,6 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     try:
         while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
-            any_base_exception = False
             exceptions: list[t.Any] = []
 
             for f in done:
@@ -152,8 +147,6 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                         for p in pending:
                             p.cancel()
                 elif exc := f.exception():
-                    if isinstance(exc, BaseException):
-                        any_base_exception = True
                     exceptions.append(exc)
                 else:
                     idx = futs.index(f)
@@ -166,8 +159,7 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
 
             if exceptions:
                 msg = "While iterating merged async generators: "
-                typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
-                raise typ(msg, exceptions)
+                raise BaseExceptionGroup(msg, exceptions)
 
     finally:
         for f in futs:

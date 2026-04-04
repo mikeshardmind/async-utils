@@ -36,7 +36,6 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     try:
         while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
-            any_base_exception = False
             exceptions: list[t.Any] = []
 
             for f in done:
@@ -46,8 +45,6 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                         for p in pending:
                             p.cancel()
                 elif exc := f.exception():
-                    if isinstance(exc, BaseException):
-                        any_base_exception = True
                     exceptions.append(exc)
                 else:
                     idx = futs.index(f)
@@ -60,8 +57,7 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
 
             if exceptions:
                 msg = "While iterating merged async generators: "
-                typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
-                raise typ(msg, exceptions)
+                raise BaseExceptionGroup(msg, exceptions)
 
     finally:
         for f in futs:
@@ -133,9 +129,7 @@ async def merge_gens2[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
         exceptions.append(RuntimeError("Internal task cancelled unexpectedly"))
     if exceptions:
         msg = "While iterating merged async generators: "
-        b = any(isinstance(e, BaseException) for e in exceptions)
-        typ = BaseExceptionGroup if b else ExceptionGroup
-        raise typ(msg, exceptions)
+        raise BaseExceptionGroup(msg, exceptions)
 
 
 async def merge_gens_batched[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T]]:
@@ -152,7 +146,6 @@ async def merge_gens_batched[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list
     try:
         while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
-            any_base_exception = False
             exceptions: list[t.Any] = []
             results: list[t.Any] = []
 
@@ -163,8 +156,6 @@ async def merge_gens_batched[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list
                         for p in pending:
                             p.cancel()
                 elif exc := f.exception():
-                    if isinstance(exc, BaseException):
-                        any_base_exception = True
                     exceptions.append(exc)
                 else:
                     idx = futs.index(f)
@@ -180,8 +171,7 @@ async def merge_gens_batched[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list
 
             if exceptions:
                 msg = "While iterating merged async generators: "
-                typ = BaseExceptionGroup if any_base_exception else ExceptionGroup
-                raise typ(msg, exceptions)
+                raise BaseExceptionGroup(msg, exceptions)
 
     finally:
         for f in futs:
