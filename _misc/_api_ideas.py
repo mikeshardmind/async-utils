@@ -60,7 +60,11 @@ class MergeGens(Gen[T]):
         return self._f(*self._gens)
 
     async def __aexit__(self, *_dont_care: object) -> None:
-        await asyncio.gather(*(g.aclose() for g in self._gens), return_exceptions=True)
+        res = await asyncio.gather(*(g.aclose() for g in self._gens), return_exceptions=True)
+        excs = [t for t in res if t]
+        if excs:
+            msg = "While closing merged async generators:"
+            raise BaseExceptionGroup(msg, excs)
 
 
 class BatchMergeGens(Gen[T]):
@@ -82,4 +86,8 @@ class BatchMergeGens(Gen[T]):
         return self._f(*self._gens)
 
     async def __aexit__(self, *_dont_care: object) -> None:
-        await asyncio.gather(*(g.aclose() for g in self._gens), return_exceptions=True)
+        res = await asyncio.gather(*(g.aclose() for g in self._gens), return_exceptions=True)
+        excs = [t for t in res if t]
+        if excs:
+            msg = "While closing merged async generators:"
+            raise BaseExceptionGroup(msg, excs)
