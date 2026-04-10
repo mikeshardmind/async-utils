@@ -24,15 +24,6 @@ from . import _typings as t
 # make sure the others don't need changes.
 # This is preferred over a kwarg dictating branching behavior internally.
 
-# Justification of gather with return_exceptions=True without using them in finally:
-#
-# The gather closing generators is technically removable.
-# asyncgen hooks already do this implicitly.
-# The reason for doing it here while dropping exceptions
-# is to ensure that if misused, users consistently
-# get an error for trying to reuse the generator object,
-# rather than only getting it in some cases based on nondeterminstic ordering of events.
-
 
 async def merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
     """Creates an async generator which yields values as available from multiple.
@@ -80,8 +71,6 @@ async def merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGe
         for f in futs:
             if f and not f.done():
                 f.cancel()
-        # see top of module for comment about aclose gather with return_exceptions=True
-        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
 
 
 async def merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
@@ -120,8 +109,6 @@ async def merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -> Asyn
         for f in futs:
             if f and not f.done():
                 f.cancel()
-        # see top of module for comment about aclose gather with return_exceptions=True
-        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
 
 
 async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
@@ -165,8 +152,6 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
         for f in futs:
             if f and not f.done():
                 f.cancel()
-        # see top of module for comment about aclose gather with return_exceptions=True
-        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
 
 
 async def batch_merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T]]:
@@ -183,6 +168,7 @@ async def batch_merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> A
     sentinel: t.Any = object()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
     exceptions: list[t.Any] = []
+    needs_next: list[bool] = [False for _ in gens]
 
     try:
         while any(futs) and not cancelled:
@@ -206,10 +192,15 @@ async def batch_merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> A
                         futs[idx] = None
                     else:
                         results.append(v)
-                        futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
+                        needs_next[idx] = True
 
             if results:
                 yield results
+
+            for idx, val in enumerate(needs_next):
+                if val:
+                    futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
+                    needs_next[idx] = False
 
         if exceptions:
             msg = "While iterating merged async generators: "
@@ -219,8 +210,6 @@ async def batch_merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> A
         for f in futs:
             if f and not f.done():
                 f.cancel()
-        # see top of module for comment about aclose gather with return_exceptions=True
-        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
 
 
 async def batch_merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T]]:
@@ -232,6 +221,7 @@ async def batch_merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -
     cancelled: bool = False
     sentinel: t.Any = object()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
+    needs_next: list[bool] = [False for _ in gens]
 
     try:
         while any(futs) and not cancelled:
@@ -254,17 +244,20 @@ async def batch_merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -
                         futs[idx] = None
                     else:
                         results.append(v)
-                        futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
+                        needs_next[idx] = True
 
             if results:
                 yield results
+
+            for idx, val in enumerate(needs_next):
+                if val:
+                    futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
+                    needs_next[idx] = False
 
     finally:
         for f in futs:
             if f and not f.done():
                 f.cancel()
-        # see top of module for comment about aclose gather with return_exceptions=True
-        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
 
 
 async def batch_merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T]]:
@@ -277,6 +270,7 @@ async def batch_merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T
     cancelled: bool = False
     sentinel: t.Any = object()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
+    needs_next: list[bool] = [False for _ in gens]
 
     try:
         while any(futs) and not cancelled:
@@ -299,7 +293,7 @@ async def batch_merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T
                         futs[idx] = None
                     else:
                         results.append(v)
-                        futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
+                        needs_next[idx] = True
 
             if results:
                 yield results
@@ -308,9 +302,12 @@ async def batch_merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T
                 msg = "While iterating merged async generators: "
                 raise BaseExceptionGroup(msg, exceptions)
 
+            for idx, val in enumerate(needs_next):
+                if val:
+                    futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
+                    needs_next[idx] = False
+
     finally:
         for f in futs:
             if f and not f.done():
                 f.cancel()
-        # see top of module for comment about aclose gather with return_exceptions=True
-        await asyncio.gather(*(g.aclose() for g in gens), return_exceptions=True)
