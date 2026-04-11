@@ -18,7 +18,6 @@ __lazy_modules__: list[str] = ["asyncio"]
 
 import asyncio
 import concurrent.futures as cf
-from collections.abc import Awaitable, Callable, Coroutine, Hashable, Mapping
 from functools import partial, wraps
 
 from . import _typings as t
@@ -27,15 +26,15 @@ from .lru import LRU
 
 __all__ = ("corocache", "lrucorocache")
 
-type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
-type CoroLike[**P, R] = Callable[P, Awaitable[R]]
+type CoroFunc[**P, R] = t.Callable[P, t.Coroutine[t.Any, t.Any, R]]
+type CoroLike[**P, R] = t.Callable[P, t.Awaitable[R]]
 
 #: Note CacheTransformers recieve a tuple (args) and dict(kwargs)
 #: rather than a ParamSpec of the decorated function.
 #: Warning: Mutations will impact callsite, return new objects as needed.
-type CacheTransformer = Callable[
-    [tuple[t.Any, ...], Mapping[str, t.Any]],
-    tuple[tuple[t.Any, ...], Mapping[str, t.Any]],
+type CacheTransformer = t.Callable[
+    [tuple[t.Any, ...], t.Mapping[str, t.Any]],
+    tuple[tuple[t.Any, ...], t.Mapping[str, t.Any]],
 ]
 
 TYPE_CHECKING = False
@@ -107,14 +106,14 @@ def corocache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: Mapping[t.Any, t.Any], /) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: t.Mapping[t.Any, t.Any], /) -> t.Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: CoroLike[P, R], /) -> CoroFunc[P, R]:
-        internal_cache: dict[Hashable, cf.Future[R]] = {}
+        internal_cache: dict[t.Hashable, cf.Future[R]] = {}
         internal_taskset: set[asyncio.Task[R]] = set()
 
-        def _internal_cache_evict(key: Hashable, _ignored_task: object) -> None:
+        def _internal_cache_evict(key: t.Hashable, _ignored_task: object) -> None:
             if ttl is not None:
                 loop = asyncio.get_running_loop()
                 loop.call_later(ttl, internal_cache.pop, key)
@@ -188,14 +187,14 @@ def lrucorocache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: Mapping[t.Any, t.Any], /) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: t.Mapping[t.Any, t.Any], /) -> t.Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: CoroLike[P, R], /) -> CoroFunc[P, R]:
-        internal_cache: LRU[Hashable, cf.Future[R]] = LRU(maxsize)
+        internal_cache: LRU[t.Hashable, cf.Future[R]] = LRU(maxsize)
         internal_taskset: set[asyncio.Task[R]] = set()
 
-        def _internal_cache_evict(key: Hashable, _ignored_task: object) -> None:
+        def _internal_cache_evict(key: t.Hashable, _ignored_task: object) -> None:
             if ttl is not None:
                 loop = asyncio.get_running_loop()
                 loop.call_later(ttl, internal_cache.remove, key)

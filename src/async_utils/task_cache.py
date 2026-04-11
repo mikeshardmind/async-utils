@@ -18,7 +18,6 @@ __lazy_modules__: list[str] = ["asyncio"]
 
 import asyncio
 import concurrent.futures as cf
-from collections.abc import Callable, Coroutine, Hashable, Mapping
 from functools import partial, wraps
 
 from . import _typings as t
@@ -27,16 +26,16 @@ from .lru import LRU
 
 __all__ = ("lrutaskcache", "taskcache")
 
-type CoroFunc[**P, R] = Callable[P, Coroutine[t.Any, t.Any, R]]
-type TaskFunc[**P, R] = Callable[P, asyncio.Task[R]]
+type CoroFunc[**P, R] = t.Callable[P, t.Coroutine[t.Any, t.Any, R]]
+type TaskFunc[**P, R] = t.Callable[P, asyncio.Task[R]]
 type TaskCoroFunc[**P, R] = CoroFunc[P, R] | TaskFunc[P, R]
 
 #: Note CacheTransformers recieve a tuple (args) and dict (kwargs)
 #: rather than a ParamSpec of the decorated function.
 #: Warning: Mutations will impact callsite, return new objects as needed.
-type CacheTransformer = Callable[
-    [tuple[t.Any, ...], Mapping[str, t.Any]],
-    tuple[tuple[t.Any, ...], Mapping[str, t.Any]],
+type CacheTransformer = t.Callable[
+    [tuple[t.Any, ...], t.Mapping[str, t.Any]],
+    tuple[tuple[t.Any, ...], t.Mapping[str, t.Any]],
 ]
 
 TYPE_CHECKING = False
@@ -75,32 +74,17 @@ def _chain_fut[R](c_fut: cf.Future[R], a_fut: asyncio.Future[R]) -> None:
         c_fut.set_result(a_fut.result())
 
 
-if TYPE_CHECKING:
-    import typing
-    from typing import Generic as Gen
-
-    R = typing.TypeVar("R")
-    P = typing.ParamSpec("P")
-else:
-    P = R = object
-
-    class Gen:
-        def __class_getitem__(*args: object) -> t.Any:
-            return object
+R = t.TypeVar("R")
+P = t.ParamSpec("P")
 
 
-class _WrappedSignature(Gen[P, R]):
+class _WrappedSignature(t.Generic[P, R]):
     #: PYUPGRADE: Ensure inspect.signature still accepts this
     # as func.__signature__
     # Known working: py 3.12.0 - py3.14rc1 range inclusive
 
-    if not TYPE_CHECKING:
-
-        def __class_getitem__(cls, *_dont_care: object) -> type:
-            return cls
-
     def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
-        self._f: Callable[..., t.Any] = f  # anotation needed for inspect use below....
+        self._f: t.Callable[..., t.Any] = f  # anotation needed for inspect use below....
         self._w = w
         self._sig: t.Any | None = None
 
@@ -184,13 +168,13 @@ def taskcache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: Mapping[t.Any, t.Any], /) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: t.Mapping[t.Any, t.Any], /) -> t.Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]:
-        internal_cache: dict[Hashable, cf.Future[R]] = {}
+        internal_cache: dict[t.Hashable, cf.Future[R]] = {}
 
-        def _internal_cache_evict(key: Hashable, _ignored_task: object) -> None:
+        def _internal_cache_evict(key: t.Hashable, _ignored_task: object) -> None:
             if ttl is not None:
                 loop = asyncio.get_running_loop()
                 loop.call_later(ttl, internal_cache.pop, key)
@@ -270,13 +254,13 @@ def lrutaskcache(
         key_func = make_key
     else:
 
-        def key_func(args: tuple[t.Any, ...], kwds: Mapping[t.Any, t.Any], /) -> Hashable:
+        def key_func(args: tuple[t.Any, ...], kwds: t.Mapping[t.Any, t.Any], /) -> t.Hashable:
             return make_key(*cache_transform(args, kwds))
 
     def wrapper[**P, R](coro: TaskCoroFunc[P, R], /) -> TaskFunc[P, R]:
-        internal_cache: LRU[Hashable, cf.Future[R]] = LRU(maxsize)
+        internal_cache: LRU[t.Hashable, cf.Future[R]] = LRU(maxsize)
 
-        def _internal_cache_evict(key: Hashable, _ignored_task: object) -> None:
+        def _internal_cache_evict(key: t.Hashable, _ignored_task: object) -> None:
             if ttl is not None:
                 loop = asyncio.get_running_loop()
                 loop.call_later(ttl, internal_cache.remove, key)

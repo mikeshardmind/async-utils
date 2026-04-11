@@ -188,6 +188,7 @@ ignore = [
     "RUF067", # opinionated, unhelpful, no clue who would even propose such.
     "PLR1702", # opinionated complexity
     "PLR0914", # opinionated, too many locals
+    "UP046", # new generic syntax implicitly imports typing, not okay.
 ]
 unfixable = [
     "E501",  # line length handled in other ways by ruff format

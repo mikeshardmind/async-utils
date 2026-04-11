@@ -18,13 +18,12 @@ __lazy_modules__: list[str] = ["asyncio"]
 
 import asyncio
 import time
-from collections.abc import Callable, Coroutine
 from contextvars import Context
 
 from . import _typings as t
 from ._as_completed import AsCompletedIterator
 
-type _CoroutineLike[T] = Coroutine[t.Any, t.Any, T]
+type _CoroutineLike[T] = t.Coroutine[t.Any, t.Any, T]
 type _LoopLike = asyncio.AbstractEventLoop | _UnboundLoopSentinel
 
 
@@ -126,7 +125,7 @@ class BGTasks:
 
 async def _sem_fut[**P, R](
     sem: asyncio.Semaphore,
-    coro_func: Callable[P, _CoroutineLike[R]],
+    coro_func: t.Callable[P, _CoroutineLike[R]],
     /,
     *args: P.args,
     **kwargs: P.kwargs,
@@ -181,7 +180,7 @@ class CurrentLoopExecutor:
 
     def submit[**P, R](
         self,
-        fn: Callable[P, _CoroutineLike[R]],
+        fn: t.Callable[P, _CoroutineLike[R]],
         /,
         *args: P.args,
         **kwargs: P.kwargs,
@@ -202,7 +201,7 @@ class CurrentLoopExecutor:
 
     def map[*Ts, R](
         self,
-        fn: Callable[[*Ts], _CoroutineLike[R]],
+        fn: t.Callable[[*Ts], _CoroutineLike[R]],
         /,
         *iterables: tuple[*Ts],
     ) -> AsCompletedIterator[R]:

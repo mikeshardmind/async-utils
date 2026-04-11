@@ -15,8 +15,9 @@
 
 from __future__ import annotations
 
+__lazy_modules__: list[str] = ["asyncio"]
+
 import asyncio
-from collections.abc import AsyncGenerator
 
 from . import _typings as t
 
@@ -25,7 +26,7 @@ from . import _typings as t
 # This is preferred over a kwarg dictating branching behavior internally.
 
 
-async def merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
+async def merge_gens_delaying_exceptions[T](*gens: t.AsyncGenerator[T]) -> t.AsyncGenerator[T]:
     """Creates an async generator which yields values as available from multiple.
 
     If any exceptions are raised, they are reraised
@@ -73,7 +74,7 @@ async def merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGe
                 f.cancel()
 
 
-async def merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
+async def merge_gens_suppressing_exceptions[T](*gens: t.AsyncGenerator[T]) -> t.AsyncGenerator[T]:
     """Creates an async generator which yields values as available from multiple.
 
     If any exceptions are raised internally by the generators, they are supressed.
@@ -111,7 +112,7 @@ async def merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -> Asyn
                 f.cancel()
 
 
-async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
+async def merge_gens[T](*gens: t.AsyncGenerator[T]) -> t.AsyncGenerator[T]:
     """Creates an async generator which yields values as available from multiple.
 
     If any exceptions are raised, they are reraised interrupting further iteration,
@@ -154,7 +155,7 @@ async def merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[T]:
                 f.cancel()
 
 
-async def batch_merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T]]:
+async def batch_merge_gens_delaying_exceptions[T](*gens: t.AsyncGenerator[T]) -> t.AsyncGenerator[list[T]]:
     """Creates an async generator which yields batches of values as available from multiple.
 
     If any exceptions are raised, they are reraised
@@ -210,7 +211,7 @@ async def batch_merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> A
                 f.cancel()
 
 
-async def batch_merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T]]:
+async def batch_merge_gens_suppressing_exceptions[T](*gens: t.AsyncGenerator[T]) -> t.AsyncGenerator[list[T]]:
     """Creates an async generator which yields batches of values as available from multiple.
 
     If any exceptions are raised internally by the generators, they are supressed.
@@ -256,7 +257,7 @@ async def batch_merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -
                 f.cancel()
 
 
-async def batch_merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T]]:
+async def batch_merge_gens[T](*gens: t.AsyncGenerator[T]) -> t.AsyncGenerator[list[T]]:
     """Creates an async generator which yields batches of values as available from multiple.
 
     If any exceptions are raised, they are reraised interrupting further iteration,

@@ -21,20 +21,19 @@ import select
 import signal
 import socket
 import sys
-from collections.abc import Callable, Sequence
 from types import FrameType
 
 from . import _typings as t
 
 __all__ = ("SignalService", "SpecialExit")
 
-type SignalCallback = Callable[[signal.Signals | SpecialExit], t.Any]
-type StartStopCall = Callable[[], t.Any]
-type _HTC = Callable[[int, FrameType | None], t.Any]
+type SignalCallback = t.Callable[[signal.Signals | SpecialExit], t.Any]
+type StartStopCall = t.Callable[[], t.Any]
+type _HTC = t.Callable[[int, FrameType | None], t.Any]
 type _HANDLER = _HTC | int | signal.Handlers | None
 
 type HandleableSignals = t.Literal["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]
-type SignalSequence = Sequence[HandleableSignals]
+type SignalSequence = t.Sequence[HandleableSignals]
 
 default_handled: SignalSequence = "SIGINT", "SIGTERM", "SIGBREAK"
 

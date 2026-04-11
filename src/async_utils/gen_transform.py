@@ -18,8 +18,6 @@ __lazy_modules__: list[str] = ["asyncio"]
 
 import asyncio
 import concurrent.futures as cf  #: PYUPDATE: py3.15, check cf.Future use
-from asyncio import FIRST_COMPLETED as FC
-from collections.abc import AsyncGenerator, Callable, Generator
 from threading import Event
 
 from . import _typings as t
@@ -32,7 +30,7 @@ def _consumer[**P, Y](
     queue: asyncio.Queue[Y],
     loop: asyncio.AbstractEventLoop,
     cancel_future: cf.Future[None],
-    f: Callable[P, Generator[Y]],
+    f: t.Callable[P, t.Generator[Y]],
     /,
     *args: P.args,
     **kwargs: P.kwargs,
@@ -57,8 +55,8 @@ def _consumer[**P, Y](
         pass
 
 
-type _ConGen[**P, Y] = Callable[P, Generator[Y]]
-type ConsumerType[**P, Y] = Callable[
+type _ConGen[**P, Y] = t.Callable[P, t.Generator[Y]]
+type ConsumerType[**P, Y] = t.Callable[
     t.Concatenate[
         Event,
         asyncio.Queue[Y],
@@ -70,30 +68,14 @@ type ConsumerType[**P, Y] = Callable[
     None,
 ]
 
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    import typing
-    from typing import Generic as Gen
-
-    Y = typing.TypeVar("Y")
-else:
-    Y = object
-
-    class Gen:
-        def __class_getitem__(*args: object) -> t.Any:
-            return object
+Y = t.TypeVar("Y")
 
 
-class ACTX(Gen[Y]):
+class ACTX(t.Generic[Y]):
     """Context manager to forward exception context to generator in thread.
 
     Not intended for public construction.
     """
-
-    if not TYPE_CHECKING:
-
-        def __class_getitem__(cls, *_dont_care: object) -> type:
-            return cls
 
     __final__ = True
 
@@ -101,11 +83,11 @@ class ACTX(Gen[Y]):
         msg = "Don't subclass this."
         raise RuntimeError(msg)
 
-    def __init__(self, g: AsyncGenerator[Y], f: cf.Future[None]) -> None:
+    def __init__(self, g: t.AsyncGenerator[Y], f: cf.Future[None]) -> None:
         self.g = g
         self.f = f
 
-    async def __aenter__(self) -> AsyncGenerator[Y]:
+    async def __aenter__(self) -> t.AsyncGenerator[Y]:
         return self.g
 
     async def __aexit__(
@@ -121,10 +103,10 @@ class ACTX(Gen[Y]):
 
 
 def _sync_to_async_gen[**P, Y](
-    f: Callable[P, Generator[Y]],
+    f: t.Callable[P, t.Generator[Y]],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> tuple[AsyncGenerator[Y], cf.Future[None]]:
+) -> tuple[t.AsyncGenerator[Y], cf.Future[None]]:
     q: asyncio.Queue[Y] = asyncio.Queue(maxsize=1)
     lazy_ev = Event()
     lazy_ev.set()
@@ -135,13 +117,13 @@ def _sync_to_async_gen[**P, Y](
     bg_coro = asyncio.to_thread(c, lazy_ev, q, loop, cancel_fut, f, *args, **kwargs)
     bg_task = asyncio.create_task(bg_coro)
 
-    async def gen() -> AsyncGenerator[Y]:
+    async def gen() -> t.AsyncGenerator[Y]:
         q_get = None
         try:
             while not bg_task.done():
                 try:
                     q_get = asyncio.ensure_future(q.get())
-                    done, _ = await asyncio.wait((bg_task, q_get), return_when=FC)
+                    done, _ = await asyncio.wait((bg_task, q_get), return_when=asyncio.FIRST_COMPLETED)
                     if q_get in done:
                         lazy_ev.clear()
                         yield (await q_get)
@@ -168,7 +150,7 @@ def _sync_to_async_gen[**P, Y](
 
 
 def sync_to_async_gen[**P, Y](
-    f: Callable[P, Generator[Y]],
+    f: t.Callable[P, t.Generator[Y]],
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> ACTX[Y]:
@@ -207,10 +189,10 @@ def sync_to_async_gen[**P, Y](
 
 
 def sync_to_async_gen_noctx[**P, Y](
-    f: Callable[P, Generator[Y]],
+    f: t.Callable[P, t.Generator[Y]],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> AsyncGenerator[Y]:
+) -> t.AsyncGenerator[Y]:
     """Asynchronously iterate over a synchronous generator.
 
     The generator function and it's arguments must be threadsafe and will be

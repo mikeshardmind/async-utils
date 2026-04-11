@@ -23,7 +23,6 @@ import contextvars
 import heapq
 import threading
 import time
-from collections.abc import Generator
 from contextlib import contextmanager
 
 from . import _typings as t
@@ -50,7 +49,7 @@ class _PriorityWaiter:
     def set_result(self, val: None) -> None:
         self.future.set_result(val)
 
-    def __await__(self) -> Generator[t.Any, t.Any, None]:
+    def __await__(self) -> t.Generator[t.Any, t.Any, None]:
         f = asyncio.wrap_future(self.future)
         return (yield from f.__await__())
 
@@ -67,7 +66,7 @@ class _PriorityWaiter:
 
 
 @contextmanager
-def priority_context(priority: int, /) -> Generator[None, None, None]:
+def priority_context(priority: int, /) -> t.Generator[None, None, None]:
     """Set the priority for all PrioritySemaphore use in this context.
 
     Parameters

@@ -28,17 +28,87 @@ from __future__ import annotations
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Any, Concatenate, Literal, Never, Self
+    from collections.abc import (
+        AsyncGenerator,
+        Awaitable,
+        Callable,
+        Coroutine,
+        Generator,
+        Hashable,
+        Iterable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
+    from typing import Any, Concatenate, Generic, Literal, Never, ParamSpec, Self, TypeVar
+
 else:
+
+    class ParamSpec:
+        def __init__(*args: object, **kwargs: object) -> None:
+            pass
+
+        args = object
+        kwargs = object
+
+    class TypeVar:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+    class Generic:
+        def __class_getitem__(cls: type, *args: object) -> Any:
+            return cls
 
     def __getattr__(name: str):
         if name in {"Any", "Concatenate", "Literal", "Never", "Self"}:
             import typing
 
             return getattr(typing, name)
+        if name in {
+            "AsyncGenerator",
+            "Awaitable",
+            "Callable",
+            "Coroutine",
+            "Generator",
+            "Hashable",
+            "Iterable",
+            "Iterator",
+            "Mapping",
+            "Sequence",
+        }:
+            import collections.abc
+
+            return getattr(collections.abc, name)
+
+        if name == "Generic":
+            return Generic
+        if name == "ParamSpec":
+            return ParamSpec
+        if name == "TypeVar":
+            return TypeVar
 
         msg = f"module {__name__!r} has no attribute {name!r}"
         raise AttributeError(msg)
 
 
-__all__ = ("TYPE_CHECKING", "Any", "Concatenate", "Literal", "Never", "Self")
+__all__ = (
+    "TYPE_CHECKING",
+    "Any",
+    "AsyncGenerator",
+    "Awaitable",
+    "Callable",
+    "Concatenate",
+    "Coroutine",
+    "Generator",
+    "Generic",
+    "Hashable",
+    "Iterable",
+    "Iterator",
+    "Literal",
+    "Mapping",
+    "Never",
+    "ParamSpec",
+    "Self",
+    "Sequence",
+    "TypeVar",
+)

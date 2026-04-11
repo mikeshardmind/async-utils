@@ -15,32 +15,25 @@
 from __future__ import annotations
 
 import heapq
-from collections.abc import Generator, Iterator
 
 from . import _typings as t
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     import typing
-    from typing import Generic as Gen
 
     class CanHashAndCompareLT(typing.Protocol):
         def __hash__(self) -> int: ...
 
-        def __lt__(self, other: typing.Any, /) -> bool: ...
+        def __lt__(self, other: t.Any, /) -> bool: ...
 
     class CanHashAndCompareGT(typing.Protocol):
         def __hash__(self) -> int: ...
 
-        def __gt__(self, other: typing.Any, /) -> bool: ...
+        def __gt__(self, other: t.Any, /) -> bool: ...
 
-    HashAndCompareT = typing.TypeVar("HashAndCompareT", bound="CanHashAndCompare")
 
 else:
-
-    class Gen:
-        def __class_getitem__(*args: object) -> t.Any:
-            return object
 
     class ExprWrapper:
         """Wrapper since call expressions aren't allowed in type statements."""
@@ -67,29 +60,18 @@ else:
     type CanHashAndCompareLT = ExprWrapper[1]
     type CanHashAndCompareGT = ExprWrapper[2]
 
-    HashAndCompareT = object
-
 
 type CanHashAndCompare = CanHashAndCompareLT | CanHashAndCompareGT
+HashAndCompareT = t.TypeVar("HashAndCompareT", bound=CanHashAndCompare)
 
 
-class CycleDetected(Exception, Gen[HashAndCompareT]):
-    if not TYPE_CHECKING:
-
-        def __class_getitem__(cls, *_dont_care: object) -> type:
-            return cls
-
+class CycleDetected(Exception, t.Generic[HashAndCompareT]):
     @property
     def cycle(self) -> list[HashAndCompareT]:
         return self.args[0]
 
 
-class NodeData(Gen[HashAndCompareT]):
-    if not TYPE_CHECKING:
-
-        def __class_getitem__(cls, *_dont_care: object) -> type:
-            return cls
-
+class NodeData(t.Generic[HashAndCompareT]):
     __slots__ = ("dependants", "ndependencies", "node")
 
     def __init__(self, node: HashAndCompareT) -> None:
@@ -108,7 +90,7 @@ class NodeData(Gen[HashAndCompareT]):
 
 
 #: TODO: document the 3 uses I have for the below as examples
-class DepSorter(Gen[HashAndCompareT]):
+class DepSorter(t.Generic[HashAndCompareT]):
     """Provides a topological sort that attempts to preserve logical priority
     (provided by comparison)
 
@@ -119,11 +101,6 @@ class DepSorter(Gen[HashAndCompareT]):
     Nodes may be added multiple times.
     Directed Edges are accumulated from all input information.
     """
-
-    if not TYPE_CHECKING:
-
-        def __class_getitem__(cls, *_dont_care: object) -> type:
-            return cls
 
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this."
@@ -163,7 +140,7 @@ class DepSorter(Gen[HashAndCompareT]):
     def _find_cycle(self) -> list[HashAndCompareT] | None:
         graph = self._nodemap
         # Cheaper than a queue since we need to iterate anyhow
-        queued: list[Iterator[HashAndCompareT]] = []
+        queued: list[t.Iterator[HashAndCompareT]] = []
         seen: set[HashAndCompareT] = set()
         # Let's not recurse without TCO
         stack: list[HashAndCompareT] = []
@@ -197,7 +174,7 @@ class DepSorter(Gen[HashAndCompareT]):
                     break
         return None
 
-    def __iter__(self) -> Generator[HashAndCompareT, None, None]:
+    def __iter__(self) -> t.Generator[HashAndCompareT, None, None]:
         if self.__iterating:
             raise RuntimeError
 
@@ -208,7 +185,7 @@ class DepSorter(Gen[HashAndCompareT]):
 
         return self.__iter()
 
-    def __iter(self) -> Generator[HashAndCompareT, None, None]:
+    def __iter(self) -> t.Generator[HashAndCompareT, None, None]:
         m = self._nodemap
         ready = [(n, i) for n, i in m.items() if not i.ndependencies]
         heapq.heapify(ready)

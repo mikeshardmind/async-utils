@@ -21,12 +21,11 @@ __lazy_modules__: list[str] = ["asyncio"]
 import asyncio
 import concurrent.futures as cf
 import threading
-from collections.abc import Callable, Coroutine, Generator
 from contextlib import contextmanager
 
 from . import _typings as t
 
-type CoroReturning[R] = Coroutine[t.Any, t.Any, R]
+type CoroReturning[R] = t.Coroutine[t.Any, t.Any, R]
 
 __all__ = ("threaded_loop",)
 
@@ -144,8 +143,8 @@ def threaded_loop(
     *,
     use_eager_task_factory: bool = True,
     wait_on_exit: bool = True,
-    loop_factory: Callable[[], asyncio.AbstractEventLoop] | None = None,
-) -> Generator[LoopWrapper, None, None]:
+    loop_factory: t.Callable[[], asyncio.AbstractEventLoop] | None = None,
+) -> t.Generator[LoopWrapper, None, None]:
     """Create and use a managed event loop in a backround thread.
 
     Starts an event loop on a background thread,

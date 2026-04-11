@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable, Mapping
-
 from . import _typings as t
 
 __all__ = ("make_key",)
@@ -24,7 +22,7 @@ __all__ = ("make_key",)
 class _HK:
     __slots__ = ("_hashvalue", "_tup")
 
-    def __init__(self, tup: Hashable, /) -> None:
+    def __init__(self, tup: t.Hashable, /) -> None:
         self._tup = tup
         self._hashvalue = hash(tup)
 
@@ -40,7 +38,7 @@ class _HK:
 _marker: tuple[object] = (object(),)
 
 
-def make_key(args: tuple[t.Any, ...], kwds: Mapping[t.Any, object], /) -> Hashable:
+def make_key(args: tuple[t.Any, ...], kwds: t.Mapping[t.Any, object], /) -> t.Hashable:
     key: tuple[t.Any, ...] = args
     if kwds:
         key += _marker

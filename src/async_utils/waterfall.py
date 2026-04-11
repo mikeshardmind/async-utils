@@ -19,7 +19,6 @@ __lazy_modules__: list[str] = ["asyncio"]
 import asyncio
 import logging
 import time
-from collections.abc import Callable, Coroutine, Sequence
 from functools import partial
 
 from . import _typings as t
@@ -28,25 +27,14 @@ _log = logging.getLogger(__name__)
 
 __all__ = ("Waterfall",)
 
-type AnyCoro = Coroutine[t.Any, t.Any, t.Any]
-type CallbackType[T] = Callable[[Sequence[T]], AnyCoro]
+type AnyCoro = t.Coroutine[t.Any, t.Any, t.Any]
+type CallbackType[T] = t.Callable[[t.Sequence[T]], AnyCoro]
 
 
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    import typing
-    from typing import Generic as Gen
-
-    T = typing.TypeVar("T")
-else:
-    T = object
-
-    class Gen:
-        def __class_getitem__(*args: object) -> t.Any:
-            return object
+T = t.TypeVar("T")
 
 
-class Waterfall(Gen[T]):
+class Waterfall(t.Generic[T]):
     """Batch event scheduling based on recurring quantity-interval pairs.
 
     Initial intended was batching of simple db writes with an
@@ -65,11 +53,6 @@ class Waterfall(Gen[T]):
     max_wait_finalize: int | None
         Optionally, The number of seconds to wait for batches to complete
     """
-
-    if not TYPE_CHECKING:
-
-        def __class_getitem__(cls, *_dont_care: object) -> type:
-            return cls
 
     def __init_subclass__(cls) -> t.Never:
         msg = "Don't subclass this"
@@ -110,7 +93,7 @@ class Waterfall(Gen[T]):
         loop = self._event_loop = asyncio.get_running_loop()
         self.task = loop.create_task(self._dispatch_loop())
 
-    def stop(self) -> Coroutine[t.Any, t.Any, None]:
+    def stop(self) -> t.Coroutine[t.Any, t.Any, None]:
         """Stop accepting new tasks.
 
         Returns

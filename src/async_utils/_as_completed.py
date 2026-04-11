@@ -14,36 +14,21 @@
 
 from __future__ import annotations
 
+__lazy_modules__: list[str] = ["asyncio"]
+
 import asyncio
-from collections.abc import Iterable
 
 from . import _typings as t
 
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    import typing
-    from typing import Generic as Gen
-
-    T = typing.TypeVar("T")
-else:
-    T = object
-
-    class Gen:
-        def __class_getitem__(*args: object) -> t.Any:
-            return object
+T = t.TypeVar("T")
 
 
-class AsCompletedIterator(Gen[T]):
+class AsCompletedIterator(t.Generic[T]):
     """This is *similar to* the implementation in asyncio,
     but with some minor differences to suit specific use
     """
 
-    if not TYPE_CHECKING:
-
-        def __class_getitem__(cls, *_dont_care: object) -> type:
-            return cls
-
-    def __init__(self, futs: Iterable[asyncio.Future[T]]) -> None:
+    def __init__(self, futs: t.Iterable[asyncio.Future[T]]) -> None:
         self._done: asyncio.Queue[asyncio.Future[T]] = asyncio.Queue()
         self._timeout_handle = None
         self._todo: set[asyncio.Future[T]] = set(futs)

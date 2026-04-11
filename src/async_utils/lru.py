@@ -43,22 +43,12 @@ class IterationMisuse(ProbableTOCTOUError):
     """Iterating over a mutable cache."""
 
 
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    import typing
-    from typing import Generic as Gen
-
-    K = typing.TypeVar("K")
-    V = typing.TypeVar("V")
-else:
-    K = V = object
-
-    class Gen:
-        def __class_getitem__(*args: object) -> t.Any:
-            return object
+T = t.TypeVar("T")
+K = t.TypeVar("K")
+V = t.TypeVar("V")
 
 
-class LRU(Gen[K, V]):
+class LRU(t.Generic[K, V]):
     """An LRU implementation.
 
     Implements dict-like getitem/setitem access plus a couple methods.
@@ -76,11 +66,6 @@ class LRU(Gen[K, V]):
     maxsize: int
         The maximum number of items to retain
     """
-
-    if not TYPE_CHECKING:
-
-        def __class_getitem__(cls, *_dont_care: object) -> type:
-            return cls
 
     __slots__ = ("_cache", "_maxsize")
 
@@ -175,7 +160,7 @@ class LRU(Gen[K, V]):
         self._cache.pop(key, None)
 
 
-class TTLLRU(Gen[K, V]):
+class TTLLRU(t.Generic[K, V]):
     """An LRU implementation with a ttl.
 
     While the internal structure is threadsafe,
@@ -217,11 +202,6 @@ class TTLLRU(Gen[K, V]):
         Items are not eagerly evicted at expiration.
         Getting items does not refresh their ttl.
     """
-
-    if not TYPE_CHECKING:
-
-        def __class_getitem__(cls, *_dont_care: object) -> type:
-            return cls
 
     __slots__ = (
         "_cache",
