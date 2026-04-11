@@ -18,15 +18,18 @@ from __future__ import annotations
 
 __lazy_modules__: list[str] = ["asyncio"]
 
+try:
+    import _heapq  # pyright: ignore[reportUnusedImport] # noqa: F401, PLC2701
+except ImportError as _exc:
+    msg = "This library requires a freethreading safe implementation of heapq (could not import _heapq)"
+    raise ImportError(msg, "async_utils.lru") from _exc
+
 import heapq
 import math
-import sys
 import threading
 import time
 
 from . import _typings as t
-
-THREAD_SAFE_HEAPQ = sys.version_info[:2] >= (3, 14)
 
 __all__ = ("LRU", "TTLLRU")
 

@@ -16,6 +16,12 @@ from __future__ import annotations
 
 __lazy_modules__: list[str] = ["asyncio"]
 
+try:
+    import _heapq  # pyright: ignore[reportUnusedImport] # noqa: F401, PLC2701
+except ImportError as _exc:
+    msg = "This library requires a freethreading safe implementation of heapq (could not import _heapq)"
+    raise ImportError(msg, "async_utils.lockout") from _exc
+
 import asyncio
 import concurrent.futures as cf
 import heapq
