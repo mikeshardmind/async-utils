@@ -1,4 +1,4 @@
-from async_utils._merge_gens import batch_merge_gens  # noqa: PLC2701
+from async_utils.merge_gens import batch_merge_gens
 
 
 async def _g(n: int):
@@ -8,15 +8,16 @@ async def _g(n: int):
 
 
 async def main():
-    async for batch in batch_merge_gens(_g(100), _g(200), _g(300)):
-        should_break = False
-        for val in batch:
-            print("Consumed", val, flush=True)  # noqa: T201
-            if val == 250:
-                should_break = True
+    async with batch_merge_gens(_g(100), _g(200), _g(300)) as merged:
+        async for batch in merged:
+            should_break = False
+            for val in batch:
+                print("Consumed", val, flush=True)  # noqa: T201
+                if val == 250:
+                    should_break = True
 
-        if should_break:
-            break
+            if should_break:
+                break
 
 
 if __name__ == "__main__":

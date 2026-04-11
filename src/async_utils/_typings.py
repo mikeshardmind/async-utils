@@ -40,9 +40,10 @@ if TYPE_CHECKING:
         Mapping,
         Sequence,
     )
-    from typing import Any, Concatenate, Generic, Literal, Never, ParamSpec, Self, TypeVar
+    from typing import Any, Concatenate, Generic, Literal, Never, ParamSpec, Self, TypeVar, overload
 
 else:
+    overload = lambda x: x  # noqa: E731
 
     class ParamSpec:
         def __init__(*args: object, **kwargs: object) -> None:
@@ -86,6 +87,8 @@ else:
             return ParamSpec
         if name == "TypeVar":
             return TypeVar
+        if name == "overload":
+            return overload
 
         msg = f"module {__name__!r} has no attribute {name!r}"
         raise AttributeError(msg)
@@ -111,4 +114,5 @@ __all__ = (
     "Self",
     "Sequence",
     "TypeVar",
+    "overload",
 )
