@@ -89,8 +89,28 @@ if __name__ == "__main__":
                 version_specific_annotation_interactions(no_annot_fut_obj)
             except TypeError:
                 pass
-            except (NameError, AttributeError, OSError, KeyError) as exc:
+            except (NameError, AttributeError, KeyError) as exc:
                 failures.append((f"{mod_info.name}.{name}", exc))
+            except OSError as exc:
+                if not (
+                    sys.version_info[:2] == (3, 12)
+                    and mod_info.name == "_typings"
+                    and name
+                    in {
+                        "AsyncGenerator",
+                        "Awaitable",
+                        "Callable",
+                        "Coroutine",
+                        "Generator",
+                        "Hashable",
+                        "Iterable",
+                        "Iterator",
+                        "Mapping",
+                        "Sequence",
+                    }
+                ):
+                    # Known failure to locate source of collections.abcs when reexported on 3.12
+                    failures.append((f"{mod_info.name}.{name}", exc))
 
     if failures:
         for failing_obj, _exc in failures:
