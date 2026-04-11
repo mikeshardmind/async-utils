@@ -52,7 +52,7 @@ class MergedGenWrapper(t.Generic[T]):
         self._other_gens = other_gens
         self._suppress_exceptions = suppress_exceptions
 
-    def asend(self, value: None):
+    def asend(self, value: None) -> t.Coroutine[t.Any, t.Any, T]:
         return self._our_gen.asend(value)
 
     @t.overload
@@ -71,7 +71,7 @@ class MergedGenWrapper(t.Generic[T]):
     ) -> t.Coroutine[t.Any, t.Any, T]:
         return self._our_gen.athrow(typ, val, tb)
 
-    def aclose(self):
+    def aclose(self) -> t.Coroutine[t.Any, t.Any, None]:
         return self._our_gen.aclose()
 
     def __anext__(self) -> t.Coroutine[t.Any, t.Any, T]:
