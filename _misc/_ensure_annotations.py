@@ -89,7 +89,7 @@ if __name__ == "__main__":
                 version_specific_annotation_interactions(no_annot_fut_obj)
             except TypeError:
                 pass
-            except (NameError, AttributeError) as exc:
+            except (NameError, AttributeError, OSError, KeyError) as exc:
                 failures.append((f"{mod_info.name}.{name}", exc))
 
     if failures:

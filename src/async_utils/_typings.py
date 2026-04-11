@@ -43,7 +43,9 @@ if TYPE_CHECKING:
     from typing import Any, Concatenate, Generic, Literal, Never, ParamSpec, Self, TypeVar, overload
 
 else:
-    overload = lambda x: x  # noqa: E731
+
+    def overload(x: object, /) -> object:
+        return x
 
     class ParamSpec:
         def __init__(*args: object, **kwargs: object) -> None:
@@ -57,7 +59,7 @@ else:
             pass
 
     class Generic:
-        def __class_getitem__(cls: type, *args: object) -> Any:
+        def __class_getitem__(cls: type, *args: object):  # noqa: ANN204
             return cls
 
     def __getattr__(name: str):
