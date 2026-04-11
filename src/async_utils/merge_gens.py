@@ -88,7 +88,7 @@ class MergedGenWrapper(t.Generic[T]):
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
-    ) -> bool | None:
+    ) -> None:
         res = await asyncio.gather(*(g.aclose() for g in self._other_gens), return_exceptions=True)
         our_res = asyncio.create_task(self._our_gen.aclose())
         await our_res

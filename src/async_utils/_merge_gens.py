@@ -26,6 +26,11 @@ from . import _typings as t
 # This is preferred over a kwarg dictating branching behavior internally.
 
 
+# Needed until ty actually respects inline annotations over inference
+def _mksentinel() -> t.Any:
+    return object()
+
+
 async def merge_gens_delaying_exceptions[T](*gens: t.AsyncGenerator[T]) -> t.AsyncGenerator[T]:
     """Creates an async generator which yields values as available from multiple.
 
@@ -37,10 +42,11 @@ async def merge_gens_delaying_exceptions[T](*gens: t.AsyncGenerator[T]) -> t.Asy
     This closes the async generators upon finishing, even if they aren't fully consumed.
     """
     cancelled: bool = False
-    sentinel: t.Any = object()
+    sentinel: t.Any = _mksentinel()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
     exceptions: list[t.Any] = []
 
+    f: asyncio.Task[T] | None
     try:
         while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
@@ -81,9 +87,10 @@ async def merge_gens_suppressing_exceptions[T](*gens: t.AsyncGenerator[T]) -> t.
     And all remaining generators continue being consumed.
     """
     cancelled: bool = False
-    sentinel: t.Any = object()
+    sentinel: t.Any = _mksentinel()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
 
+    f: asyncio.Task[T] | None
     try:
         while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
@@ -120,9 +127,10 @@ async def merge_gens[T](*gens: t.AsyncGenerator[T]) -> t.AsyncGenerator[T]:
     This closes the async generators upon finishing, even if they aren't fully consumed.
     """
     cancelled: bool = False
-    sentinel: t.Any = object()
+    sentinel: t.Any = _mksentinel()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
 
+    f: asyncio.Task[T] | None
     try:
         while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
@@ -166,10 +174,11 @@ async def batch_merge_gens_delaying_exceptions[T](*gens: t.AsyncGenerator[T]) ->
     This closes the async generators upon finishing, even if they aren't fully consumed.
     """
     cancelled: bool = False
-    sentinel: t.Any = object()
+    sentinel: t.Any = _mksentinel()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
     exceptions: list[t.Any] = []
 
+    f: asyncio.Task[T] | None
     try:
         while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
@@ -218,9 +227,10 @@ async def batch_merge_gens_suppressing_exceptions[T](*gens: t.AsyncGenerator[T])
     And all remaining generators continue being consumed.
     """
     cancelled: bool = False
-    sentinel: t.Any = object()
+    sentinel: t.Any = _mksentinel()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
 
+    f: asyncio.Task[T] | None
     try:
         while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
@@ -265,9 +275,10 @@ async def batch_merge_gens[T](*gens: t.AsyncGenerator[T]) -> t.AsyncGenerator[li
     This closes the async generators upon finishing, even if they aren't fully consumed.
     """
     cancelled: bool = False
-    sentinel: t.Any = object()
+    sentinel: t.Any = _mksentinel()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
 
+    f: asyncio.Task[T] | None
     try:
         while any(futs) and not cancelled:
             done, pending = await asyncio.wait(filter(None, futs), return_when=asyncio.FIRST_COMPLETED)
