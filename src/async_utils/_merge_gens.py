@@ -168,7 +168,6 @@ async def batch_merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> A
     sentinel: t.Any = object()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
     exceptions: list[t.Any] = []
-    needs_next: list[bool] = [False for _ in gens]
 
     try:
         while any(futs) and not cancelled:
@@ -192,15 +191,14 @@ async def batch_merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> A
                         futs[idx] = None
                     else:
                         results.append(v)
-                        needs_next[idx] = True
+                        futs[idx] = sentinel
 
             if results:
                 yield results
 
-            for idx, val in enumerate(needs_next):
-                if val:
+            for idx, val in enumerate(futs):
+                if val is sentinel:
                     futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
-                    needs_next[idx] = False
 
         if exceptions:
             msg = "While iterating merged async generators: "
@@ -208,7 +206,7 @@ async def batch_merge_gens_delaying_exceptions[T](*gens: AsyncGenerator[T]) -> A
 
     finally:
         for f in futs:
-            if f and not f.done():
+            if f and f is not sentinel and not f.done():
                 f.cancel()
 
 
@@ -221,7 +219,6 @@ async def batch_merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -
     cancelled: bool = False
     sentinel: t.Any = object()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
-    needs_next: list[bool] = [False for _ in gens]
 
     try:
         while any(futs) and not cancelled:
@@ -244,19 +241,18 @@ async def batch_merge_gens_suppressing_exceptions[T](*gens: AsyncGenerator[T]) -
                         futs[idx] = None
                     else:
                         results.append(v)
-                        needs_next[idx] = True
+                        futs[idx] = sentinel
 
             if results:
                 yield results
 
-            for idx, val in enumerate(needs_next):
-                if val:
+            for idx, val in enumerate(futs):
+                if val is sentinel:
                     futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
-                    needs_next[idx] = False
 
     finally:
         for f in futs:
-            if f and not f.done():
+            if f and f is not sentinel and not f.done():
                 f.cancel()
 
 
@@ -270,7 +266,6 @@ async def batch_merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T
     cancelled: bool = False
     sentinel: t.Any = object()
     futs: list[asyncio.Task[T] | None] = [asyncio.ensure_future(anext(g, sentinel)) for g in gens]
-    needs_next: list[bool] = [False for _ in gens]
 
     try:
         while any(futs) and not cancelled:
@@ -293,7 +288,7 @@ async def batch_merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T
                         futs[idx] = None
                     else:
                         results.append(v)
-                        needs_next[idx] = True
+                        futs[idx] = sentinel
 
             if results:
                 yield results
@@ -302,12 +297,11 @@ async def batch_merge_gens[T](*gens: AsyncGenerator[T]) -> AsyncGenerator[list[T
                 msg = "While iterating merged async generators: "
                 raise BaseExceptionGroup(msg, exceptions)
 
-            for idx, val in enumerate(needs_next):
-                if val:
+            for idx, val in enumerate(futs):
+                if val is sentinel:
                     futs[idx] = asyncio.ensure_future(anext(gens[idx], sentinel))
-                    needs_next[idx] = False
 
     finally:
         for f in futs:
-            if f and not f.done():
+            if f and f is not sentinel and not f.done():
                 f.cancel()
