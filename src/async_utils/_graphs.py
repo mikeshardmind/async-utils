@@ -17,7 +17,7 @@ from __future__ import annotations
 try:
     import _heapq  # pyright: ignore[reportUnusedImport] # noqa: F401, PLC2701
 except ImportError as _exc:
-    msg = "This library requires a freethreading safe implementation of heapq (could not import _heapq)"
+    msg = "This library requires a threadsafe implementation of heapq (could not import _heapq)"
     raise ImportError(msg, "async_utils._graphs") from _exc
 
 import heapq

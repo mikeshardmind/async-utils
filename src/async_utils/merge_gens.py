@@ -136,7 +136,7 @@ def batch_merge_gens[T](
     *gens: t.AsyncGenerator[T],
     exception_behavior: ExceptionBehavior = "raise",
 ) -> MergedGenWrapper[list[T]]:
-    """Creates an async generator which yields values as available from multiple.
+    """Creates an async generator which yields batches of values as available from multiple.
 
     If any exceptions are raised, the behavior for if/when these exceptions are reraised is
     based on the exception_behavior parameter.
@@ -152,7 +152,7 @@ def batch_merge_gens[T](
     if exception_behavior == "delay":
         return MergedGenWrapper(mg.batch_merge_gens_delaying_exceptions(*gens), *gens)
     if exception_behavior == "suppress":
-        return MergedGenWrapper(mg.batch_merge_gens_suppressing_exceptions(*gens), *gens)
+        return MergedGenWrapper(mg.batch_merge_gens_suppressing_exceptions(*gens), *gens, suppress_exceptions=True)
 
     msg = "Invalid choice of exception_behavior, expected one of 'raise', 'delay' or 'suppress'"
     raise ValueError(msg)
