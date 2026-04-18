@@ -106,6 +106,9 @@ class DepSorter(t.Generic[HashAndCompareT]):
 
     Nodes may be added multiple times.
     Directed Edges are accumulated from all input information.
+
+    If a cycle is detected at iteration, the internal nodelist
+    will be purged, and an exception raised.
     """
 
     def __init_subclass__(cls) -> t.Never:
@@ -187,6 +190,10 @@ class DepSorter(t.Generic[HashAndCompareT]):
         self.__iterating = True
 
         if cycle := self._find_cycle():
+            for i in self._nodemap.values():
+                del i.dependants
+                del i.node
+            self._nodemap.clear()
             raise CycleDetected(cycle)
 
         return self.__iter()

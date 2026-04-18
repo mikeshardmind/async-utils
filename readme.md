@@ -147,6 +147,21 @@ When possible, things should "just work" even in event loop per thread scenarios
 
 Examples: caching decorators and ratelimiter
 
+### 6. Avoid creating long-lived reference cycles
+
+Any reference cycles created by code here should only exist
+if neccessary for the duration neccessary, and cleared without relying on the gc.
+
+This allows the code here to be safe for use under conditions where the gc
+should be disabled to avoid the impacts of gc pauses.
+
+Currently, the only code which creates such cycles directly is
+in _graphs.py, and only when given a graph to topologically sort containing a non-sortable cycle.
+When raising for this, the cycles are first broken.
+
+Some use of Task.add_done_callback may result in temporary cycles.
+These cycles are resolved when the task callbacks are executed by the implementation.
+
 ## Non-goals
 
 At the current moment, the following are non-goals
