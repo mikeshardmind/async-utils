@@ -64,6 +64,10 @@ class LRU(t.Generic[K, V]):
     in applications that do not share this across threads or share
     across threads in a way that would not require a lock.
 
+    In some cases, the LRU may shrink to a size of maxsize + 1 - N, where
+    N is the number of threads accessing the LRU.
+    This is generally less expensive than locking during eviction.
+
     Parameters
     ----------
     maxsize: int
@@ -167,11 +171,15 @@ class TTLLRU(t.Generic[K, V]):
     """An LRU implementation with a ttl.
 
     While the internal structure is threadsafe,
-    concurrent access and modification of it is not.
+    concurrent access and modification of it is not free from data races.
     Use a threading lock to synchronize access if needed.
 
-    This is not locked automatically to avoid paying the cost
-    in applications that do not share this across threads.
+    An internal lock is used for a limited number of operations related to
+    TTL tracking, but not to synchronize user access.
+
+    In some cases, the LRU may shrink to a size of maxsize + 1 - N, where
+    N is the number of threads accessing the LRU.
+    This is generally less expensive than locking during eviction.
 
     Key/value references and gc:
         Keys are kept alive in a heap ordered by expiration,
