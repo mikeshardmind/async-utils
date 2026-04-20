@@ -128,8 +128,9 @@ def corocache(
             if cached is not ours:
                 return await asyncio.wrap_future(cached)
 
-            cb = partial(_internal_cache_evict, key)
-            ours.add_done_callback(cb)
+            if ttl is not None:
+                cb = partial(_internal_cache_evict, key)
+                ours.add_done_callback(cb)
 
             c = coro(*args, **kwargs)
             a_fut = asyncio.ensure_future(c)
@@ -209,8 +210,9 @@ def lrucorocache(
             if cached is not ours:
                 return await asyncio.wrap_future(cached)
 
-            cb = partial(_internal_cache_evict, key)
-            ours.add_done_callback(cb)
+            if ttl is not None:
+                cb = partial(_internal_cache_evict, key)
+                ours.add_done_callback(cb)
 
             c = coro(*args, **kwargs)
             a_fut = asyncio.ensure_future(c)

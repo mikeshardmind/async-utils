@@ -189,8 +189,10 @@ def taskcache(
             if cached is not ours:
                 fut = asyncio.wrap_future(cached)
                 return asyncio.create_task(_await(fut))
-            cb = partial(_internal_cache_evict, key)
-            ours.add_done_callback(cb)
+
+            if ttl is not None:
+                cb = partial(_internal_cache_evict, key)
+                ours.add_done_callback(cb)
 
             c = coro(*args, **kwargs)
             a_fut = asyncio.ensure_future(c)
@@ -275,8 +277,10 @@ def lrutaskcache(
             if cached is not ours:
                 fut = asyncio.wrap_future(cached)
                 return asyncio.create_task(_await(fut))
-            cb = partial(_internal_cache_evict, key)
-            ours.add_done_callback(cb)
+
+            if ttl is not None:
+                cb = partial(_internal_cache_evict, key)
+                ours.add_done_callback(cb)
 
             c = coro(*args, **kwargs)
             a_fut = asyncio.ensure_future(c)
