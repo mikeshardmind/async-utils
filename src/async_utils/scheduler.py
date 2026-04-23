@@ -26,7 +26,7 @@ __all__ = ("CancellationToken", "Scheduler")
 
 
 class CancellationToken:
-    """An object to use for cancelation of a task.
+    """An object to use for cancellation of a task.
 
     Not meant for public construction.
     """
