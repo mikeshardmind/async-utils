@@ -44,6 +44,8 @@ Things that will **not** be considered breaking:
 7. Adding or removing internal locking that does not introduce deadlocks,
    races, or remove the threadsafety of an object's documented use.
 
+8. Dropping support for older python versions (the pre-existing in-use version of the library will still install)
+
 Things that will be considered a breaking change:
 
 1. Removal of a symbol from ``__all__``.
@@ -54,6 +56,9 @@ Things that will be considered a breaking change:
 6. Changing the allowed runtime type of a parameter in a way that makes a previously supported call invalid.
 7. Changing the runtime return type of a documented function to no longer match prior documentation.
 8. Changing an object to no longer be shareable across threads.
+9. Adding a required native dependency that cannot support one or more currently
+   supported platforms within those that are either tier 1 or tier 2 platforms
+   for cpython for supported python language versions.
 
 When something isn't covered explicitly one way or the other above,
 it will be considered a breaking change if an intended supported usage
@@ -62,6 +67,17 @@ no longer has the same semantic meaning or no longer works at all.
 Breaking changes will be announced
 [here](https://github.com/mikeshardmind/async-utils/issues/10)
 as well as in the release notes for stable releases.
+
+### Dropping support for older python versions
+
+The intent is to support at least the two most recent language versions.
+Ideally, this would extend to 3 years after initial reelase
+to fully match larger ecosystem support schedules (specifically SPEC-0),
+however, many concurrency related problems are being rapidly addressed
+in CPython with work on both the removal of the GIL and the subinterpreters
+
+Dropped support will also be announced in the same thread as breaking changes,
+but are not themselves considered breaking.
 
 ### Subclassing
 
