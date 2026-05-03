@@ -26,6 +26,8 @@ get imported. Instead, import the module and use symbols via attribute access as
 
 from __future__ import annotations
 
+from types import GenericAlias
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import (
@@ -60,7 +62,7 @@ else:
 
     class Generic:
         def __class_getitem__(cls: type, *args: object):  # noqa: ANN204
-            return cls
+            return GenericAlias(cls, *args)
 
     def __getattr__(name: str):
         if name in {"Any", "Concatenate", "Literal", "Never", "Self"}:
