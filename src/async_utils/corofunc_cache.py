@@ -73,6 +73,7 @@ def corocache(
     ttl: float | None = None,
     *,
     cache_transform: CacheTransformer | None = None,
+    evict_on_exception: bool = False,
 ) -> CoroCacheDeco:
     """Cache the results of the decorated coroutine.
 
@@ -97,6 +98,10 @@ def corocache(
     cache_transform: CacheTransformer | None
         An optional callable that transforms args and kwargs used
         as a cache key.
+    evict_on_exception: bool
+        When True, exceptions are not cached *after being raised*.
+        multiple callers prior to the completion will still recieve the
+        same exception.
 
     Returns
     -------
@@ -113,8 +118,10 @@ def corocache(
         internal_cache: dict[t.Hashable, cf.Future[R]] = {}
         internal_taskset: set[asyncio.Task[R]] = set()
 
-        def _internal_cache_evict(key: t.Hashable, _ignored_task: object) -> None:
-            if ttl is not None:
+        def _internal_cache_evict(key: t.Hashable, task: cf.Future[R]) -> None:
+            if evict_on_exception and (task.cancelled() or task.exception() is not None):
+                internal_cache.pop(key)
+            elif ttl is not None:
                 loop = asyncio.get_running_loop()
                 loop.call_later(ttl, internal_cache.pop, key)
 
@@ -128,9 +135,8 @@ def corocache(
             if cached is not ours:
                 return await asyncio.wrap_future(cached)
 
-            if ttl is not None:
-                cb = partial(_internal_cache_evict, key)
-                ours.add_done_callback(cb)
+            cb = partial(_internal_cache_evict, key)
+            ours.add_done_callback(cb)
 
             c = coro(*args, **kwargs)
             a_fut = asyncio.ensure_future(c)
@@ -150,6 +156,7 @@ def lrucorocache(
     maxsize: int = 1024,
     *,
     cache_transform: CacheTransformer | None = None,
+    evict_on_exception: bool = False,
 ) -> CoroCacheDeco:
     """Cache the results of the decorated coroutine.
 
@@ -179,6 +186,10 @@ def lrucorocache(
     cache_transform: CacheTransformer | None
         An optional callable that transforms args and kwargs used
         as a cache key.
+    evict_on_exception: bool
+        When True, exceptions are not cached *after being raised*.
+        multiple callers prior to the completion will still recieve the
+        same exception.
 
     Returns
     -------
@@ -195,8 +206,10 @@ def lrucorocache(
         internal_cache: LRU[t.Hashable, cf.Future[R]] = LRU(maxsize)
         internal_taskset: set[asyncio.Task[R]] = set()
 
-        def _internal_cache_evict(key: t.Hashable, _ignored_task: object) -> None:
-            if ttl is not None:
+        def _internal_cache_evict(key: t.Hashable, task: cf.Future[R]) -> None:
+            if evict_on_exception and (task.cancelled() or task.exception() is not None):
+                internal_cache.remove(key)
+            elif ttl is not None:
                 loop = asyncio.get_running_loop()
                 loop.call_later(ttl, internal_cache.remove, key)
 
@@ -210,9 +223,8 @@ def lrucorocache(
             if cached is not ours:
                 return await asyncio.wrap_future(cached)
 
-            if ttl is not None:
-                cb = partial(_internal_cache_evict, key)
-                ours.add_done_callback(cb)
+            cb = partial(_internal_cache_evict, key)
+            ours.add_done_callback(cb)
 
             c = coro(*args, **kwargs)
             a_fut = asyncio.ensure_future(c)
