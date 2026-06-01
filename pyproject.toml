@@ -143,9 +143,9 @@ line-ending = "lf"
 select = [
     "A", "ANN", "ASYNC", "B", "BLE", "C4", "COM", "DTZ", "E",
     "EM", "ERA", "F", "FA", "FBT", "FURB", "G", "I", "ICN", "INP", "ISC", "LOG", "NPY",
-    "PD", "PERF", "PGH", "PIE", "PLC", "PLE", "PLR", "PLW", "PTH", "PYI",
+    "PD", "PERF", "PGH", "PIE", "PLC", "PLE", "PTH", "PYI",
     "Q", "Q003", "RET", "RSE", "RUF", "S", "SIM", "SLOT", "T20", "TC", "TID",
-    "TRY", "UP", "W", "YTT"
+    "TRY", "UP", "W", "YTT",
 ]
 
 typing-modules = ["async_utils._typings"]
@@ -168,11 +168,6 @@ ignore = [
     "ISC001", # ruff format suggested
     "PLC0105",  # no, I don't like co naming style for typevars
     "PLC0415", # ruff gets this wrong, import needs to be not at top of file in some cases
-    "PLR0912", # too many branches
-    "PLR0913", # number of function arguments
-    "PLR0915",  # too many statements.... in an async entrypoint handling graceful shutdown...
-    "PLR0917",  # too many positional arguments
-    "PLR2004",  # Magic value comparison, may remove later
     "RUF001",  # ambiguous characters not something I want to enforce here.
     "RUF029",  # no, don't try andd tell me I'm wrong for async def when something is for an interface.
     "S101",  # use of assert here is a known quantity, blame typing memes
@@ -186,8 +181,6 @@ ignore = [
     # As PYI058 modifies return values to be more narrow than they actually are
     "PYI058", # This opinionated "fix" causes incompatabilties with things expecting a generator.
     "RUF067", # opinionated, unhelpful, no clue who would even propose such.
-    "PLR1702", # opinionated complexity
-    "PLR0914", # opinionated, too many locals
     "UP046", # new generic syntax implicitly imports typing, not okay.
 ]
 unfixable = [
