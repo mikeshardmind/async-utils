@@ -36,7 +36,7 @@ def ensure_annotations[T: type | FunctionType](f: T) -> T:
     without the annotations future in effect
     """
     # Prevents a cyclic compile issue
-    global _cycle_blocked  # noqa: PLW0603
+    global _cycle_blocked
     if _cycle_blocked:
         return f
 
