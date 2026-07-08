@@ -109,6 +109,11 @@ class DepSorter(t.Generic[HashAndCompareT]):
 
     If a cycle is detected at iteration, the internal nodelist
     will be purged, and an exception raised.
+
+    This should not be iterated from multiple threads.
+
+    This should not be reused.
+    If you need the resulting order multiple times, store it yourself.
     """
 
     def __init_subclass__(cls) -> t.Never:
@@ -213,3 +218,8 @@ class DepSorter(t.Generic[HashAndCompareT]):
                 dep_info.ndependencies -= 1
                 if not dep_info.ndependencies:
                     heapq.heappush(ready, (dep, dep_info))
+
+        for i in self._nodemap.values():
+            del i.dependants
+            del i.node
+        self._nodemap.clear()
