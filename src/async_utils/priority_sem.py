@@ -79,15 +79,17 @@ def priority_context(priority: int, /) -> t.Generator[None, None, None]:
     are part of the same context is application-specific behavior
 
     Starting in python 3.14, you can force the behavior that will become the
-    default because it's believed to be better
-    with the startup option `-X thread_inherit_context=1`
+    default in the future with `-X thread_inherit_context=1`
 
-    This is already the default behavior with the free-threading build,
-    and the behavior of contextvars with threads on
-    the GIL-enabled build is largely agreed to be a mistake.
+    This is already the default behavior with the free-threading build.
 
-    Prior to this version of python, you can ensure that the context is
-    set in each thread. (You are likely already doing this if using
+    However, this is a breaking change that diverges from documented behavior.
+    Setting this may break other libraries.
+
+    Without needing to care about the above, You can ensure that the context
+    is consistently as you expect by using this context manager after any
+    thread spawning. set in each thread.
+    (You are likely already doing this if using
     this context manager for the kinds of situations it was made for.)
 
     Parameters
