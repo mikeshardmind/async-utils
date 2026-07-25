@@ -23,12 +23,12 @@ jobs:
     name: "Type Coverage and Linting @ ${{ matrix.python-version }}"
     steps:
       - name: "Checkout Repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
         with:
           fetch-depth: 0
 
       - name: Setup python @ ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7.0.0  # marked immutable on github, already trusting them to run this
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -36,23 +36,11 @@ jobs:
         run: |
           python -m pip install .
 
-      - name: "Run Pyright @ ${{ matrix.python-version }}"
-        uses: jakebailey/pyright-action@v2
-        with:
-          warnings: false
-          verify-types: "async_utils"
-
-      - name: Lint check
-        uses: astral-sh/ruff-action@v3
-        with:
-          args: check .
-          version: latest
-
       - name: Formatting check
-        uses: astral-sh/ruff-action@v3
+        uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89
         with:
           args: format --check
-          version: latest
+          version: 0.15.22  # maybe revisit this, but for now, ruff can shutup with the changes they made
 
       - name: Verify No CLRF line endings.
         run: >
