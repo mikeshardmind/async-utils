@@ -75,6 +75,20 @@ class _PriorityWaiter:
 def priority_context(priority: int, /) -> t.Generator[None, None, None]:
     """Set the priority for all PrioritySemaphore use in this context.
 
+    Note: Whether or not threads spawned within a context
+    are part of the same context is application-specific behavior
+
+    Starting in python 3.14, you can force the expected behavior
+    with the startup option `-X thread_inherit_context=1`
+
+    This is the default behavior with free-threading,
+    and the behavior of contextvars with threads on
+    the GIL-enabled build is largely agreed to be a mistake.
+
+    Prior to this version of python, you can ensure that the context is
+    set in each thread. (You are likely already doing this if using
+    this context manager for the kinds of situations it was made for.)
+
     Parameters
     ----------
     priority: int
