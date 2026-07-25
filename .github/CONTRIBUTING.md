@@ -5,4 +5,4 @@
 2. All code contributions from non-members should be discussed in advance. Please do not open a pull request without having done this.
 3. Pull requests should have a limited scope to what they intend to accomplish.
 4. No AI, LLM, (etc) generated code. This includes using copilot, cursor, or anything else of it's ilk in your IDE to complete code snippets.
-5. No LLM generated issue content. Machine translation of your own writing is fine, but please make it clear that you used it if so.
+5. No LLM generated issue content.
