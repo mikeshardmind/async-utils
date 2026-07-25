@@ -78,10 +78,11 @@ def priority_context(priority: int, /) -> t.Generator[None, None, None]:
     Note: Whether or not threads spawned within a context
     are part of the same context is application-specific behavior
 
-    Starting in python 3.14, you can force the expected behavior
+    Starting in python 3.14, you can force the behavior that will become the
+    default because it's believed to be better
     with the startup option `-X thread_inherit_context=1`
 
-    This is the default behavior with free-threading,
+    This is already the default behavior with the free-threading build,
     and the behavior of contextvars with threads on
     the GIL-enabled build is largely agreed to be a mistake.
 
