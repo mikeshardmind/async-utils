@@ -108,8 +108,9 @@ class PrioritySemaphore:
     """A Semaphore with priority-based aquisition ordering.
 
     Provides a semaphore with similar semantics as asyncio.Semaphore,
-    but using an underlying priority. Priority is shared within a context
-    manager's logical scope, but the context is safely reentrant.
+    but using an underlying priority. Priority is shared across all priority semaphores
+    within the associated context manager's logical scope,
+    and the context is safely reentrant.
 
     This can be safely shared across multiple asyncio event loops in
     multiple threads.
