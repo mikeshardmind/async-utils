@@ -11,7 +11,7 @@ __title__ = "async_utils"
 __author__ = "Michael Hall"
 __license__ = "Apache-2.0"
 __copyright__ = "Copyright 2020-Present Michael Hall"
-__version__ = "2026.5.3"
+__version__ = "2026.8.14"
 
 import os
 import sys
@@ -21,9 +21,9 @@ _vi = sys.version_info
 # - Check use of concurrent.futures.Future before extending this version.
 # - update `_misc._ensure_annotations.py` before extending this version.
 # - ensure `task_cache.__WrappedSignature` still works
-if (_vi.major, _vi.minor) > (3, 14):
+if (_vi.major, _vi.minor) > (3, 15):
     msg: str = (
-        "This library is not tested for use on python versions above 3.14."
+        "This library is not tested for use on python versions above 3.15."
         "\nThis library relies on a few internal details that are not "
         "safe to rely upon without checking for changes to internals "
         "consistently."

@@ -81,7 +81,7 @@ P = t.ParamSpec("P")
 class _WrappedSignature(t.Generic[P, R]):
     #: PYUPGRADE: Ensure inspect.signature still accepts this
     # as func.__signature__
-    # Known working: py 3.12.0 - py3.14rc1 range inclusive
+    # Known working: py 3.12.0 - py3.15rc1 range inclusive
 
     def __init__(self, f: TaskCoroFunc[P, R], w: TaskFunc[P, R]) -> None:
         self._f: t.Callable[..., t.Any] = f  # anotation needed for inspect use below....
@@ -206,7 +206,7 @@ def taskcache(
 
             return a_fut
 
-        # PYUPGRADE: 3.15.0 recheck (last checked 3.14.3)
+        # PYUPGRADE: 3.16.0 recheck (last checked 3.15.0rc1)
         wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # type: ignore[attr-defined]
 
         return wrapped
@@ -300,7 +300,7 @@ def lrutaskcache(
 
             return a_fut
 
-        # PYUPGRADE: 3.15.0 recheck (last checked 3.14.3)
+        # PYUPGRADE: 3.16.0 recheck (last checked 3.15.0rc1)
         wrapped.__signature__ = _WrappedSignature(coro, wrapped)  # type: ignore[attr-defined]
 
         return wrapped
