@@ -113,8 +113,8 @@ def merge_gens[T](
     based on the exception_behavior parameter.
 
     raise: Reraised interrupting further iteration, after yielding the values that are already available.
-    delay: Exceptions are stored, and raised after all generators are other generators are exhausted or also in an error state
-    suppress: Exceptions are supressed
+    delay: Exceptions areraised after all generators are exhausted or in an error state.
+    suppress: Exceptions are supressed.
 
     The behavior above only applies to exceptions raised by the generators,
     not the entire context if used as a context manager.
@@ -142,7 +142,7 @@ def batch_merge_gens[T](
     based on the exception_behavior parameter.
 
     raise: Reraised interrupting further iteration, after yielding the values that are already available.
-    delay: Exceptions are stored, and raised after all generators are other generators are exhausted or also in an error state
+    delay: Exceptions areraised after all generators are exhausted or in an error state.
     suppress: Exceptions are supressed
 
     AsyncGenerators passed into this function should not be reused.

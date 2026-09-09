@@ -40,7 +40,13 @@ jobs:
         uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89
         with:
           args: format --check
-          version: 0.15.22  # maybe revisit this, but for now, ruff can shutup with the changes they made
+          version: 0.16.6
+
+      - name: Lint check
+        uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89
+        with:
+          args: check .
+          version: 0.16.6
 
       - name: Verify No CLRF line endings.
         run: >
