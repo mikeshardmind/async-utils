@@ -23,9 +23,8 @@ from collections import deque
 
 from . import _typings as t
 
-# TODO: pick what public namespace to re-export this from.
-
-# This is one of the few things that should unreservedly be reimplemented natively.
+# This is one of the few things that should unreservedly be reimplemented
+# natively if that's something I decide to do.
 # Atomic ops allow the removal of the internal locking.
 
 # We can also do a little bit better prior to making it native by only locking
@@ -69,9 +68,6 @@ class AsyncLock:
                     self._maybe_wake()
             raise
 
-        with self._internal_lock:
-            self._lockv = True
-
     def _maybe_wake(self) -> None:
         with self._internal_lock:
             while (not self._lockv) and self._waiters:
@@ -90,5 +86,63 @@ class AsyncLock:
     async def __aexit__(self, *dont_care: object) -> t.Literal[False]:
         with self._internal_lock:
             self._lockv = False
+            self._maybe_wake()
+        return False
+
+
+class AsyncSemaphore:
+    """An async semaphore that doesn't bind to an event loop."""
+
+    def __init_subclass__(cls) -> t.Never:
+        msg = "Don't subclass this"
+        raise RuntimeError(msg)
+
+    __final__ = True
+
+    def __init__(self, value: int = 1) -> None:
+        if value < 1:
+            msg = "Semaphore must have an initial value of at least 1"
+            raise ValueError(msg)
+
+        self._waiters: deque[cf.Future[None]] = deque()
+        self._value: int = value
+        self._internal_lock: threading.RLock = threading.RLock()
+
+    async def __aenter__(self) -> None:
+        with self._internal_lock:
+            if self._value > 0:
+                self._value -= 1
+                return
+
+        fut: cf.Future[None] = cf.Future()
+
+        self._waiters.append(fut)
+
+        try:
+            await asyncio.wrap_future(fut)
+        except asyncio.CancelledError:
+            with self._internal_lock:
+                if self._value > 0:
+                    self._maybe_wake()
+            raise
+
+    def _maybe_wake(self) -> None:
+        with self._internal_lock:
+            while (self._value > 0) and self._waiters:
+                next_waiter = self._waiters.popleft()
+
+                if not (next_waiter.done() or next_waiter.cancelled()):
+                    self._value -= 1
+                    next_waiter.set_result(None)
+
+            while self._waiters:
+                next_waiter = self._waiters.popleft()
+                if not (next_waiter.done() or next_waiter.cancelled()):
+                    self._waiters.appendleft(next_waiter)
+                    break
+
+    async def __aexit__(self, *dont_care: object) -> t.Literal[False]:
+        with self._internal_lock:
+            self._value += 1
             self._maybe_wake()
         return False

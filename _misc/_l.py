@@ -17,13 +17,13 @@ import random
 import time
 from contextlib import ExitStack
 
-from async_utils._simple_lock import AsyncLock  # noqa: PLC2701
+from async_utils.simple_sync import AsyncLock, AsyncSemaphore
 from async_utils.bg_loop import threaded_loop
 
 min_res = time.get_clock_info("monotonic").resolution
 
 
-async def check(lock: AsyncLock, start: int) -> tuple[int, int]:
+async def check(lock: AsyncLock | AsyncSemaphore, start: int) -> tuple[int, int]:
     async with lock:
         v = max(random.random() / 1e10, min_res)
         s = time.monotonic_ns()
@@ -33,8 +33,8 @@ async def check(lock: AsyncLock, start: int) -> tuple[int, int]:
         return (s - start, e - start)
 
 
-async def amain() -> None:
-    lock = AsyncLock()
+async def amain(use_sem: bool = False) -> None:
+    lock = AsyncSemaphore(4) if use_sem else AsyncLock()
     with ExitStack() as ex:
         loops = [ex.enter_context(threaded_loop(use_eager_task_factory=x)) for _ in range(10) for x in (True, False)]
         start = time.monotonic_ns()
@@ -43,6 +43,11 @@ async def amain() -> None:
         results.sort()
         print(*(f"{s} {e}" for s, e in results), sep="\n", flush=True)  # noqa: T201
 
+    if use_sem:
+        assert isinstance(lock, AsyncSemaphore)
+        print(lock._value)  # pyright: ignore[reportPrivateUsage]  # ruff: ignore[print]
+
 
 if __name__ == "__main__":
-    asyncio.run(amain())
+    asyncio.run(amain(use_sem=False))
+    asyncio.run(amain(use_sem=True))
